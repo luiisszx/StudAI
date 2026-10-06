@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>StudAI</title>
+  <style>
+    :root {
+      box-sizing: border-box;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      --bg: #050805;
+      --card: #0d130d;
+      --line: #1b2b1b;
+      --g: #2dff7a;
+      --g2: #14b34f;
+      --tx: #d7f5df;
+      --mu: #7f9a86;
+      --red: #ff5a6a
+    }
+
+    html {
+      scroll-padding-top: env(safe-area-inset-top, 0px)
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      background: radial-gradient(900px 400px at 80% -10%, #0e2a15 0, transparent 60%), var(--bg);
+      color: var(--tx);
+      font: 15px/1.5 "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+      min-height: 100vh
+    }
+
+    .wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 16px
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 14px
+    }
+
+    .logo {
+      font-size: 30px;
+      font-weight: 800;
+      letter-spacing: 1px
+    }
+
+    .logo b {
+      color: var(--g);
+      text-shadow: 0 0 18px #2dff7a88
+    }
+
+    .lvl {
+      min-width: 170px;
+      font-size: 12px;
+      color: var(--mu)
+    }
+
+    .bar {
+      height: 8px;
+      background: #0a1a0e;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      overflow: hidden
+    }
+
+    .bar i {
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, var(--g2), var(--g));
+      box-shadow: 0 0 10px var(--g);
+      transition: width .5s
+    }
+
+    nav {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      margin-bottom: 14px
+    }
+
+    nav button {
+      background: var(--card);
+      color: var(--mu);
+      border: 1px solid var(--line);
+      padding: 9px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      font: inherit;
+      white-space: nowrap
+    }
+
+    nav button.on {
+      color: #021207;
+      background: var(--g);
+      border-color: var(--g);
+      font-weight: 700;
+      box-shadow: 0 0 16px #2dff7a55
+    }
+
+    .grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr))
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 12px
+    }
+
+    .card h3 {
+      margin: 0 0 10px;
+      font-size: 13px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--g)
+    }
+
+    .big {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--g)
+    }
+
+    .sub {
+      color: var(--mu);
+      font-size: 12px
+    }
+
+    input,
+    select,
+    textarea {
+      background: #070d07;
+      border: 1px solid var(--line);
+      color: var(--tx);
+      padding: 9px 11px;
+      border-radius: 9px;
+      font: inherit;
+      width: 100%;
+      margin: 0
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--g);
+      box-shadow: 0 0 0 2px #2dff7a33
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 8px
+    }
+
+    .row>* {
+      flex: 1;
+      min-width: 120px
+    }
+
+    .btn {
+      background: var(--g);
+      color: #021207;
+      border: 0;
+      padding: 9px 16px;
+      border-radius: 9px;
+      font-weight: 700;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 700;
+      flex: 0 0 auto
+    }
+
+    .btn.o {
+      background: transparent;
+      color: var(--g);
+      border: 1px solid var(--g)
+    }
+
+    .btn.x {
+      background: transparent;
+      color: var(--red);
+      border: 1px solid #4a1d24;
+      padding: 4px 10px
+    }
+
+    .item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 0;
+      border-top: 1px solid var(--line)
+    }
+
+    .item:first-of-type {
+      border-top: 0
+    }
+
+    .item>.t {
+      flex: 1;
+      min-width: 0
+    }
+
+    .item.done .t b {
+      text-decoration: line-through;
+      color: var(--mu)
+    }
+
+    .tag {
+      display: inline-block;
+      font-size: 11px;
+      padding: 1px 8px;
+      border: 1px solid var(--g2);
+      color: var(--g);
+      border-radius: 20px;
+      margin-right: 6px
+    }
+
+    input[type=checkbox],
+    input[type=radio] {
+      width: auto;
+      accent-color: var(--g);
+      margin-top: 5px
+    }
+
+    .timer {
+      font: 800 56px/1 "Courier New", monospace;
+      color: var(--g);
+      text-shadow: 0 0 22px #2dff7a88;
+      text-align: center;
+      margin: 12px 0
+    }
+
+    .bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      height: 150px
+    }
+
+    .bars div {
+      flex: 1;
+      text-align: center;
+      font-size: 11px;
+      color: var(--mu);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      height: 100%
+    }
+
+    .bars span {
+      display: block;
+      background: linear-gradient(0deg, var(--g2), var(--g));
+      border-radius: 6px 6px 0 0;
+      min-height: 2px;
+      box-shadow: 0 0 10px #2dff7a55
+    }
+
+    .hb {
+      display: grid;
+      grid-template-columns: 110px 1fr 56px;
+      gap: 8px;
+      align-items: center;
+      margin: 6px 0;
+      font-size: 13px
+    }
+
+    .opt {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: #070d07;
+      color: var(--tx);
+      border: 1px solid var(--line);
+      padding: 11px;
+      border-radius: 10px;
+      margin: 6px 0;
+      cursor: pointer;
+      font: inherit
+    }
+
+    .opt:hover {
+      border-color: var(--g)
+    }
+
+    .opt.ok {
+      background: #0b3a1c;
+      border-color: var(--g)
+    }
+
+    .opt.bad {
+      background: #3a0f16;
+      border-color: var(--red)
+    }
+
+    .empty {
+      color: var(--mu);
+      text-align: center;
+      padding: 18px
+    }
+
+    .sync {
+      font-size: 11px;
+      color: var(--mu)
+    }
+
+    /* Novos estilos para matérias e cores */
+    .color-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+      border: 2px solid rgba(255, 255, 255, .15);
+      box-shadow: 0 0 6px currentColor
+    }
+
+    .color-palette {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 8px 0
+    }
+
+    .color-swatch {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform .15s, border-color .15s
+    }
+
+    .color-swatch:hover {
+      transform: scale(1.12)
+    }
+
+    .color-swatch.selected {
+      border-color: #fff;
+      box-shadow: 0 0 0 2px var(--g)
+    }
+
+    .subj-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 0;
+      border-top: 1px solid var(--line)
+    }
+
+    .subj-item:first-of-type {
+      border-top: 0
+    }
+
+    .subj-item .info {
+      flex: 1;
+      min-width: 0
+    }
+
+    .subj-item .info b {
+      display: block;
+      font-size: 15px
+    }
+
+    .subj-item .edit-row {
+      display: none;
+      gap: 6px;
+      margin-top: 6px;
+      flex-wrap: wrap
+    }
+
+    .subj-item.editing .edit-row {
+      display: flex
+    }
+
+    .subj-item.editing .view-row {
+      display: none
+    }
+
+    .stacked-bar {
+      display: flex;
+      height: 100%;
+      border-radius: 6px 6px 0 0;
+      overflow: hidden;
+      min-height: 2px
+    }
+
+    .stacked-bar span {
+      display: block;
+      height: 100%;
+      min-width: 2px
+    }
+
+    .day-colors {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3px;
+      justify-content: center;
+      margin-top: 2px
+    }
+
+    .day-colors i {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px
+    }
+
+    .legend span {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      color: var(--mu)
+    }
+
+    .inline-edit {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap
+    }
+
+    .inline-edit input[type=text],
+    .inline-edit input[type=number] {
+      width: auto;
+      min-width: 80px;
+      flex: 1
+    }
+
+    .inline-edit input[type=color] {
+      width: 36px;
+      height: 36px;
+      padding: 2px;
+      cursor: pointer;
+      border-radius: 8px
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <div class="logo">Stud<b>AI</b></div>
+        <div class="sync" id="sync">by Luís</div>
+      </div>
+      <div class="lvl">
+        <div id="lvlTxt"></div>
+        <div class="bar"><i id="xpBar"></i></div>
+      </div>
+    </header>
+    <nav id="nav"></nav>
+    <main id="main"></main>
+  </div>
+  <script>
+    const TABS = [["painel", "📊 Painel"], ["materias", "📚 Matérias"], ["metas", "🎯 Metas"], ["tempo", "⏱️ Tempo"], ["quiz", "🧠 Quiz"], ["calendario", "📅 Calendário"], ["dados", "💾 Dados"]];
+    const KEY = "studai_v2";
+    const PALETTE = ["#2dff7a", "#3b82f6", "#a855f7", "#f59e0b", "#ef4444", "#06b6d4", "#ec4899", "#84cc16", "#f97316", "#8b5cf6", "#14b8a6", "#eab308"];
+    let editEntry = null;
+    let dr = { c: "", t: "", w: "" }, dm = { c: "", m: "", d: "", t: "", w: "" };
+    let S = { subjects: [], topics: [], goals: [], sessions: [], quiz: [], results: [], logs: [] }, tab = "painel", quizState = null, tm = { run: false, start: 0, acc: 0 }, tick = null, dbDoc = null, pm = { run: false, end: 0, phase: "foco", left: 1500, f: 25, b: 5, cat: "" }, calOff = 0, calSel = null, sure = false, exportTxt = "";
+    const $ = s => document.querySelector(s), uid = () => Math.random().toString(36).slice(2, 9);
+    const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const iso = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    const today = () => iso(new Date());
+    const fmt = m => m >= 60 ? Math.floor(m / 60) + "h" + String(Math.round(m % 60)).padStart(2, "0") : Math.round(m) + "min";
+    const subjByName = n => S.subjects.find(s => s.name.toLowerCase() === (n || "").toLowerCase());
+    const subjColor = n => { const s = subjByName(n); return s ? s.color : PALETTE[0]; };
+    const cats = () => S.subjects.map(s => s.name);
+    const catList = () => `<datalist id="cats">${cats().map(c => `<option value="${esc(c)}">`).join("")}</datalist>`;
+    const nextColor = () => { const used = new Set(S.subjects.map(s => s.color)); return PALETTE.find(c => !used.has(c)) || PALETTE[S.subjects.length % PALETTE.length]; };
+
+    /* Migração de dados antigos (v1 → v2) */
+    function migrate() {
+      if (S.subjects.length) return;
+      const names = new Set();
+      [...S.topics, ...S.sessions, ...S.quiz].forEach(x => { if (x.cat) names.add(x.cat); });
+      if (!names.size && S.topics.length === 0 && S.sessions.length === 0) return;
+      let i = 0;
+      names.forEach(n => {
+        S.subjects.push({ id: uid(), name: n, color: PALETTE[i % PALETTE.length] });
+        i++;
+      });
+      if (!S.subjects.length) S.subjects.push({ id: uid(), name: "Geral", color: PALETTE[0] });
+    }
+
+    /* persistência */
+    try { const r = localStorage.getItem(KEY); if (r) S = { ...S, ...JSON.parse(r) }; } catch (e) { }
+    /* fallback v1 */
+    if (!S.subjects || !S.subjects.length) {
+      try { const old = localStorage.getItem("studai_v1"); if (old) { const o = JSON.parse(old); S = { ...S, ...o }; } } catch (e) { }
+    }
+    migrate();
+    let saveT;
+    function save() {
+      S._t = Date.now();
+      try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { }
+      clearTimeout(saveT);
+      saveT = setTimeout(async () => { if (!dbDoc) return; try { await dbDoc.set({ payload: JSON.stringify(S), t: S._t }); $("#sync").textContent = "☁ salvo na sua conta"; } catch (e) { } }, 600);
+    }
+    (async () => {
+      try {
+        const [db, user] = await Promise.all([claude.use("db"), claude.use("user")]);
+        if (!db || !user) return; const id = await user.id(); if (!id) return;
+        dbDoc = db.collection("data/users/" + id).doc("studai");
+        const snap = await dbDoc.get();
+        if (snap.exists) { const d = snap.data(); if (d && d.t > (S._t || 0)) { S = { ...S, ...JSON.parse(d.payload) }; migrate(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { } render(); } }
+        else if (S._t) { await dbDoc.set({ payload: JSON.stringify(S), t: S._t }); }
+        $("#sync").textContent = "☁ salvo na sua conta";
+      } catch (e) { }
+    })();
+
+    /* XP / nível */
+    function xp() { const m = S.sessions.reduce((a, s) => a + s.min, 0); return Math.round(m * 2 + (S.logs || []).length * 20 + S.goals.filter(g => g.done).length * 50 + S.results.reduce((a, r) => a + r.score * 10, 0)); }
+    function header() { const x = xp(), l = Math.floor(Math.sqrt(x / 50)) + 1, a = 50 * (l - 1) ** 2, b = 50 * l ** 2; $("#lvlTxt").textContent = `Nível ${l} · ${x} XP`; $("#xpBar").style.width = Math.min(100, (x - a) / (b - a) * 100) + "%"; }
+    function streak() { const d = new Set(S.sessions.map(s => s.date)); let n = 0, c = new Date(); if (!d.has(iso(c))) c.setDate(c.getDate() - 1); while (d.has(iso(c))) { n++; c.setDate(c.getDate() - 1); } return n; }
+
+    function nav() { $("#nav").innerHTML = TABS.map(([k, l]) => `<button class="${k === tab ? "on" : ""}" onclick="go('${k}')">${l}</button>`).join(""); }
+    function go(k) { tab = k; render(); }
+    function render() { S.logs = S.logs || []; nav(); header(); $("#main").innerHTML = ({ painel: vPainel, materias: vMaterias, metas: vMetas, tempo: () => vTempo() + vHist(), quiz: vQuiz, calendario: vCal, dados: vDados })[tab](); if (tab === "tempo") updTimer(); }
+    /* ========== MATÉRIAS ========== */
+    function ensureSubject(name) {
+      if (!name || !name.trim()) return null;
+      let s = subjByName(name);
+      if (!s) { s = { id: uid(), name: name.trim(), color: nextColor() }; S.subjects.push(s); save(); }
+      return s;
+    }
+    function totalTime(name) {
+      return S.sessions.filter(s => (s.cat || "Geral").toLowerCase() === (name || "").toLowerCase()).reduce((a, s) => a + s.min, 0);
+    }
+    function vMaterias() {
+      const list = S.subjects.slice().sort((a, b) => totalTime(b.name) - totalTime(a.name));
+      return `<div class="card"><h3>Nova matéria</h3>
+   <div class="row"><input id="mn" placeholder="Nome da matéria (ex: Matemática)"><div style="flex:0 0 auto"><input type="color" id="mc" value="${nextColor()}" title="Escolher cor" style="width:42px;height:42px;padding:2px;cursor:pointer;border-radius:8px;border:1px solid var(--line)"></div></div>
+   <button class="btn" onclick="addSubject()">Adicionar matéria</button></div>
+   <div class="card"><h3>Minhas matérias (${list.length})</h3>
+${list.length ? list.map(s => {
+        return `<div class="subj-item" id="subj-${s.id}">
+       <span class="color-dot" style="background:${s.color};color:${s.color}"></span>
+       <div class="info">
+         <div class="view-row"><b>${esc(s.name)}</b></div>
+         <div class="edit-row">
+           <input type="text" id="en-${s.id}" value="${esc(s.name)}" placeholder="Nome">
+           <input type="color" id="ec-${s.id}" value="${s.color}" style="width:36px;height:36px;padding:2px">
+           <input type="number" id="et-${s.id}" min="0" step="1" placeholder="Ajustar min" title="Adiciona ou remove minutos (use negativo para reduzir)" style="width:90px">
+           <button class="btn" onclick="saveSubject('${s.id}')">Salvar</button>
+           <button class="btn o" onclick="cancelEdit('${s.id}')">Cancelar</button>
+         </div>
+       </div>
+       <button class="btn o" onclick="startEdit('${s.id}')">✎</button>
+       <button class="btn x" onclick="delSubject('${s.id}')">✕</button>
+     </div>`;
+      }).join("") : `<div class="empty">Nenhuma matéria ainda. Crie a primeira!</div>`}
+  </div>`;
+    }
+    function addSubject() {
+      const n = $("#mn").value.trim(); if (!n) return;
+      if (subjByName(n)) { alert("Já existe uma matéria com esse nome."); return; }
+      S.subjects.push({ id: uid(), name: n, color: $("#mc").value || nextColor() });
+      save(); render();
+    }
+    function startEdit(id) {
+      document.querySelectorAll(".subj-item").forEach(el => el.classList.remove("editing"));
+      const el = document.getElementById("subj-" + id); if (el) el.classList.add("editing");
+    }
+    function cancelEdit(id) { const el = document.getElementById("subj-" + id); if (el) el.classList.remove("editing"); }
+    function saveSubject(id) {
+      const s = S.subjects.find(x => x.id === id); if (!s) return;
+      const newName = $("#en-" + id).value.trim();
+      const newColor = $("#ec-" + id).value;
+      const adj = parseFloat($("#et-" + id).value) || 0;
+      if (!newName) { alert("Nome não pode ficar vazio."); return; }
+      // renomear em todos os lugares
+      if (newName !== s.name) {
+        const old = s.name;
+        S.topics.forEach(t => { if ((t.cat || "") == old) t.cat = newName; });
+        S.sessions.forEach(t => { if ((t.cat || "") == old) t.cat = newName; });
+        S.quiz.forEach(t => { if ((t.cat || "") == old) t.cat = newName; });
+        (S.logs || []).forEach(t => { if ((t.cat || "") == old) t.cat = newName; });
+        s.name = newName;
+      }
+      s.color = newColor;
+      // ajuste de tempo: cria sessão positiva ou negativa
+      if (adj !== 0) {
+        S.sessions.push({ id: uid(), date: today(), min: adj, cat: s.name, note: "ajuste manual" });
+      }
+      save(); render();
+    }
+    function delSubject(id) {
+      const s = S.subjects.find(x => x.id === id); if (!s) return;
+      if (!confirm(`Apagar a matéria "${s.name}"?\nOs conteúdos e sessões continuam, mas ficam sem cor associada.`)) return;
+      S.subjects = S.subjects.filter(x => x.id !== id);
+      save(); render();
+    }
+
+    /* PAINEL */
+    function vPainel() {
+      const tot = S.sessions.reduce((a, s) => a + s.min, 0), done = S.topics.filter(t => t.done).length;
+      const hoje = S.sessions.filter(s => s.date === today()).reduce((a, s) => a + s.min, 0);
+      const hojeN = S.sessions.filter(s => s.date === today() && s.min > 0).length;
+      const estudouHoje = hojeN > 0;
+      const last = [...Array(7)].map((_, i) => {
+        const d = new Date(); d.setDate(d.getDate() - 6 + i); const k = iso(d);
+        const byCat = {};
+        S.sessions.filter(s => s.date === k).forEach(s => {
+          const c = s.cat || "Geral";
+          byCat[c] = (byCat[c] || 0) + s.min;
+        });
+        return { k, l: ["D", "S", "T", "Q", "Q", "S", "S"][d.getDay()], m: Object.values(byCat).reduce((a, v) => a + v, 0), byCat };
+      });
+      const mx = Math.max(1, ...last.map(x => x.m));
+      const byCat = {}; S.sessions.forEach(s => byCat[s.cat || "Geral"] = (byCat[s.cat || "Geral"] || 0) + s.min);
+      const cm = Math.max(1, ...Object.values(byCat));
+      const avg = S.results.length ? Math.round(S.results.reduce((a, r) => a + r.score / r.total, 0) / S.results.length * 100) : null;
+      const pts = S.results.slice(-12).map(r => r.score / r.total * 100);
+      const line = pts.length > 1 ? `<svg viewBox="0 0 300 100" style="width:100%"><polyline fill="none" stroke="#2dff7a" stroke-width="2.5" style="filter:drop-shadow(0 0 4px #2dff7a)" points="${pts.map((p, i) => `${i * 300 / (pts.length - 1)},${95 - p * .9}`).join(" ")}"/></svg>` : `<div class="empty">Faça 2+ testes para ver sua evolução</div>`;
+
+      // barras empilhadas por cor
+      const barsHtml = last.map(x => {
+        const tl = `<small style="display:block;font-size:10px;color:var(--mu)">${x.m ? fmt(x.m) : "—"}</small>`;
+        if (!x.m) return `<div title="0"><div class="stacked-bar" style="height:2px;background:#1b2b1b"></div>${x.l}${tl}</div>`;
+        const segs = Object.entries(x.byCat).sort((a, b) => b[1] - a[1]).map(([c, m]) => {
+          const pct = (m / x.m) * 100;
+          return `<span style="width:${pct}%;background:${subjColor(c)};box-shadow:0 0 6px ${subjColor(c)}55" title="${esc(c)}: ${fmt(m)}"></span>`;
+        }).join("");
+        return `<div title="${fmt(x.m)}"><div class="stacked-bar" style="height:${Math.max(4, x.m / mx * 100)}%">${segs}</div>${x.l}${tl}</div>`;
+      }).join("");
+
+      return `<div class="grid">
+   <div class="card"><h3>Hoje</h3><div class="big">${fmt(hoje)}</div><div class="sub">${hojeN} ${hojeN === 1 ? "sessão" : "sessões"} hoje</div></div>
+   <div class="card"><h3>Sequência</h3><div class="big" style="${estudouHoje ? "" : "filter:grayscale(1);opacity:.5"}">🔥 ${streak()}</div><div class="sub">${estudouHoje ? "dias seguidos estudando" : "estude hoje para acender a sequência"}</div></div>
+   <div class="card"><h3>Tópicos</h3><div class="big">${S.logs.length}</div><div class="sub">estudados</div></div>
+  </div>
+    <div class="card"><h3>Últimos 7 dias (por matéria)</h3>
+   <div class="bars" style="height:175px">${barsHtml}</div>
+   <div class="legend" style="margin-top:12px">${S.subjects.map(s => `<span><i class="color-dot" style="background:${s.color}"></i>${esc(s.name)}</span>`).join("")}</div>
+  </div>
+  <div class="grid">
+   <div class="card"><h3>Tempo por matéria</h3>${Object.keys(byCat).length ? Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([c, m]) => `<div class="hb"><span style="display:flex;align-items:center;gap:6px"><i class="color-dot" style="background:${subjColor(c)}"></i>${esc(c)}</span><div class="bar"><i style="width:${m / cm * 100}%;background:${subjColor(c)}"></i></div><span>${fmt(m)}</span></div>`).join("") : `<div class="empty">Nenhuma sessão ainda</div>`}</div>
+   <div class="card"><h3>Evolução nos testes (%)</h3>${line}</div>
+  </div>`;
+    }
+
+    function tog(k, id) { const o = S[k].find(x => x.id === id); o.done = !o.done; save(); render(); }
+    function del(k, id) { S[k] = S[k].filter(x => x.id !== id); save(); render(); }
+
+    /* TÓPICOS ESTUDADOS */
+    function entries() {
+      const used = new Set(), out = [];
+      S.logs.forEach(l => {
+        let s = l.sid ? S.sessions.find(x => x.id === l.sid) : null;
+        if (!s) s = S.sessions.find(x => !used.has(x.id) && !S.logs.some(o => o.sid === x.id) && x.date === l.date && (x.cat || "Geral") === (l.cat || "Geral"));
+        if (s) used.add(s.id);
+        out.push({ key: l.id, log: l, sess: s || null, date: l.date, cat: l.cat || (s && s.cat) || "Geral" });
+      });
+      S.sessions.forEach(s => { if (!used.has(s.id)) out.push({ key: s.id, log: null, sess: s, date: s.date, cat: s.cat || "Geral" }); });
+      return out.reverse().sort((a, b) => b.date.localeCompare(a.date));
+    }
+    function vHist() {
+      const all = entries(), shown = all.slice(0, 30);
+      let lastD = "";
+      const body = shown.map(e => {
+        const head = e.date !== lastD ? (lastD = e.date, `<div class="sub" style="margin:14px 0 2px;letter-spacing:1px">${e.date === today() ? "HOJE" : e.date.split("-").reverse().join("/")}</div>`) : "";
+        const col = subjColor(e.cat);
+        if (e.key === editEntry) {
+          return head + `<div class="item"><div class="t">
+        <div class="row"><input id="eh-c" list="cats" value="${esc(e.cat)}" placeholder="Matéria">${e.sess ? `<input id="eh-m" type="number" step="any" value="${e.sess.min}" placeholder="Minutos">` : ""}<input id="eh-d" type="date" value="${e.date}"></div>
+        ${e.log ? `<div class="row"><input id="eh-t" value="${esc(e.log.topic)}" placeholder="Tópico *"></div><textarea id="eh-w" rows="3" placeholder="O que você estudou? *" style="margin-bottom:8px">${esc(e.log.what)}</textarea>` : ""}
+        <button class="btn" onclick="saveEntry('${e.key}')">Salvar</button> <button class="btn o" onclick="editEntry=null;render()">Cancelar</button>
+      </div></div>`;
+        }
+        return head + `<div class="item"><div class="t">
+        <b style="color:${col}">${esc(e.cat)}</b> ${e.sess ? `<span class="tag" style="border-color:${col};color:#fff">${fmt(e.sess.min)}</span>` : ""}
+        ${e.log ? `<div style="margin-top:2px"><b>${esc(e.log.topic)}</b></div><div style="margin-top:2px;white-space:pre-wrap">${esc(e.log.what)}</div>` : ""}
+      </div><button class="btn o" onclick="editEntry='${e.key}';render()">✎</button><button class="btn x" onclick="delEntry('${e.key}')">✕</button></div>`;
+      }).join("");
+      return `<div class="card"><h3>Histórico de estudos (${all.length})</h3>${catList()}${body || `<div class="empty">Nenhum estudo registrado ainda.</div>`}${all.length > 30 ? `<div class="sub" style="margin-top:10px">Mostrando os 30 mais recentes.</div>` : ""}</div>`;
+    }
+
+    /* METAS */
+    function vMetas() {
+      return `<div class="card"><h3>Nova meta</h3><div class="row"><input id="gt" placeholder="Ex: Terminar capítulo 5"><input id="gd" type="date"><input id="gh" type="number" min="0" step="0.5" placeholder="Horas alvo (opcional)"></div><button class="btn" onclick="addGoal()">Criar meta</button></div>
+  <div class="card">${S.goals.length ? S.goals.map(g => { const h = g.hours ? Math.min(100, S.sessions.filter(s => s.date >= g.created).reduce((a, s) => a + s.min, 0) / 60 / g.hours * 100) : null; return `<div class="item ${g.done ? "done" : ""}"><input type="checkbox" ${g.done ? "checked" : ""} onchange="tog('goals','${g.id}')"><div class="t"><b>${esc(g.text)}</b><br><span class="sub">${g.due ? "Prazo: " + g.due.split("-").reverse().join("/") : "Sem prazo"}${g.due && !g.done && g.due < today() ? ' · <span style="color:var(--red)">atrasada</span>' : ""}</span>${h !== null ? `<div class="bar" style="margin-top:6px"><i style="width:${h}%"></i></div><div class="sub">${Math.round(h)}% das ${g.hours}h</div>` : ""}</div><button class="btn x" onclick="del('goals','${g.id}')">✕</button></div>` }).join("") : `<div class="empty">Defina metas e ganhe 50 XP ao cumprir cada uma 🎯</div>`}</div>`;
+    }
+    function addGoal() { const t = $("#gt").value.trim(); if (!t) return; S.goals.push({ id: uid(), text: t, due: $("#gd").value, hours: +$("#gh").value || 0, done: false, created: today() }); save(); render(); }
+
+    /* TEMPO */
+    function elapsed() { return tm.acc + (tm.run ? (Date.now() - tm.start) / 60000 : 0); }
+    function updTimer() { const e = $("#tmr"); if (!e) return; const s = Math.floor(elapsed() * 60); e.textContent = [Math.floor(s / 3600), Math.floor(s % 3600 / 60), s % 60].map(n => String(n).padStart(2, "0")).join(":"); }
+    function vTempo() {
+      if (!tick) tick = setInterval(() => { if (tab === "tempo") updTimer(); }, 500);
+      return `<div class="card"><h3>Cronômetro de estudo</h3>${catList()}<div class="timer" id="tmr">00:00:00</div>
+  <div class="row"><button class="btn" onclick="tmToggle()">${tm.run ? "⏸ Pausar" : "▶ Iniciar"}</button><button class="btn o" onclick="tmStop()">✔ Finalizar e salvar</button></div>
+  <div class="row"><input id="sc" list="cats" placeholder="Matéria *" value="${esc(dr.c)}" oninput="dr.c=this.value"><input id="st" placeholder="Tópico aprendido *" value="${esc(dr.t)}" oninput="dr.t=this.value"></div>
+  <textarea id="sw" rows="3" placeholder="O que você estudou desse tópico? *" oninput="dr.w=this.value" style="margin-bottom:8px">${esc(dr.w)}</textarea>
+  <div class="sub">* obrigatórios para finalizar e salvar o tempo</div></div>
+  <div class="card"><h3>Adicionar manualmente</h3>
+  <div class="row"><input id="mc" list="cats" placeholder="Matéria *" value="${esc(dm.c)}" oninput="dm.c=this.value"><input id="mm" type="number" min="1" placeholder="Minutos *" value="${esc(dm.m)}" oninput="dm.m=this.value"><input id="md" type="date" value="${dm.d || today()}" oninput="dm.d=this.value"></div>
+  <div class="row"><input id="mt" placeholder="Tópico aprendido *" value="${esc(dm.t)}" oninput="dm.t=this.value"></div>
+  <textarea id="mw" rows="2" placeholder="O que você estudou desse tópico? *" oninput="dm.w=this.value" style="margin-bottom:8px">${esc(dm.w)}</textarea>
+  <button class="btn" onclick="addSess()">Registrar</button></div>`;
+    }
+
+    function reqFields(pairs) {
+      let ok = true;
+      pairs.forEach(([id, v]) => { const e = $("#" + id); if (e) e.style.borderColor = v ? "" : "var(--red)"; if (!v) ok = false; });
+      if (!ok) alert("Preencha a matéria, o tópico aprendido e o que você estudou para salvar o tempo.");
+      return ok;
+    }
+    function tmToggle() { if (tm.run) { tm.acc = elapsed(); tm.run = false; } else { tm.start = Date.now(); tm.run = true; } render(); }
+    function tmStop() {
+      const m = elapsed(); if (m < 0.1) return;
+      const c = $("#sc").value.trim(), t = $("#st").value.trim(), w = $("#sw").value.trim();
+      if (!reqFields([["sc", c], ["st", t], ["sw", w]])) return;
+      ensureSubject(c);
+      const sid = uid();
+      S.sessions.push({ id: sid, date: today(), min: +m.toFixed(1), cat: c });
+      S.logs.push({ id: uid(), sid, topic: t, what: w, cat: c, date: today() });
+      tm = { run: false, start: 0, acc: 0 }; dr = { c: "", t: "", w: "" };
+      save(); render();
+    }
+    function addSess() {
+      const m = +$("#mm").value, c = $("#mc").value.trim(), t = $("#mt").value.trim(), w = $("#mw").value.trim();
+      const d = $("#md").value || today();
+      if (!reqFields([["mc", c], ["mm", m], ["mt", t], ["mw", w]])) return;
+      ensureSubject(c);
+      const sid = uid();
+      S.sessions.push({ id: sid, date: d, min: m, cat: c });
+      S.logs.push({ id: uid(), sid, topic: t, what: w, cat: c, date: d });
+      dm = { c: "", m: "", d: "", t: "", w: "" };
+      save(); render();
+    }
+
+    function saveEntry(key) {
+      const e = entries().find(x => x.key === key); if (!e) return;
+      const c = $("#eh-c").value.trim() || "Geral", d = $("#eh-d").value || e.date;
+      let m, t, w;
+      if (e.sess) { m = parseFloat($("#eh-m").value); if (!m) { alert("Informe os minutos."); return; } }
+      if (e.log) { t = $("#eh-t").value.trim(); w = $("#eh-w").value.trim(); if (!t || !w) { alert("Preencha o tópico e o que você estudou dele."); return; } }
+      ensureSubject(c);
+      if (e.sess) { e.sess.cat = c; e.sess.min = m; e.sess.date = d; }
+      if (e.log) { e.log.cat = c; e.log.date = d; e.log.topic = t; e.log.what = w; if (e.sess) e.log.sid = e.sess.id; }
+      editEntry = null; save(); render();
+    }
+    function delEntry(key) {
+      const e = entries().find(x => x.key === key); if (!e) return;
+      if (!confirm("Apagar este registro de estudo?")) return;
+      if (e.sess) S.sessions = S.sessions.filter(x => x.id !== e.sess.id);
+      if (e.log) S.logs = S.logs.filter(x => x.id !== e.log.id);
+      save(); render();
+    }
+
+    /* CALENDÁRIO */
+    function vCal() {
+      const b = new Date(); b.setDate(1); b.setMonth(b.getMonth() + calOff); const y = b.getFullYear(), mo = b.getMonth(), n = new Date(y, mo + 1, 0).getDate(), off = b.getDay();
+      const key = d => y + "-" + String(mo + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+      const mins = k => S.sessions.filter(s => s.date === k).reduce((a, s) => a + s.min, 0);
+      const catsOf = k => {
+        const map = {};
+        S.sessions.filter(s => s.date === k).forEach(s => { map[s.cat || "Geral"] = (map[s.cat || "Geral"] || 0) + s.min; });
+        return Object.keys(map);
+      };
+      const mx = Math.max(30, ...[...Array(n)].map((_, i) => mins(key(i + 1))));
+      let cells = ""; for (let i = 0; i < off; i++)cells += "<div></div>";
+      for (let d = 1; d <= n; d++) {
+        const k = key(d), m = mins(k), a = m ? .25 + m / mx * .75 : 0, gd = S.goals.some(g => g.due === k && !g.done);
+        const colors = catsOf(k);
+        const dots = colors.length ? `<div class="day-colors">${colors.slice(0, 4).map(c => `<i style="background:${subjColor(c)}" title="${esc(c)}"></i>`).join("")}${colors.length > 4 ? "<i style='background:#666;font-size:7px'>+</i>" : ""}</div>` : "";
+        cells += `<button onclick="calSel='${k}';render()" style="aspect-ratio:1;border-radius:9px;border:1px solid ${k === calSel ? "var(--g)" : k === today() ? "var(--g2)" : "var(--line)"};background:rgba(45,255,122,${(a * .5).toFixed(2)});color:var(--tx);cursor:pointer;font:inherit;font-size:13px;position:relative;padding:2px;display:flex;flex-direction:column;align-items:center;justify-content:center">${d}${gd ? '<span style="position:absolute;top:1px;right:3px;font-size:9px">🎯</span>' : ""}${m ? `<div style="font-size:9px;color:var(--g)">${fmt(m)}</div>` : ""}${dots}</button>`;
+      }
+      let det = ""; if (calSel) {
+        const ss = S.sessions.filter(s => s.date === calSel), tp = S.logs.filter(t => t.date === calSel), gl = S.goals.filter(g => g.due === calSel);
+        det = `<div class="card"><h3>${calSel.split("-").reverse().join("/")}</h3>
+      ${ss.map(s => `<div style="display:flex;align-items:center;gap:8px;margin:4px 0"><i class="color-dot" style="background:${subjColor(s.cat)}"></i>⏱️ <b>${fmt(s.min)}</b> <span class="tag" style="border-color:${subjColor(s.cat)};color:${subjColor(s.cat)}">${esc(s.cat || "Geral")}</span></div>`).join("")}
+      ${tp.map(t => `<div>📚 ${esc(t.topic)}</div>`).join("")}
+      ${gl.map(g => `<div>🎯 Meta: ${esc(g.text)}${g.done ? " ✔" : ""}</div>`).join("")}
+      ${ss.length + tp.length + gl.length ? "" : '<div class="empty">Nada registrado neste dia</div>'}
+    </div>`;
+      }
+      
+      return `<div class="card"><div class="row" style="align-items:center;flex-wrap:nowrap"><button class="btn o" onclick="calOff--;calSel=null;render()">←</button><h3 style="text-align:center;margin:0;flex:3">${b.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}</h3><button class="btn o" onclick="calOff++;calSel=null;render()">→</button></div>
+  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:10px">${["D", "S", "T", "Q", "Q", "S", "S"].map(x => `<div class="sub" style="text-align:center">${x}</div>`).join("")}${cells}</div>
+  <div class="sub" style="margin-top:8px">Quanto mais verde, mais você estudou. Bolinhas = matérias do dia. 🎯 = meta com prazo.</div>
+  <div class="legend">${S.subjects.map(s => `<span><i class="color-dot" style="background:${s.color}"></i>${esc(s.name)}</span>`).join("")}</div>
+  </div>${det}`;
+    }
+
+    /* DADOS */
+    function vDados() {
+      return `<div class="card"><h3>Exportar</h3><p class="sub">Baixe uma cópia dos seus dados quando quiser.</p><div class="row"><button class="btn" onclick="exp('json')">⬇ Backup completo</button><button class="btn o" onclick="exp('csv')">⬇ Sessões</button><button class="btn o" onclick="exp('md')">⬇ Resumo</button></div></div>
+  ${exportTxt ? `<div class="card"><h3>Copie o conteúdo</h3><textarea rows="8" readonly onclick="this.select()">${esc(exportTxt)}</textarea></div>` : ""}
+  <div class="card"><h3>Importar backup</h3><input type="file" accept=".json,application/json" onchange="imp(this.files[0])"><div class="sub" id="impMsg" style="margin-top:6px">Substitui os dados atuais pelo conteúdo do backup.</div></div>
+  <div class="card"><h3>Zona de perigo</h3><button class="btn x" onclick="wipe()">${sure ? "Clique de novo para confirmar" : "Apagar todos os dados"}</button></div>`;
+    }
+    async function exp(t) {
+      const d = today(); let name, data;
+      if (t === "json") { name = "studai-backup-" + d + ".json"; data = JSON.stringify(S, null, 2); }
+      else if (t === "csv") { name = "studai-sessoes-" + d + ".csv"; data = "data,minutos,categoria\n" + S.sessions.map(s => [s.date, s.min, '"' + (s.cat || "").replace(/"/g, '""') + '"'].join(",")).join("\n"); }
+      else { name = "studai-resumo-" + d + ".md"; data = "# StudAI - resumo (" + d + ")\n\n- Tempo total: " + fmt(S.sessions.reduce((a, s) => a + s.min, 0)) + "\n- Conteúdos concluídos: " + S.topics.filter(t => t.done).length + "/" + S.topics.length + "\n- Testes feitos: " + S.results.length + "\n\n## Matérias\n" + S.subjects.map(s => "- " + s.name + " (" + fmt(totalTime(s.name)) + ")").join("\n") + "\n\n## Conteúdos\n" + S.topics.map(t => "- [" + (t.done ? "x" : " ") + "] " + t.title + " (" + (t.cat || "Geral") + ", " + t.date + ")").join("\n") + "\n\n## Metas\n" + S.goals.map(g => "- [" + (g.done ? "x" : " ") + "] " + g.text + (g.due ? " (até " + g.due + ")" : "")).join("\n"); }
+      try { const dl = await claude.use("downloads"); if (dl) { await dl.save({ filename: name, data }); return; } } catch (e) { if (e && e.code === "cancelled") return; }
+      exportTxt = data; render();
+    }
+    function imp(f) { if (!f) return; const r = new FileReader(); r.onload = () => { try { const d = JSON.parse(r.result); if (!d.topics || !d.sessions) throw 0; S = { subjects: [], topics: [], goals: [], sessions: [], quiz: [], results: [], ...d }; migrate(); save(); render(); $("#impMsg").textContent = "✔ Backup importado!"; } catch (e) { $("#impMsg").textContent = "Arquivo inválido."; } }; r.readAsText(f); }
+    function wipe() { if (!sure) { sure = true; render(); return; } sure = false; S = { subjects: [], topics: [], goals: [], sessions: [], quiz: [], results: [], logs: [] }; save(); render(); }
+
+    /* QUIZ */
+    function vQuiz() {
+      if (quizState && quizState.fin) return `<div class="card" style="text-align:center"><h3>Resultado</h3><div class="big">${quizState.score}/${quizState.qs.length}</div><p>${quizState.score === quizState.qs.length ? "Perfeito! 🏆" : quizState.score / quizState.qs.length >= .6 ? "Bom trabalho! 💪" : "Continue revisando, você chega lá 📈"}</p><button class="btn" onclick="quizState=null;render()">Voltar</button></div>`;
+      if (quizState) {
+        const q = quizState.qs[quizState.i], a = quizState.ans;
+        return `<div class="card"><h3>Pergunta ${quizState.i + 1} de ${quizState.qs.length}</h3><div class="bar" style="margin-bottom:12px"><i style="width:${quizState.i / quizState.qs.length * 100}%"></i></div><p style="font-size:18px"><b>${esc(q.q)}</b></p>${q.opts.map((o, i) => `<button class="opt ${a !== null ? (i === q.ans ? "ok" : i === a ? "bad" : "") : ""}" ${a !== null ? "disabled" : ""} onclick="answer(${i})">${esc(o)}</button>`).join("")}${a !== null ? `<button class="btn" style="margin-top:10px" onclick="nextQ()">${quizState.i + 1 < quizState.qs.length ? "Próxima →" : "Ver resultado"}</button>` : ""}</div>`;
+      }
+      return `<div class="card"><h3>Fazer um teste</h3>${S.quiz.length ? `<div class="row"><select id="qf"><option value="">Todas as matérias</option>${[...new Set(S.quiz.map(q => q.cat).filter(Boolean))].map(c => `<option>${esc(c)}</option>`).join("")}</select><button class="btn" onclick="startQuiz()">Começar</button></div>` : `<div class="empty">Crie perguntas abaixo (ou carregue exemplos) para se testar</div>`}
+  ${due().length ? `<div class="row"><button class="btn" onclick="startQuiz('rev')">🔁 Revisão do dia (${due().length})</button></div><div class="sub" style="margin-bottom:8px">Repetição espaçada: o que você erra volta logo, o que acerta volta cada vez mais espaçado.</div>` : ""}<button class="btn o" onclick="samples()">+ Carregar 3 perguntas de exemplo</button></div>
+  <div class="card"><h3>Nova pergunta</h3>${catList()}<div class="row"><input id="qq" placeholder="Pergunta"><input id="qc" list="cats" placeholder="Matéria"></div>
+  ${[0, 1, 2, 3].map(i => `<div class="row" style="flex-wrap:nowrap;align-items:center"><input type="radio" name="cr" value="${i}" ${i === 0 ? "checked" : ""} style="flex:0"><input id="qo${i}" placeholder="Alternativa ${i + 1}${i === 0 ? " (marque a correta ao lado)" : ""}"></div>`).join("")}
+  <button class="btn" onclick="addQ()">Salvar pergunta</button></div>
+  <div class="card"><h3>Banco de perguntas (${S.quiz.length})</h3>${S.quiz.map(q => `<div class="item"><div class="t"><b>${esc(q.q)}</b><br><span class="tag" style="border-color:${subjColor(q.cat)};color:${subjColor(q.cat)}">${esc(q.cat || "Geral")}</span><span class="sub">✔ ${esc(q.opts[q.ans])}${q.due ? " · revisão " + q.due.split("-").reverse().join("/") : ""}</span></div><button class="btn x" onclick="del('quiz','${q.id}')">✕</button></div>`).join("") || `<div class="empty">Vazio</div>`}</div>`;
+    }
+    function addQ() { const q = $("#qq").value.trim(), o = [0, 1, 2, 3].map(i => $("#qo" + i).value.trim()); if (!q || o.filter(Boolean).length < 2) return; const a = +document.querySelector("[name=cr]:checked").value; if (!o[a]) return; const idx = []; const opts = []; o.forEach((x, i) => { if (x) { if (i === a) idx.push(opts.length); opts.push(x); } }); const cat = $("#qc").value.trim(); if (cat) ensureSubject(cat); S.quiz.push({ id: uid(), q, cat, opts, ans: idx[0] }); save(); render(); }
+    function samples() { S.quiz.push({ id: uid(), q: "Qual o valor de 7 × 8?", cat: "Matemática", opts: ["54", "56", "64", "48"], ans: 1 }, { id: uid(), q: "Quem escreveu 'Dom Casmurro'?", cat: "Literatura", opts: ["José de Alencar", "Machado de Assis", "Clarice Lispector", "Graciliano Ramos"], ans: 1 }, { id: uid(), q: "Qual a capital do Brasil?", cat: "Geografia", opts: ["Rio de Janeiro", "São Paulo", "Brasília", "Salvador"], ans: 2 });["Matemática", "Literatura", "Geografia"].forEach(n => ensureSubject(n)); save(); render(); }
+    function due() { return S.quiz.filter(q => !q.due || q.due <= today()); }
+    function startQuiz(m) { const c = m === "rev" ? "" : $("#qf").value; let qs = (m === "rev" ? due() : S.quiz.filter(q => !c || q.cat === c)).map(q => { const o = q.opts.map((t, i) => ({ t, c: i === q.ans })).sort(() => Math.random() - .5); return { id: q.id, q: q.q, opts: o.map(x => x.t), ans: o.findIndex(x => x.c), cat: q.cat }; }).sort(() => Math.random() - .5); quizState = { qs, i: 0, score: 0, ans: null, cat: c }; render(); }
+    function answer(i) { const q = quizState.qs[quizState.i], ok = i === q.ans; quizState.ans = i; if (ok) quizState.score++; const o = S.quiz.find(x => x.id === q.id); if (o) { const IV = [1, 3, 7, 16]; o.box = ok ? Math.min(4, (o.box || 0) + 1) : 0; const d = new Date(); d.setDate(d.getDate() + (ok ? IV[o.box - 1] : 0)); o.due = iso(d); save(); } render(); }
+    function nextQ() { if (quizState.i + 1 < quizState.qs.length) { quizState.i++; quizState.ans = null; } else { quizState.fin = true; S.results.push({ date: today(), cat: quizState.cat, score: quizState.score, total: quizState.qs.length }); save(); } render(); }
+    render();
+  </script>
+</body>
+
+</html>
