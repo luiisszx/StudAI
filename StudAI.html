@@ -494,7 +494,9 @@
     const fmt = m => m >= 60 ? Math.floor(m / 60) + "h" + String(Math.round(m % 60)).padStart(2, "0") : Math.round(m) + "min";
     const subjByName = n => S.subjects.find(s => s.name.toLowerCase() === (n || "").toLowerCase());
     const subjColor = n => { const s = subjByName(n); return s ? s.color : PALETTE[0]; };
-    const cats = () => S.subjects.map(s => s.name);
+    const sortAlpha = (a, b) => String(a).localeCompare(String(b), "pt-BR", { sensitivity: "base" });
+    const sortedSubjects = () => S.subjects.slice().sort((a, b) => sortAlpha(a.name, b.name));
+    const cats = () => sortedSubjects().map(s => s.name);
     const catList = () => `<datalist id="cats">${cats().map(c => `<option value="${esc(c)}">`).join("")}</datalist>`;
     const nextColor = () => { const used = new Set(S.subjects.map(s => s.color)); return PALETTE.find(c => !used.has(c)) || PALETTE[S.subjects.length % PALETTE.length]; };
 
@@ -557,7 +559,7 @@
       return S.sessions.filter(s => (s.cat || "Geral").toLowerCase() === (name || "").toLowerCase()).reduce((a, s) => a + s.min, 0);
     }
     function vMaterias() {
-      const list = S.subjects.slice().sort((a, b) => totalTime(b.name) - totalTime(a.name));
+      const list = sortedSubjects();
       return `<div class="card"><h3>Nova matéria</h3>
    <div class="row"><input id="mn" placeholder="Nome da matéria (ex: Matemática)"><div style="flex:0 0 auto"><input type="color" id="mc" value="${nextColor()}" title="Escolher cor" style="width:42px;height:42px;padding:2px;cursor:pointer;border-radius:8px;border:1px solid var(--line)"></div></div>
    <button class="btn" onclick="addSubject()">Adicionar matéria</button></div>
@@ -639,6 +641,14 @@ ${list.length ? list.map(s => {
       const mx = Math.max(1, ...last.map(x => x.m));
       const byCat = {}; S.sessions.forEach(s => byCat[s.cat || "Geral"] = (byCat[s.cat || "Geral"] || 0) + s.min);
       const cm = Math.max(1, ...Object.values(byCat));
+      const DAY_L = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+      const byCatDay = {};
+      S.sessions.forEach(s => {
+        const c = s.cat || "Geral";
+        if (!byCatDay[c]) byCatDay[c] = [0, 0, 0, 0, 0, 0, 0];
+        const wd = new Date(s.date + "T12:00:00").getDay();
+        byCatDay[c][wd] += s.min;
+      });
       const avg = S.results.length ? Math.round(S.results.reduce((a, r) => a + r.score / r.total, 0) / S.results.length * 100) : null;
       const pts = S.results.slice(-12).map(r => r.score / r.total * 100);
       const line = pts.length > 1 ? `<svg viewBox="0 0 300 100" style="width:100%"><polyline fill="none" stroke="#2dff7a" stroke-width="2.5" style="filter:drop-shadow(0 0 4px #2dff7a)" points="${pts.map((p, i) => `${i * 300 / (pts.length - 1)},${95 - p * .9}`).join(" ")}"/></svg>` : `<div class="empty">Faça 2+ testes para ver sua evolução</div>`;
@@ -654,6 +664,20 @@ ${list.length ? list.map(s => {
         return `<div title="${fmt(x.m)}"><div class="stacked-bar" style="height:${Math.max(4, x.m / mx * 100)}%">${segs}</div>${x.l}${tl}</div>`;
       }).join("");
 
+      const tempoHtml = Object.keys(byCat).length
+        ? Object.entries(byCat).sort((a, b) => sortAlpha(a[0], b[0])).map(([c, m]) => {
+          const days = byCatDay[c] || [0, 0, 0, 0, 0, 0, 0];
+          const col = subjColor(c);
+          const segs = days.map((dm, di) => {
+            if (!dm) return "";
+            const pct = (dm / m) * 100;
+            const op = (0.4 + (di / 6) * 0.6).toFixed(2);
+            return `<span style="width:${pct}%;height:100%;background:${col};opacity:${op};display:block;min-width:2px" title="${DAY_L[di]}: ${fmt(dm)}"></span>`;
+          }).join("");
+          return `<div class="hb"><span style="display:flex;align-items:center;gap:6px"><i class="color-dot" style="background:${col}"></i>${esc(c)}</span><div class="bar" style="display:flex;padding:0;overflow:hidden"><div style="display:flex;width:${m / cm * 100}%;height:100%;overflow:hidden;border-radius:inherit">${segs}</div></div><span>${fmt(m)}</span></div>`;
+        }).join("")
+        : `<div class="empty">Nenhuma sessão ainda</div>`;
+
       return `<div class="grid">
    <div class="card"><h3>Hoje</h3><div class="big">${fmt(hoje)}</div><div class="sub">${hojeN} ${hojeN === 1 ? "sessão" : "sessões"} hoje</div></div>
    <div class="card"><h3>Sequência</h3><div class="big" style="${estudouHoje ? "" : "filter:grayscale(1);opacity:.5"}">🔥 ${streak()}</div><div class="sub">${estudouHoje ? "dias seguidos estudando" : "estude hoje para acender a sequência"}</div></div>
@@ -661,10 +685,10 @@ ${list.length ? list.map(s => {
   </div>
     <div class="card"><h3>Últimos 7 dias (por matéria)</h3>
    <div class="bars" style="height:175px">${barsHtml}</div>
-   <div class="legend" style="margin-top:12px">${S.subjects.map(s => `<span><i class="color-dot" style="background:${s.color}"></i>${esc(s.name)}</span>`).join("")}</div>
+   <div class="legend" style="margin-top:12px">${sortedSubjects().map(s => `<span><i class="color-dot" style="background:${s.color}"></i>${esc(s.name)}</span>`).join("")}</div>
   </div>
   <div class="grid">
-   <div class="card"><h3>Tempo por matéria</h3>${Object.keys(byCat).length ? Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([c, m]) => `<div class="hb"><span style="display:flex;align-items:center;gap:6px"><i class="color-dot" style="background:${subjColor(c)}"></i>${esc(c)}</span><div class="bar"><i style="width:${m / cm * 100}%;background:${subjColor(c)}"></i></div><span>${fmt(m)}</span></div>`).join("") : `<div class="empty">Nenhuma sessão ainda</div>`}</div>
+   <div class="card"><h3>Tempo por matéria</h3>${tempoHtml}<div class="sub" style="margin-top:8px">Cada bloco = um dia da semana (passe o mouse para ver Dom–Sáb)</div></div>
    <div class="card"><h3>Evolução nos testes (%)</h3>${line}</div>
   </div>`;
     }
@@ -805,11 +829,11 @@ ${list.length ? list.map(s => {
       ${ss.length + tp.length + gl.length ? "" : '<div class="empty">Nada registrado neste dia</div>'}
     </div>`;
       }
-      
+
       return `<div class="card"><div class="row" style="align-items:center;flex-wrap:nowrap"><button class="btn o" onclick="calOff--;calSel=null;render()">←</button><h3 style="text-align:center;margin:0;flex:3">${b.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}</h3><button class="btn o" onclick="calOff++;calSel=null;render()">→</button></div>
   <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:10px">${["D", "S", "T", "Q", "Q", "S", "S"].map(x => `<div class="sub" style="text-align:center">${x}</div>`).join("")}${cells}</div>
   <div class="sub" style="margin-top:8px">Quanto mais verde, mais você estudou. Bolinhas = matérias do dia. 🎯 = meta com prazo.</div>
-  <div class="legend">${S.subjects.map(s => `<span><i class="color-dot" style="background:${s.color}"></i>${esc(s.name)}</span>`).join("")}</div>
+  <div class="legend">${sortedSubjects().map(s => `<span><i class="color-dot" style="background:${s.color}"></i>${esc(s.name)}</span>`).join("")}</div>
   </div>${det}`;
     }
 
@@ -824,7 +848,7 @@ ${list.length ? list.map(s => {
       const d = today(); let name, data;
       if (t === "json") { name = "studai-backup-" + d + ".json"; data = JSON.stringify(S, null, 2); }
       else if (t === "csv") { name = "studai-sessoes-" + d + ".csv"; data = "data,minutos,categoria\n" + S.sessions.map(s => [s.date, s.min, '"' + (s.cat || "").replace(/"/g, '""') + '"'].join(",")).join("\n"); }
-      else { name = "studai-resumo-" + d + ".md"; data = "# StudAI - resumo (" + d + ")\n\n- Tempo total: " + fmt(S.sessions.reduce((a, s) => a + s.min, 0)) + "\n- Conteúdos concluídos: " + S.topics.filter(t => t.done).length + "/" + S.topics.length + "\n- Testes feitos: " + S.results.length + "\n\n## Matérias\n" + S.subjects.map(s => "- " + s.name + " (" + fmt(totalTime(s.name)) + ")").join("\n") + "\n\n## Conteúdos\n" + S.topics.map(t => "- [" + (t.done ? "x" : " ") + "] " + t.title + " (" + (t.cat || "Geral") + ", " + t.date + ")").join("\n") + "\n\n## Metas\n" + S.goals.map(g => "- [" + (g.done ? "x" : " ") + "] " + g.text + (g.due ? " (até " + g.due + ")" : "")).join("\n"); }
+      else { name = "studai-resumo-" + d + ".md"; data = "# StudAI - resumo (" + d + ")\n\n- Tempo total: " + fmt(S.sessions.reduce((a, s) => a + s.min, 0)) + "\n- Conteúdos concluídos: " + S.topics.filter(t => t.done).length + "/" + S.topics.length + "\n- Testes feitos: " + S.results.length + "\n\n## Matérias\n" + sortedSubjects().map(s => "- " + s.name + " (" + fmt(totalTime(s.name)) + ")").join("\n") + "\n\n## Conteúdos\n" + S.topics.map(t => "- [" + (t.done ? "x" : " ") + "] " + t.title + " (" + (t.cat || "Geral") + ", " + t.date + ")").join("\n") + "\n\n## Metas\n" + S.goals.map(g => "- [" + (g.done ? "x" : " ") + "] " + g.text + (g.due ? " (até " + g.due + ")" : "")).join("\n"); }
       try { const dl = await claude.use("downloads"); if (dl) { await dl.save({ filename: name, data }); return; } } catch (e) { if (e && e.code === "cancelled") return; }
       exportTxt = data; render();
     }
@@ -838,7 +862,7 @@ ${list.length ? list.map(s => {
         const q = quizState.qs[quizState.i], a = quizState.ans;
         return `<div class="card"><h3>Pergunta ${quizState.i + 1} de ${quizState.qs.length}</h3><div class="bar" style="margin-bottom:12px"><i style="width:${quizState.i / quizState.qs.length * 100}%"></i></div><p style="font-size:18px"><b>${esc(q.q)}</b></p>${q.opts.map((o, i) => `<button class="opt ${a !== null ? (i === q.ans ? "ok" : i === a ? "bad" : "") : ""}" ${a !== null ? "disabled" : ""} onclick="answer(${i})">${esc(o)}</button>`).join("")}${a !== null ? `<button class="btn" style="margin-top:10px" onclick="nextQ()">${quizState.i + 1 < quizState.qs.length ? "Próxima →" : "Ver resultado"}</button>` : ""}</div>`;
       }
-      return `<div class="card"><h3>Fazer um teste</h3>${S.quiz.length ? `<div class="row"><select id="qf"><option value="">Todas as matérias</option>${[...new Set(S.quiz.map(q => q.cat).filter(Boolean))].map(c => `<option>${esc(c)}</option>`).join("")}</select><button class="btn" onclick="startQuiz()">Começar</button></div>` : `<div class="empty">Crie perguntas abaixo (ou carregue exemplos) para se testar</div>`}
+      return `<div class="card"><h3>Fazer um teste</h3>${S.quiz.length ? `<div class="row"><select id="qf"><option value="">Todas as matérias</option>${[...new Set(S.quiz.map(q => q.cat).filter(Boolean))].sort(sortAlpha).map(c => `<option>${esc(c)}</option>`).join("")}</select><button class="btn" onclick="startQuiz()">Começar</button></div>` : `<div class="empty">Crie perguntas abaixo (ou carregue exemplos) para se testar</div>`}
   ${due().length ? `<div class="row"><button class="btn" onclick="startQuiz('rev')">🔁 Revisão do dia (${due().length})</button></div><div class="sub" style="margin-bottom:8px">Repetição espaçada: o que você erra volta logo, o que acerta volta cada vez mais espaçado.</div>` : ""}<button class="btn o" onclick="samples()">+ Carregar 3 perguntas de exemplo</button></div>
   <div class="card"><h3>Nova pergunta</h3>${catList()}<div class="row"><input id="qq" placeholder="Pergunta"><input id="qc" list="cats" placeholder="Matéria"></div>
   ${[0, 1, 2, 3].map(i => `<div class="row" style="flex-wrap:nowrap;align-items:center"><input type="radio" name="cr" value="${i}" ${i === 0 ? "checked" : ""} style="flex:0"><input id="qo${i}" placeholder="Alternativa ${i + 1}${i === 0 ? " (marque a correta ao lado)" : ""}"></div>`).join("")}
