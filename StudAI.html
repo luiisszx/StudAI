@@ -5,7 +5,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>StudAI</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23050805'/%3E%3Cpath d='M43 21C43 15 38 12 32 12 25.5 12 21 15.5 21 21 21 27.5 28 29.5 32 31.5 37 34 43 36 43 43 43 49 38.5 52 32 52 25.5 52 21 48.5 21 43' fill='none' stroke='%232dff7a' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M51 9l1.6 4.4L57 15l-4.4 1.6L51 21l-1.6-4.4L45 15l4.4-1.6z' fill='%23d7f5df'/%3E%3C/svg%3E">
+  <link rel="icon" type="image/svg+xml"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23050805'/%3E%3Cpath d='M43 21C43 15 38 12 32 12 25.5 12 21 15.5 21 21 21 27.5 28 29.5 32 31.5 37 34 43 36 43 43 43 49 38.5 52 32 52 25.5 52 21 48.5 21 43' fill='none' stroke='%232dff7a' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M51 9l1.6 4.4L57 15l-4.4 1.6L51 21l-1.6-4.4L45 15l4.4-1.6z' fill='%23d7f5df'/%3E%3C/svg%3E">
   <style>
     :root {
       box-sizing: border-box;
@@ -562,7 +563,7 @@
     function vMaterias() {
       const list = sortedSubjects();
       return `<div class="card"><h3>Nova matéria</h3>
-   <div class="row"><input id="mn" placeholder="Nome da matéria (ex: Matemática)"><div style="flex:0 0 auto"><input type="color" id="mc" value="${nextColor()}" title="Escolher cor" style="width:42px;height:42px;padding:2px;cursor:pointer;border-radius:8px;border:1px solid var(--line)"></div></div>
+   <div class="row"><input id="mn" placeholder="Nome da matéria (ex: NetApp)"><div style="flex:0 0 auto"><input type="color" id="mc" value="${nextColor()}" title="Escolher cor" style="width:42px;height:42px;padding:2px;cursor:pointer;border-radius:8px;border:1px solid var(--line)"></div></div>
    <button class="btn" onclick="addSubject()">Adicionar matéria</button></div>
    <div class="card"><h3>Minhas matérias (${list.length})</h3>
 ${list.length ? list.map(s => {
@@ -607,6 +608,7 @@ ${list.length ? list.map(s => {
         S.topics.forEach(t => { if ((t.cat || "") == old) t.cat = newName; });
         S.sessions.forEach(t => { if ((t.cat || "") == old) t.cat = newName; });
         S.quiz.forEach(t => { if ((t.cat || "") == old) t.cat = newName; });
+        S.goals.forEach(t => { if ((t.cat || "") == old) t.cat = newName; });
         (S.logs || []).forEach(t => { if ((t.cat || "") == old) t.cat = newName; });
         s.name = newName;
       }
@@ -640,11 +642,14 @@ ${list.length ? list.map(s => {
         return { k, l: ["D", "S", "T", "Q", "Q", "S", "S"][d.getDay()], m: Object.values(byCat).reduce((a, v) => a + v, 0), byCat };
       });
       const mx = Math.max(1, ...last.map(x => x.m));
-      const byCat = {}; S.sessions.forEach(s => byCat[s.cat || "Geral"] = (byCat[s.cat || "Geral"] || 0) + s.min);
+      const mesKey = today().slice(0, 7);
+      const sessMes = S.sessions.filter(s => (s.date || "").startsWith(mesKey));
+      const mesNome = new Date().toLocaleDateString("pt-BR", { month: "long" });
+      const byCat = {}; sessMes.forEach(s => byCat[s.cat || "Geral"] = (byCat[s.cat || "Geral"] || 0) + s.min);
       const cm = Math.max(1, ...Object.values(byCat));
       const DAY_L = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
       const byCatDay = {};
-      S.sessions.forEach(s => {
+      sessMes.forEach(s => {
         const c = s.cat || "Geral";
         if (!byCatDay[c]) byCatDay[c] = [0, 0, 0, 0, 0, 0, 0];
         const wd = new Date(s.date + "T12:00:00").getDay();
@@ -665,19 +670,13 @@ ${list.length ? list.map(s => {
         return `<div title="${fmt(x.m)}"><div class="stacked-bar" style="height:${Math.max(4, x.m / mx * 100)}%">${segs}</div>${x.l}${tl}</div>`;
       }).join("");
 
-      const tempoHtml = Object.keys(byCat).length
-        ? Object.entries(byCat).sort((a, b) => sortAlpha(a[0], b[0])).map(([c, m]) => {
-          const days = byCatDay[c] || [0, 0, 0, 0, 0, 0, 0];
-          const col = subjColor(c);
-          const segs = days.map((dm, di) => {
-            if (!dm) return "";
-            const pct = (dm / m) * 100;
-            const op = (0.4 + (di / 6) * 0.6).toFixed(2);
-            return `<span style="width:${pct}%;height:100%;background:${col};opacity:${op};display:block;min-width:2px" title="${DAY_L[di]}: ${fmt(dm)}"></span>`;
-          }).join("");
-          return `<div class="hb"><span style="display:flex;align-items:center;gap:6px"><i class="color-dot" style="background:${col}"></i>${esc(c)}</span><div class="bar" style="display:flex;padding:0;overflow:hidden"><div style="display:flex;width:${m / cm * 100}%;height:100%;overflow:hidden;border-radius:inherit">${segs}</div></div><span>${fmt(m)}</span></div>`;
-        }).join("")
-        : `<div class="empty">Nenhuma sessão ainda</div>`;
+      const tempoHtml = Object.entries(byCat).filter(([, m]) => m > 0).sort((a, b) => sortAlpha(a[0], b[0])).map(([c, m]) => {
+        const col = subjColor(c), days = byCatDay[c] || [];
+        const segs = days.map((dm, di) => dm > 0
+          ? `<span style="flex:${dm} 1 0;min-width:0;display:block;background:${col};color:#021207;font-size:9px;font-weight:700;line-height:20px;text-align:center;overflow:hidden;white-space:nowrap;border-radius:4px" title="${DAY_L[di]}: ${fmt(dm)}">${DAY_L[di]}</span>`
+          : "").join("");
+        return `<div class="hb"><span style="display:flex;align-items:center;gap:6px"><i class="color-dot" style="background:${col}"></i>${esc(c)}</span><div><div style="display:flex;gap:2px;height:20px;width:${m / cm * 100}%">${segs}</div></div><span>${fmt(m)}</span></div>`;
+      }).join("") || `<div class="empty">Nenhuma sessão neste mês</div>`;
 
       return `<div class="grid">
    <div class="card"><h3>Hoje</h3><div class="big">${fmt(hoje)}</div><div class="sub">${hojeN} ${hojeN === 1 ? "sessão" : "sessões"} hoje</div></div>
@@ -689,8 +688,7 @@ ${list.length ? list.map(s => {
    <div class="legend" style="margin-top:12px">${sortedSubjects().map(s => `<span><i class="color-dot" style="background:${s.color}"></i>${esc(s.name)}</span>`).join("")}</div>
   </div>
   <div class="grid">
-   <div class="card"><h3>Tempo por matéria</h3>${tempoHtml}<div class="sub" style="margin-top:8px">Cada bloco = um dia da semana (passe o mouse para ver Dom–Sáb)</div></div>
-   <div class="card"><h3>Evolução nos testes (%)</h3>${line}</div>
+   <div class="card"><h3>Tempo por matéria · ${mesNome}</h3>${tempoHtml}<div class="sub" style="margin-top:8px">Cada bloco é um dia da semana estudado neste mês; quanto maior o bloco, mais tempo nesse dia.</div></div>   <div class="card"><h3>Evolução nos testes (%)</h3>${line}</div>
   </div>`;
     }
 
@@ -731,12 +729,67 @@ ${list.length ? list.map(s => {
     }
 
     /* METAS */
-    function vMetas() {
-      return `<div class="card"><h3>Nova meta</h3><div class="row"><input id="gt" placeholder="Ex: Terminar capítulo 5"><input id="gd" type="date"><input id="gh" type="number" min="0" step="0.5" placeholder="Horas alvo (opcional)"></div><button class="btn" onclick="addGoal()">Criar meta</button></div>
-  <div class="card">${S.goals.length ? S.goals.map(g => { const h = g.hours ? Math.min(100, S.sessions.filter(s => s.date >= g.created).reduce((a, s) => a + s.min, 0) / 60 / g.hours * 100) : null; return `<div class="item ${g.done ? "done" : ""}"><input type="checkbox" ${g.done ? "checked" : ""} onchange="tog('goals','${g.id}')"><div class="t"><b>${esc(g.text)}</b><br><span class="sub">${g.due ? "Prazo: " + g.due.split("-").reverse().join("/") : "Sem prazo"}${g.due && !g.done && g.due < today() ? ' · <span style="color:var(--red)">atrasada</span>' : ""}</span>${h !== null ? `<div class="bar" style="margin-top:6px"><i style="width:${h}%"></i></div><div class="sub">${Math.round(h)}% das ${g.hours}h</div>` : ""}</div><button class="btn x" onclick="del('goals','${g.id}')">✕</button></div>` }).join("") : `<div class="empty">Defina metas e ganhe 50 XP ao cumprir cada uma 🎯</div>`}</div>`;
+    /* METAS */
+    function weekStart(d = new Date()) {
+      const x = new Date(d);
+      const day = x.getDay(); // 0 = domingo
+      const diff = day === 0 ? -6 : 1 - day; // começa na segunda
+      x.setDate(x.getDate() + diff);
+      return iso(x);
     }
-    function addGoal() { const t = $("#gt").value.trim(); if (!t) return; S.goals.push({ id: uid(), text: t, due: $("#gd").value, hours: +$("#gh").value || 0, done: false, created: today() }); save(); render(); }
 
+    const goalMin = g => {
+      const ws = weekStart();
+      return S.sessions
+        .filter(s => s.date >= ws && (s.cat || "Geral").toLowerCase() === (g.cat || "").toLowerCase())
+        .reduce((a, s) => a + s.min, 0);
+    };
+
+    const goalPct = g => g.hours ? Math.min(100, goalMin(g) / 60 / g.hours * 100) : null;
+    function vMetas() {
+      return `<div class="card"><h3>Nova meta</h3>${catList()}
+<div class="card"><h3>Nova meta semanal</h3>${catList()}
+  <div class="row">
+    <input id="gt" placeholder="Ex: Estudar 8h de NetApp *">
+    <input id="gc" list="cats" placeholder="Matéria *">
+  </div>
+  <div class="row">
+    <input id="gh" type="number" min="0.5" step="0.5" placeholder="Horas semanais *">
+    <input id="gd" type="date" title="Prazo opcional (fim da semana)">
+  </div>
+  <div class="sub" style="margin-bottom:8px">A meta é renovada toda semana (segunda a domingo). O progresso conta só as horas estudadas na semana atual.</div>
+  <button class="btn" onclick="addGoal()">Criar meta semanal</button>
+</div>
+</div>
+<div class="card"><h3>Minhas metas (${S.goals.length})</h3>${S.goals.length ? S.goals.map(g => {
+        const pct = goalPct(g), done = g.done, col = subjColor(g.cat);
+        return `<div class="goal-item">
+      <div class="row" style="align-items:center;gap:6px">
+        <input type="checkbox" ${done ? "checked" : ""} onchange="tog('goals','${g.id}')">
+        <div style="flex:1;min-width:0"><b style="color:${col}">${esc(g.cat)}</b> ${esc(g.text)}${g.hours ? `<span class="tag" style="border-color:${col};color:#fff">${g.hours}h</span>` : ""}${g.due ? `<span class="tag" style="border-color:${col};color:#fff">até ${g.due.split("-").reverse().join("/")}</span>` : ""}</div>
+        <button class="btn x" onclick="del('goals','${g.id}')     ">✕</button>
+      </div>
+      ${h !== null ? `<div class="bar" style="margin-top:6px"><i style="width:${h}%"></i></div><div class="sub">${Math.round(h)}% das ${g.hours}h semanais de ${esc(g.cat)}</div>` : ""}    </div>`;
+      }).join("") : `<div class="empty">Nenhuma meta criada ainda.</div>`}</div>`;
+    }
+    function addGoal() {
+      const t = $("#gt").value.trim();
+      const cat = $("#gc").value.trim();
+      const hours = +$("#gh").value;
+      if (!reqFields([["gt", t], ["gc", cat], ["gh", hours > 0]])) return;
+      ensureSubject(cat);
+      S.goals.push({
+        id: uid(),
+        text: t,
+        cat,
+        due: $("#gd").value,
+        hours,
+        done: false,
+        created: today()
+      });
+      save();
+      render();
+    }
     /* TEMPO */
     function elapsed() { return tm.acc + (tm.run ? (Date.now() - tm.start) / 60000 : 0); }
     function updTimer() { const e = $("#tmr"); if (!e) return; const s = Math.floor(elapsed() * 60); e.textContent = [Math.floor(s / 3600), Math.floor(s % 3600 / 60), s % 60].map(n => String(n).padStart(2, "0")).join(":"); }
@@ -757,7 +810,7 @@ ${list.length ? list.map(s => {
     function reqFields(pairs) {
       let ok = true;
       pairs.forEach(([id, v]) => { const e = $("#" + id); if (e) e.style.borderColor = v ? "" : "var(--red)"; if (!v) ok = false; });
-      if (!ok) alert("Preencha a matéria, o tópico aprendido e o que você estudou para salvar o tempo.");
+      if (!ok) alert("Preencha todos os campos obrigatórios.");
       return ok;
     }
     function tmToggle() { if (tm.run) { tm.acc = elapsed(); tm.run = false; } else { tm.start = Date.now(); tm.run = true; } render(); }
@@ -816,26 +869,123 @@ ${list.length ? list.map(s => {
       const mx = Math.max(30, ...[...Array(n)].map((_, i) => mins(key(i + 1))));
       let cells = ""; for (let i = 0; i < off; i++)cells += "<div></div>";
       for (let d = 1; d <= n; d++) {
-        const k = key(d), m = mins(k), a = m ? .25 + m / mx * .75 : 0, gd = S.goals.some(g => g.due === k && !g.done);
+        const k = key(d), m = mins(k), a = m ? .25 + m / mx * .75 : 0, gd = S.goals.some(g => g.due === k && !g.done), gk = S.goals.some(g => g.due === k && g.done);
         const colors = catsOf(k);
         const dots = colors.length ? `<div class="day-colors">${colors.slice(0, 4).map(c => `<i style="background:${subjColor(c)}" title="${esc(c)}"></i>`).join("")}${colors.length > 4 ? "<i style='background:#666;font-size:7px'>+</i>" : ""}</div>` : "";
-        cells += `<button onclick="calSel='${k}';render()" style="aspect-ratio:1;border-radius:9px;border:1px solid ${k === calSel ? "var(--g)" : k === today() ? "var(--g2)" : "var(--line)"};background:rgba(45,255,122,${(a * .5).toFixed(2)});color:var(--tx);cursor:pointer;font:inherit;font-size:13px;position:relative;padding:2px;display:flex;flex-direction:column;align-items:center;justify-content:center">${d}${gd ? '<span style="position:absolute;top:1px;right:3px;font-size:9px">🎯</span>' : ""}${m ? `<div style="font-size:9px;color:var(--g)">${fmt(m)}</div>` : ""}${dots}</button>`;
+        cells += `<button onclick="calSel='${k}';render()" style="aspect-ratio:1;border-radius:9px;border:1px solid ${k === calSel ? "var(--g)" : k === today() ? "var(--g2)" : "var(--line)"};background:rgba(45,255,122,${(a * .5).toFixed(2)});color:var(--tx);cursor:pointer;font:inherit;font-size:13px;position:relative;padding:2px;display:flex;flex-direction:column;align-items:center;justify-content:center">${d}${gd ? '<span style="position:absolute;top:1px;right:3px;font-size:9px">🎯</span>' : gk ? '<span style="position:absolute;top:1px;right:3px;font-size:9px">✅</span>' : ""}
+        ${dots}</button>`;
       }
       let det = ""; if (calSel) {
         const ss = S.sessions.filter(s => s.date === calSel), tp = S.logs.filter(t => t.date === calSel), gl = S.goals.filter(g => g.due === calSel);
         det = `<div class="card"><h3>${calSel.split("-").reverse().join("/")}</h3>
       ${ss.map(s => `<div style="display:flex;align-items:center;gap:8px;margin:4px 0"><i class="color-dot" style="background:${subjColor(s.cat)}"></i>⏱️ <b>${fmt(s.min)}</b> <span class="tag" style="border-color:${subjColor(s.cat)};color:${subjColor(s.cat)}">${esc(s.cat || "Geral")}</span></div>`).join("")}
       ${tp.map(t => `<div>📚 ${esc(t.topic)}</div>`).join("")}
-      ${gl.map(g => `<div>🎯 Meta: ${esc(g.text)}${g.done ? " ✔" : ""}</div>`).join("")}
-      ${ss.length + tp.length + gl.length ? "" : '<div class="empty">Nada registrado neste dia</div>'}
+      ${gl.map(g => `<div>🎯 Meta: ${esc(g.text)}${g.cat ? " · " + esc(g.cat) : ""}${g.done ? " ✔" : ""}</div>`).join("")}      ${ss.length + tp.length + gl.length ? "" : '<div class="empty">Nada registrado neste dia</div>'}
     </div>`;
       }
 
-      return `<div class="card"><div class="row" style="align-items:center;flex-wrap:nowrap"><button class="btn o" onclick="calOff--;calSel=null;render()">←</button><h3 style="text-align:center;margin:0;flex:3">${b.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}</h3><button class="btn o" onclick="calOff++;calSel=null;render()">→</button></div>
-  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:10px">${["D", "S", "T", "Q", "Q", "S", "S"].map(x => `<div class="sub" style="text-align:center">${x}</div>`).join("")}${cells}</div>
-  <div class="sub" style="margin-top:8px">Quanto mais verde, mais você estudou. Bolinhas = matérias do dia. 🎯 = meta com prazo.</div>
-  <div class="legend">${sortedSubjects().map(s => `<span><i class="color-dot" style="background:${s.color}"></i>${esc(s.name)}</span>`).join("")}</div>
-  </div>${det}`;
+      /* RESUMO DO MÊS */
+      const mesTxt = b.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+      const pref = y + "-" + String(mo + 1).padStart(2, "0");
+      const sm = S.sessions.filter(s => (s.date || "").startsWith(pref));
+      const totMes = sm.reduce((a, s) => a + s.min, 0);
+      const porMat = {};
+      sm.forEach(s => { const c = s.cat || "Geral"; porMat[c] = (porMat[c] || 0) + s.min; });
+      const rankMat = Object.entries(porMat).filter(([, m]) => m > 0).sort((a, b) => b[1] - a[1]);
+      const DN = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+      const diaMin = Array(7).fill(0), diaDatas = Array.from({ length: 7 }, () => new Set());
+      sm.forEach(s => {
+        const wd = new Date(s.date + "T12:00:00").getDay();
+        diaMin[wd] += s.min;
+        if (s.min > 0) diaDatas[wd].add(s.date);
+      });
+      const rankDia = diaMin.map((m, i) => ({ i, m, n: diaDatas[i].size })).filter(x => x.m > 0).sort((a, b) => b.m - a.m);
+      const mxM = rankMat.length ? rankMat[0][1] : 1;
+      const mxD = rankDia.length ? rankDia[0].m : 1;
+      const medal = i => ["🥇", "🥈", "🥉"][i] || (i + 1) + "º";
+      const matHtml = rankMat.map(([c, m], i) =>
+        `<div class="hb" style="grid-template-columns:28px 110px 1fr 56px">
+     <span>${medal(i)}</span>
+     <span style="display:flex;align-items:center;gap:6px">
+       <i class="color-dot" style="background:${subjColor(c)}"></i>${esc(c)}
+     </span>
+     <div class="bar"><i style="width:${m / mxM * 100}%;background:${subjColor(c)}"></i></div>
+     <span>${fmt(m)}</span>
+   </div>`
+      ).join("");
+      const diaHtml = rankDia.map((x, i) =>
+        `<div class="hb" style="grid-template-columns:28px 110px 1fr 56px">
+     <span>${medal(i)}</span>
+     <span>${DN[x.i]} <span class="sub">· ${x.n}x</span></span>
+     <div class="bar"><i style="width:${x.m / mxD * 100}%"></i></div>
+     <span>${fmt(x.m)}</span>
+   </div>`
+      ).join("");
+
+      /* METAS DO MÊS */
+      const refD = g => g.due || g.created || "";
+      const gst = g => g.done ? "ok" : (g.due && g.due < today() ? "late" : "pend");
+      const gm = S.goals.filter(g => refD(g).startsWith(pref)).sort((a, b) => refD(a).localeCompare(refD(b)));
+      const nOk = gm.filter(g => gst(g) === "ok").length;
+      const nLate = gm.filter(g => gst(g) === "late").length;
+      const nPend = gm.length - nOk - nLate;
+
+      const metasCard = `<div class="card">
+  <h3>Metas de ${mesTxt}</h3>
+  <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:6px">
+    <span>✅ <b>${nOk}</b> <span class="sub">atingidas</span></span>
+    <span>⏳ <b>${nPend}</b> <span class="sub">pendentes</span></span>
+    <span>❌ <b>${nLate}</b> <span class="sub">não atingidas</span></span>
+  </div>
+  ${gm.map(g => {
+        const st = gst(g), p = goalPct(g);
+        const col = st === "ok" ? "var(--g)" : st === "late" ? "var(--red)" : "var(--mu)";
+        return `<div class="item">
+      <span>${st === "ok" ? "✅" : st === "late" ? "❌" : "⏳"}</span>
+      <div class="t">
+        <b style="color:${col}">${esc(g.text)}</b><br>
+        ${g.cat ? `<span class="tag" style="border-color:${subjColor(g.cat)};color:${subjColor(g.cat)}">${esc(g.cat)}</span>` : ""}
+        <span class="sub">${g.due ? "Prazo: " + g.due.split("-").reverse().join("/") : "Sem prazo"}${p !== null ? " · " + Math.round(p) + "% das " + g.hours + "h" : ""}</span>
+      </div>
+    </div>`;
+      }).join("") || `<div class="empty">Nenhuma meta neste mês</div>`}
+</div>`;
+
+      const resumo = `<div class="card">
+  <h3>Resumo de ${mesTxt}</h3>
+  <div class="big">${fmt(totMes)}</div>
+  <div class="sub">estudados no mês</div>
+</div>
+${metasCard}
+<div class="grid">
+  <div class="card">
+    <h3>Tempo por matéria</h3>
+    ${matHtml || `<div class="empty">Nenhum estudo neste mês</div>`}
+  </div>
+  <div class="card">
+    <h3>Dias da semana mais estudados</h3>
+    ${diaHtml || `<div class="empty">Nenhum estudo neste mês</div>`}
+    <div class="sub" style="margin-top:8px">O número depois do dia é quantas vezes ele aconteceu no mês (ex.: 3x = três segundas).</div>
+  </div>
+</div>`;
+
+      return `<div class="card">
+  <div class="row" style="align-items:center;flex-wrap:nowrap">
+    <button class="btn o" onclick="calOff--;calSel=null;render()">←</button>
+    <h3 style="text-align:center;margin:0;flex:3">${b.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}</h3>
+    <button class="btn o" onclick="calOff++;calSel=null;render()">→</button>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:10px">
+    ${["D", "S", "T", "Q", "Q", "S", "S"].map(x => `<div class="sub" style="text-align:center">${x}</div>`).join("")}
+    ${cells}
+  </div>
+  <div class="sub" style="margin-top:8px">
+    Quanto mais verde, mais você estudou. Bolinhas = matérias do dia. 🎯 = meta pendente · ✅ = meta atingida.
+  </div>
+  <div class="legend">
+    ${sortedSubjects().map(s => `<span><i class="color-dot" style="background:${s.color}"></i>${esc(s.name)}</span>`).join("")}
+  </div>
+</div>${det}${resumo}`;
     }
 
     /* DADOS */
