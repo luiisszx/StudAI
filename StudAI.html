@@ -803,6 +803,7 @@ ${list.length ? list.map(s => {
   <div class="card"><h3>Adicionar manualmente</h3>
   <div class="row"><input id="mc" list="cats" placeholder="Matéria *" value="${esc(dm.c)}" oninput="dm.c=this.value"><input id="mm" type="number" min="1" placeholder="Minutos *" value="${esc(dm.m)}" oninput="dm.m=this.value"><input id="md" type="date" value="${dm.d || today()}" oninput="dm.d=this.value"></div>
   <div class="row"><input id="mt" placeholder="Tópico aprendido *" value="${esc(dm.t)}" oninput="dm.t=this.value"></div>
+  <div class="row"><button class="btn" onclick="tmToggle()">${tm.run ? "⏸ Pausar" : "▶ Iniciar"}</button><button class="btn o" onclick="tmStop()">✔ Finalizar e salvar</button><button class="btn o" onclick="togglePip()">${pip ? "✖ Fechar pop-up" : "🗗 Pop-up flutuante"}</button></div>
   <textarea id="mw" rows="2" placeholder="O que você estudou desse tópico? *" oninput="dm.w=this.value" style="margin-bottom:8px">${esc(dm.w)}</textarea>
   <button class="btn" onclick="addSess()">Registrar</button></div>`;
     }
@@ -816,14 +817,14 @@ ${list.length ? list.map(s => {
     function tmToggle() { if (tm.run) { tm.acc = elapsed(); tm.run = false; } else { tm.start = Date.now(); tm.run = true; } render(); }
     function tmStop() {
       const m = elapsed(); if (m < 0.1) return;
-      const c = $("#sc").value.trim(), t = $("#st").value.trim(), w = $("#sw").value.trim();
+      const c = dr.c.trim(), t = dr.t.trim(), w = dr.w.trim();
       if (!reqFields([["sc", c], ["st", t], ["sw", w]])) return;
       ensureSubject(c);
       const sid = uid();
       S.sessions.push({ id: sid, date: today(), min: +m.toFixed(1), cat: c });
       S.logs.push({ id: uid(), sid, topic: t, what: w, cat: c, date: today() });
       tm = { run: false, start: 0, acc: 0 }; dr = { c: "", t: "", w: "" };
-      save(); render();
+      save(); render(); pipUpd();
     }
     function addSess() {
       const m = +$("#mm").value, c = $("#mc").value.trim(), t = $("#mt").value.trim(), w = $("#mw").value.trim();
@@ -1026,6 +1027,61 @@ ${metasCard}
     function startQuiz(m) { const c = m === "rev" ? "" : $("#qf").value; let qs = (m === "rev" ? due() : S.quiz.filter(q => !c || q.cat === c)).map(q => { const o = q.opts.map((t, i) => ({ t, c: i === q.ans })).sort(() => Math.random() - .5); return { id: q.id, q: q.q, opts: o.map(x => x.t), ans: o.findIndex(x => x.c), cat: q.cat }; }).sort(() => Math.random() - .5); quizState = { qs, i: 0, score: 0, ans: null, cat: c }; render(); }
     function answer(i) { const q = quizState.qs[quizState.i], ok = i === q.ans; quizState.ans = i; if (ok) quizState.score++; const o = S.quiz.find(x => x.id === q.id); if (o) { const IV = [1, 3, 7, 16]; o.box = ok ? Math.min(4, (o.box || 0) + 1) : 0; const d = new Date(); d.setDate(d.getDate() + (ok ? IV[o.box - 1] : 0)); o.due = iso(d); save(); } render(); }
     function nextQ() { if (quizState.i + 1 < quizState.qs.length) { quizState.i++; quizState.ans = null; } else { quizState.fin = true; S.results.push({ date: today(), cat: quizState.cat, score: quizState.score, total: quizState.qs.length }); save(); } render(); }
+    /* ===== POP-UP FLUTUANTE DO CRONÔMETRO ===== */
+    let pip = null, pipT = null;
+
+    async function togglePip() {
+      if (pip) { pip.close(); return; }
+      if (!("documentPictureInPicture" in window)) {
+        alert("Seu navegador não suporta o pop-up flutuante. Use Chrome ou Edge no computador.");
+        return;
+      }
+      try {
+        pip = await documentPictureInPicture.requestWindow({ width: 340, height: 360 });
+      } catch (e) { alert("Não foi possível abrir o pop-up: " + e.message); return; }
+
+      const d = pip.document;
+      d.head.innerHTML = `<meta charset="utf-8"><style>
+    *{box-sizing:border-box}
+    body{margin:0;padding:12px;background:#050805;color:#d7f5df;font:14px "Segoe UI",system-ui,sans-serif}
+    .timer{font:800 44px/1 "Courier New",monospace;color:#2dff7a;text-shadow:0 0 18px #2dff7a88;text-align:center;margin:6px 0 12px}
+    input,textarea{width:100%;background:#070d07;border:1px solid #1b2b1b;color:#d7f5df;padding:8px 10px;border-radius:8px;font:inherit;margin-bottom:6px}
+    input:focus,textarea:focus{outline:none;border-color:#2dff7a}
+    .row{display:flex;gap:6px;margin-bottom:8px}
+    button{flex:1;padding:9px;border-radius:8px;border:0;font:inherit;font-weight:700;cursor:pointer;background:#2dff7a;color:#021207}
+    button.o{background:transparent;color:#2dff7a;border:1px solid #2dff7a}
+  </style>`;
+      d.body.innerHTML = `
+    <div class="timer" id="ptmr">00:00:00</div>
+    <div class="row"><button id="ptog">▶ Iniciar</button><button class="o" id="pstop">✔ Finalizar</button></div>
+    <input id="pc" list="pcats" placeholder="Matéria *">
+    <datalist id="pcats">${cats().map(c => `<option value="${esc(c)}">`).join("")}</datalist>
+    <input id="pt" placeholder="Tópico aprendido *">
+    <textarea id="pw" rows="3" placeholder="O que você estudou? *"></textarea>`;
+
+      const $p = s => d.querySelector(s);
+      $p("#ptog").onclick = () => { tmToggle(); pipUpd(); };
+      $p("#pstop").onclick = () => { tmStop(); pipUpd(); };
+      $p("#pc").oninput = e => { dr.c = e.target.value; };
+      $p("#pt").oninput = e => { dr.t = e.target.value; };
+      $p("#pw").oninput = e => { dr.w = e.target.value; };
+
+      pipUpd();
+      pipT = setInterval(pipUpd, 500);
+      pip.addEventListener("pagehide", () => { clearInterval(pipT); pip = null; if (tab === "tempo") render(); });
+      if (tab === "tempo") render();
+    }
+
+    function pipUpd() {
+      if (!pip) return;
+      const d = pip.document, q = s => d.querySelector(s);
+      const s = Math.floor(elapsed() * 60);
+      q("#ptmr").textContent = [Math.floor(s / 3600), Math.floor(s % 3600 / 60), s % 60].map(n => String(n).padStart(2, "0")).join(":");
+      q("#ptog").textContent = tm.run ? "⏸ Pausar" : "▶ Iniciar";
+      [["#pc", dr.c], ["#pt", dr.t], ["#pw", dr.w]].forEach(([id, v]) => {
+        const el = q(id); if (el && d.activeElement !== el && el.value !== v) el.value = v;
+      });
+    }
     render();
   </script>
 </body>
