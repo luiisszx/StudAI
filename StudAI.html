@@ -707,27 +707,53 @@ ${list.length ? list.map(s => {
       S.sessions.forEach(s => { if (!used.has(s.id)) out.push({ key: s.id, log: null, sess: s, date: s.date, cat: s.cat || "Geral" }); });
       return out.reverse().sort((a, b) => b.date.localeCompare(a.date));
     }
-    function vHist() {
-      const all = entries(), shown = all.slice(0, 30);
-      let lastD = "";
-      const body = shown.map(e => {
-        const head = e.date !== lastD ? (lastD = e.date, `<div class="sub" style="margin:14px 0 2px;letter-spacing:1px">${e.date === today() ? "HOJE" : e.date.split("-").reverse().join("/")}</div>`) : "";
-        const col = subjColor(e.cat);
-        if (e.key === editEntry) {
-          return head + `<div class="item"><div class="t">
-        <div class="row"><input id="eh-c" list="cats" value="${esc(e.cat)}" placeholder="Matéria">${e.sess ? `<input id="eh-m" type="number" step="any" value="${e.sess.min}" placeholder="Minutos">` : ""}<input id="eh-d" type="date" value="${e.date}"></div>
-        ${e.log ? `<div class="row"><input id="eh-t" value="${esc(e.log.topic)}" placeholder="Tópico *"></div><textarea id="eh-w" rows="3" placeholder="O que você estudou? *" style="margin-bottom:8px">${esc(e.log.what)}</textarea>` : ""}
-        <button class="btn" onclick="saveEntry('${e.key}')">Salvar</button> <button class="btn o" onclick="editEntry=null;render()">Cancelar</button>
-      </div></div>`;
-        }
-        return head + `<div class="item"><div class="t">
-        <b style="color:${col}">${esc(e.cat)}</b> ${e.sess ? `<span class="tag" style="border-color:${col};color:#fff">${fmt(e.sess.min)}</span>` : ""}
-        ${e.log ? `<div style="margin-top:2px"><b>${esc(e.log.topic)}</b></div><div style="margin-top:2px;white-space:pre-wrap">${esc(e.log.what)}</div>` : ""}
-      </div><button class="btn o" onclick="editEntry='${e.key}';render()">✎</button><button class="btn x" onclick="delEntry('${e.key}')">✕</button></div>`;
-      }).join("");
-      return `<div class="card"><h3>Histórico de estudos (${all.length})</h3>${catList()}${body || `<div class="empty">Nenhum estudo registrado ainda.</div>`}${all.length > 30 ? `<div class="sub" style="margin-top:10px">Mostrando os 30 mais recentes.</div>` : ""}</div>`;
-    }
+    
+/* ===== SUBSTITUA a função vHist() inteira por este bloco ===== */
 
+let histClosed = new Set();
+function histTog(el) { el.open ? histClosed.delete(el.dataset.c) : histClosed.add(el.dataset.c); }
+
+function vHist() {
+  const all = entries(), groups = {};
+  all.forEach(e => (groups[e.cat] = groups[e.cat] || []).push(e));
+  const names = Object.keys(groups).sort(sortAlpha);
+
+  const body = names.map(c => {
+    const list = groups[c], col = subjColor(c);
+    const tot = list.reduce((a, e) => a + (e.sess ? e.sess.min : 0), 0);
+    let lastD = "";
+    const items = list.map(e => {
+      const head = e.date !== lastD
+        ? (lastD = e.date, `<div class="sub" style="margin:12px 0 2px;letter-spacing:1px">${e.date === today() ? "HOJE" : e.date.split("-").reverse().join("/")}</div>`)
+        : "";
+      if (e.key === editEntry) {
+        return head + `<div class="item"><div class="t">
+          <div class="row"><input id="eh-c" list="cats" value="${esc(e.cat)}" placeholder="Matéria">${e.sess ? `<input id="eh-m" type="number" step="any" value="${e.sess.min}" placeholder="Minutos">` : ""}<input id="eh-d" type="date" value="${e.date}"></div>
+          ${e.log ? `<div class="row"><input id="eh-t" value="${esc(e.log.topic)}" placeholder="Tópico *"></div><textarea id="eh-w" rows="3" placeholder="O que você estudou? *" style="margin-bottom:8px">${esc(e.log.what)}</textarea>` : ""}
+          <button class="btn" onclick="saveEntry('${e.key}')">Salvar</button> <button class="btn o" onclick="editEntry=null;render()">Cancelar</button>
+        </div></div>`;
+      }
+      return head + `<div class="item"><div class="t">
+          ${e.sess ? `<span class="tag" style="border-color:${col};color:#fff">${fmt(e.sess.min)}</span>` : ""}
+          ${e.log ? `<b>${esc(e.log.topic)}</b><div style="margin-top:2px;white-space:pre-wrap">${esc(e.log.what)}</div>` : `<span class="sub">ajuste de tempo</span>`}
+        </div><button class="btn o" onclick="editEntry='${e.key}';render()">✎</button><button class="btn x" onclick="delEntry('${e.key}')">✕</button></div>`;
+    }).join("");
+
+    return `<details class="hgrp" data-c="${esc(c)}" ${histClosed.has(c) ? "" : "open"} ontoggle="histTog(this)" style="border-left:3px solid ${col}">
+      <summary><i class="color-dot" style="background:${col};color:${col}"></i><b style="color:${col}">${esc(c)}</b><span class="tag" style="border-color:${col};color:#fff;margin:0">${fmt(tot)}</span><span class="sub">${list.length} ${list.length === 1 ? "registro" : "registros"}</span></summary>
+      ${items}
+    </details>`;
+  }).join("");
+
+  return `<style>
+    .hgrp{background:#070d07;border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:10px}
+    .hgrp summary{cursor:pointer;display:flex;align-items:center;gap:10px;flex-wrap:wrap;list-style:none}
+    .hgrp summary::-webkit-details-marker{display:none}
+    .hgrp summary::before{content:"▸";color:var(--mu);transition:transform .15s}
+    .hgrp[open] summary::before{transform:rotate(90deg)}
+  </style>
+  <div class="card"><h3>Histórico de estudos por matéria (${all.length})</h3>${catList()}${body || `<div class="empty">Nenhum estudo registrado ainda.</div>`}</div>`;
+}
     /* METAS */
     /* METAS */
     function weekStart(d = new Date()) {
