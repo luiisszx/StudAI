@@ -984,15 +984,61 @@
     <main id="main"></main>
   </div>
   <script>
-    const TABS = [["painel", "📊 Painel"], ["materias", "📚 Matérias"], ["metas", "🎯 Metas"], ["tempo", "⏱️ Tempo"], ["quiz", "🧠 Quiz"], ["calendario", "📅 Calendário"], ["dados", "💾 Dados"]];
+const TABS = [["painel", "📊 Painel"], ["materias", "📚 Matérias"], ["metas", "🎯 Metas"], ["tempo", "⏱️ Tempo"], ["quiz", "🧠 Quiz"], ["calendario", "📅 Calendário"], ["dados", "💾 Dados"]];
     const KEY = "studai_v2";
     const PALETTE = ["#2dff7a", "#3b82f6", "#a855f7", "#f59e0b", "#ef4444", "#06b6d4", "#ec4899", "#84cc16", "#f97316", "#8b5cf6", "#14b8a6", "#eab308"];
     let editEntry = null;
     let dr = { c: "", t: "", w: "" }, dm = { c: "", m: "", d: "", t: "", w: "" };
-    let S = { subjects: [], topics: [], goals: [], sessions: [], quiz: [], results: [], logs: [], tasks: [] }, tab = "painel", quizState = null, tm = { run: false, start: 0, acc: 0 }, tick = null, dbDoc = null, pm = { run: false, end: 0, phase: "foco", left: 1500, f: 25, b: 5, cat: "" }, calOff = 0, calSel = null, sure = false, exportTxt = "";
+    let S = { subjects: [], topics: [], goals: [], sessions: [], quiz: [], results: [], logs: [], tasks: [], claimed_missions: [] }, tab = "painel", quizState = null, tm = { run: false, start: 0, acc: 0 }, tick = null, dbDoc = null, pm = { run: false, end: 0, phase: "foco", left: 1500, f: 25, b: 5, cat: "" }, calOff = 0, calSel = null, sure = false, exportTxt = "";
     if (!S.tasks) S.tasks = [];
+    if (!S.claimed_missions) S.claimed_missions = [];
     let timerMode = "prog"; // "prog" (progressivo) ou "pomo" (pomodoro)
     let blurMode = false;
+    let histClosed = new Set();
+    let fc = { cat: "", i: 0, flip: false, ord: null };
+    let pip = null, pipT = null;
+    let lastLevel = null;
+
+    /* ===== SISTEMA DE SOM NATIVO E MINIMALISTA ===== */
+    let audioCtx = null;
+    function playSound(type) {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      const now = audioCtx.currentTime;
+
+      if (type === 'pop') {
+        // Som curto e suave para pequenos cliques e movimento de Kanban
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now); osc.stop(now + 0.1);
+      } else if (type === 'success') {
+        // Som duplo agradável para conclusão de tarefas e pomodoro
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.setValueAtTime(600, now + 0.1);
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.linearRampToValueAtTime(0, now + 0.3);
+        osc.start(now); osc.stop(now + 0.3);
+      } else if (type === 'levelup') {
+        // Arpejo futurista para subir de nível
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(300, now);
+        osc.frequency.setValueAtTime(400, now + 0.1);
+        osc.frequency.setValueAtTime(500, now + 0.2);
+        osc.frequency.setValueAtTime(600, now + 0.3);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.linearRampToValueAtTime(0, now + 0.5);
+        osc.start(now); osc.stop(now + 0.5);
+      }
+    }
+
     function toggleBlur() { blurMode = !blurMode; render(); }
     const $ = s => document.querySelector(s), uid = () => Math.random().toString(36).slice(2, 9);
     const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -1007,76 +1053,93 @@
     const catList = () => `<datalist id="cats">${cats().map(c => `<option value="${esc(c)}">`).join("")}</datalist>`;
     const nextColor = () => { const used = new Set(S.subjects.map(s => s.color)); return PALETTE.find(c => !used.has(c)) || PALETTE[S.subjects.length % PALETTE.length]; };
 
-    /* Migração de dados antigos (v1 → v2) */
+    /* Migração de dados */
     function migrate() {
       if (S.subjects.length) return;
       const names = new Set();
       [...S.topics, ...S.sessions, ...S.quiz].forEach(x => { if (x.cat) names.add(x.cat); });
       if (!names.size && S.topics.length === 0 && S.sessions.length === 0) return;
       let i = 0;
-      names.forEach(n => {
-        S.subjects.push({ id: uid(), name: n, color: PALETTE[i % PALETTE.length] });
-        i++;
-      });
+      names.forEach(n => { S.subjects.push({ id: uid(), name: n, color: PALETTE[i % PALETTE.length] }); i++; });
       if (!S.subjects.length) S.subjects.push({ id: uid(), name: "Geral", color: PALETTE[0] });
     }
 
-    /* persistência */
     try { const r = localStorage.getItem(KEY); if (r) S = { ...S, ...JSON.parse(r) }; } catch (e) { }
-    /* fallback v1 */
-    if (!S.subjects || !S.subjects.length) {
-      try { const old = localStorage.getItem("studai_v1"); if (old) { const o = JSON.parse(old); S = { ...S, ...o }; } } catch (e) { }
-    }
+    if (!S.subjects || !S.subjects.length) { try { const old = localStorage.getItem("studai_v1"); if (old) { const o = JSON.parse(old); S = { ...S, ...o }; } } catch (e) { } }
     migrate();
     let saveT;
     function save() {
       S._t = Date.now();
       try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { }
       clearTimeout(saveT);
-      saveT = setTimeout(async () => { if (!dbDoc) return; try { await dbDoc.set({ payload: JSON.stringify(S), t: S._t }); $("#sync").textContent = "☁ salvo na sua conta"; } catch (e) { } }, 600);
     }
-    (async () => {
-      try {
-        const [db, user] = await Promise.all([claude.use("db"), claude.use("user")]);
-        if (!db || !user) return; const id = await user.id(); if (!id) return;
-        dbDoc = db.collection("data/users/" + id).doc("studai");
-        const snap = await dbDoc.get();
-        if (snap.exists) { const d = snap.data(); if (d && d.t > (S._t || 0)) { S = { ...S, ...JSON.parse(d.payload) }; migrate(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { } render(); } }
-        else if (S._t) { await dbDoc.set({ payload: JSON.stringify(S), t: S._t }); }
-        $("#sync").textContent = "☁ salvo na sua conta";
-      } catch (e) { }
-    })();
 
-    /* XP / nível */
-    function xp() { const m = S.sessions.reduce((a, s) => a + s.min, 0); return Math.round(m * 2 + (S.logs || []).length * 20 + S.goals.filter(g => g.done).length * 50 + S.results.reduce((a, r) => a + r.score * 10, 0)); }
-    function header() { const x = xp(), l = Math.floor(Math.sqrt(x / 50)) + 1, a = 50 * (l - 1) ** 2, b = 50 * l ** 2; $("#lvlTxt").textContent = `Nível ${l} · ${x} XP`; $("#xpBar").style.width = Math.min(100, (x - a) / (b - a) * 100) + "%"; }
+    /* XP / Nível e Gamificação Aprimorada */
+    function xp() { 
+      const minXP = S.sessions.reduce((a, s) => a + s.min, 0) * 2; 
+      const topicosXP = (S.logs || []).length * 20;
+      const metasXP = S.goals.filter(g => g.done).length * 50;
+      const testesXP = S.results.reduce((a, r) => a + (r.score * 10) + ((r.score === r.total && r.total > 0) ? 50 : 0), 0);
+      const ofensivaXP = streak() * 15;
+      const tarefasXP = (S.tasks || []).filter(t => t.status === 'done').length * 5;
+      const missoesXP = (S.claimed_missions || []).length * 25;
+      return Math.round(minXP + topicosXP + metasXP + testesXP + ofensivaXP + tarefasXP + missoesXP); 
+    }
+
+    function header() { 
+      const x = xp();
+      const l = Math.floor(Math.sqrt(x / 50)) + 1; 
+      const a = 50 * (l - 1) ** 2; 
+      const b = 50 * l ** 2; 
+
+      const ranks = [
+        { lvl: 1, title: "🌱 Iniciante" }, { lvl: 5, title: "📖 Aprendiz" }, { lvl: 10, title: "💡 Estudioso" },
+        { lvl: 20, title: "🔥 Focado" }, { lvl: 35, title: "🧠 Veterano" }, { lvl: 50, title: "🎓 Mestre" },
+        { lvl: 75, title: "👑 Grão-Mestre" }, { lvl: 100, title: "🌟 Lenda" }
+      ];
+      let rankAtual = ranks[0].title;
+      for (let r of ranks) { if (l >= r.lvl) rankAtual = r.title; }
+
+      // Som de Level Up!
+      if (lastLevel !== null && l > lastLevel) { playSound('levelup'); }
+      lastLevel = l;
+
+      $("#lvlTxt").innerHTML = `Nível ${l} <span style="opacity:0.7; font-size:11px; margin-left:4px">${rankAtual}</span><div style="font-weight:800; color:var(--g); margin-top:2px">${x} XP</div>`; 
+      $("#xpBar").style.width = Math.min(100, (x - a) / (b - a) * 100) + "%"; 
+    }
+
     function streak() { const d = new Set(S.sessions.map(s => s.date)); let n = 0, c = new Date(); if (!d.has(iso(c))) c.setDate(c.getDate() - 1); while (d.has(iso(c))) { n++; c.setDate(c.getDate() - 1); } return n; }
-
     function nav() { $("#nav").innerHTML = TABS.map(([k, l]) => `<button class="${k === tab ? "on" : ""}" onclick="go('${k}')">${l}</button>`).join(""); }
-    function go(k) {
-      if (tab === k) return; // Evita animar se clicar na aba que já está aberta
-      tab = k;
 
-      // Verifica se o navegador suporta a API de transição moderna
-      if (document.startViewTransition) {
-        document.startViewTransition(() => {
-          render();
-        });
-      } else {
-        // Fallback para navegadores antigos
-        render();
-      }
-    } function render() { S.logs = S.logs || []; nav(); header(); $("#main").innerHTML = ({ painel: vPainel, materias: vMaterias, metas: vMetas, tempo: () => vTempo() + vHist() + vFlash(), quiz: vQuiz, calendario: vCal, dados: vDados })[tab](); if (tab === "tempo") updTimer(); }
-    /* ========== MATÉRIAS ========== */
+    function go(k) {
+      if (tab === k) return;
+      tab = k;
+      playSound('pop'); // Feedback tátil/sonoro ao trocar de aba
+      if (document.startViewTransition) { document.startViewTransition(() => { render(); }); } else { render(); }
+    } 
+    
+    function render() { 
+      S.logs = S.logs || []; nav(); header(); 
+      $("#main").innerHTML = ({ painel: vPainel, materias: vMaterias, metas: vMetas, tempo: () => vTempo() + vHist() + vFlash(), quiz: vQuiz, calendario: vCal, dados: vDados })[tab](); 
+      if (tab === "tempo") updTimer(); 
+    }
+
+    /* MISSÕES DIÁRIAS */
+    function claimMission(id) {
+      playSound('success');
+      S.claimed_missions = S.claimed_missions || [];
+      S.claimed_missions.push(`${today()}_${id}`);
+      save(); render();
+    }
+
     function ensureSubject(name) {
       if (!name || !name.trim()) return null;
       let s = subjByName(name);
       if (!s) { s = { id: uid(), name: name.trim(), color: nextColor() }; S.subjects.push(s); save(); }
       return s;
     }
-    function totalTime(name) {
-      return S.sessions.filter(s => (s.cat || "Geral").toLowerCase() === (name || "").toLowerCase()).reduce((a, s) => a + s.min, 0);
-    }
+    function totalTime(name) { return S.sessions.filter(s => (s.cat || "Geral").toLowerCase() === (name || "").toLowerCase()).reduce((a, s) => a + s.min, 0); }
+    
     function vMaterias() {
       const list = sortedSubjects();
       return `<div class="card"><h3>Nova matéria</h3>
@@ -1091,7 +1154,7 @@ ${list.length ? list.map(s => {
          <div class="edit-row">
            <input type="text" id="en-${s.id}" value="${esc(s.name)}" placeholder="Nome">
            <input type="color" id="ec-${s.id}" value="${s.color}" style="width:36px;height:36px;padding:2px">
-           <input type="number" id="et-${s.id}" min="0" step="1" placeholder="Ajustar min" title="Adiciona ou remove minutos (use negativo para reduzir)" style="width:90px">
+           <input type="number" id="et-${s.id}" min="0" step="1" placeholder="Ajustar min" title="Adiciona ou remove minutos" style="width:90px">
            <button class="btn" onclick="saveSubject('${s.id}')">Salvar</button>
            <button class="btn o" onclick="cancelEdit('${s.id}')">Cancelar</button>
          </div>
@@ -1102,81 +1165,73 @@ ${list.length ? list.map(s => {
       }).join("") : `<div class="empty">Nenhuma matéria ainda. Crie a primeira!</div>`}
   </div>`;
     }
-    function addSubject() {
-      const n = $("#mn").value.trim(); if (!n) return;
-      if (subjByName(n)) { alert("Já existe uma matéria com esse nome."); return; }
-      S.subjects.push({ id: uid(), name: n, color: $("#mc").value || nextColor() });
-      save(); render();
-    }
-    function startEdit(id) {
-      document.querySelectorAll(".subj-item").forEach(el => el.classList.remove("editing"));
-      const el = document.getElementById("subj-" + id); if (el) el.classList.add("editing");
-    }
+    function addSubject() { const n = $("#mn").value.trim(); if (!n) return; if (subjByName(n)) { alert("Já existe uma matéria com esse nome."); return; } S.subjects.push({ id: uid(), name: n, color: $("#mc").value || nextColor() }); save(); render(); }
+    function startEdit(id) { document.querySelectorAll(".subj-item").forEach(el => el.classList.remove("editing")); const el = document.getElementById("subj-" + id); if (el) el.classList.add("editing"); }
     function cancelEdit(id) { const el = document.getElementById("subj-" + id); if (el) el.classList.remove("editing"); }
     function saveSubject(id) {
       const s = S.subjects.find(x => x.id === id); if (!s) return;
-      const newName = $("#en-" + id).value.trim();
-      const newColor = $("#ec-" + id).value;
-      const adj = parseFloat($("#et-" + id).value) || 0;
+      const newName = $("#en-" + id).value.trim(), newColor = $("#ec-" + id).value, adj = parseFloat($("#et-" + id).value) || 0;
       if (!newName) { alert("Nome não pode ficar vazio."); return; }
-      // renomear em todos os lugares
       if (newName !== s.name) {
         const old = s.name;
-        S.topics.forEach(t => { if ((t.cat || "") == old) t.cat = newName; });
-        S.sessions.forEach(t => { if ((t.cat || "") == old) t.cat = newName; });
-        S.quiz.forEach(t => { if ((t.cat || "") == old) t.cat = newName; });
-        S.goals.forEach(t => { if ((t.cat || "") == old) t.cat = newName; });
-        (S.logs || []).forEach(t => { if ((t.cat || "") == old) t.cat = newName; });
-        s.name = newName;
+        S.topics.forEach(t => { if ((t.cat || "") == old) t.cat = newName; }); S.sessions.forEach(t => { if ((t.cat || "") == old) t.cat = newName; });
+        S.quiz.forEach(t => { if ((t.cat || "") == old) t.cat = newName; }); S.goals.forEach(t => { if ((t.cat || "") == old) t.cat = newName; });
+        (S.logs || []).forEach(t => { if ((t.cat || "") == old) t.cat = newName; }); s.name = newName;
       }
       s.color = newColor;
-      // ajuste de tempo: cria sessão positiva ou negativa
-      if (adj !== 0) {
-        S.sessions.push({ id: uid(), date: today(), min: adj, cat: s.name, note: "ajuste manual" });
-      }
+      if (adj !== 0) { S.sessions.push({ id: uid(), date: today(), min: adj, cat: s.name, note: "ajuste manual" }); }
       save(); render();
     }
-    function delSubject(id) {
-      const s = S.subjects.find(x => x.id === id); if (!s) return;
-      if (!confirm(`Apagar a matéria "${s.name}"?\nOs conteúdos e sessões continuam, mas ficam sem cor associada.`)) return;
-      S.subjects = S.subjects.filter(x => x.id !== id);
-      save(); render();
-    }
+    function delSubject(id) { const s = S.subjects.find(x => x.id === id); if (!s) return; if (!confirm(`Apagar a matéria "${s.name}"?`)) return; S.subjects = S.subjects.filter(x => x.id !== id); save(); render(); }
 
-    /* PAINEL */
     function vPainel() {
-      const tot = S.sessions.reduce((a, s) => a + s.min, 0), done = S.topics.filter(t => t.done).length;
       const hoje = S.sessions.filter(s => s.date === today()).reduce((a, s) => a + s.min, 0);
       const hojeN = S.sessions.filter(s => s.date === today() && s.min > 0).length;
       const estudouHoje = hojeN > 0;
       const last = [...Array(7)].map((_, i) => {
         const d = new Date(); d.setDate(d.getDate() - 6 + i); const k = iso(d);
         const byCat = {};
-        S.sessions.filter(s => s.date === k).forEach(s => {
-          const c = s.cat || "Geral";
-          byCat[c] = (byCat[c] || 0) + s.min;
-        });
+        S.sessions.filter(s => s.date === k).forEach(s => { const c = s.cat || "Geral"; byCat[c] = (byCat[c] || 0) + s.min; });
         return { k, l: ["D", "S", "T", "Q", "Q", "S", "S"][d.getDay()], m: Object.values(byCat).reduce((a, v) => a + v, 0), byCat };
       });
       const mx = Math.max(1, ...last.map(x => x.m));
-      const mesKey = today().slice(0, 7);
-      const sessMes = S.sessions.filter(s => (s.date || "").startsWith(mesKey));
+      const mesKey = today().slice(0, 7), sessMes = S.sessions.filter(s => (s.date || "").startsWith(mesKey));
       const mesNome = new Date().toLocaleDateString("pt-BR", { month: "long" });
       const byCat = {}; sessMes.forEach(s => byCat[s.cat || "Geral"] = (byCat[s.cat || "Geral"] || 0) + s.min);
       const cm = Math.max(1, ...Object.values(byCat));
       const DAY_L = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
       const byCatDay = {};
-      sessMes.forEach(s => {
-        const c = s.cat || "Geral";
-        if (!byCatDay[c]) byCatDay[c] = [0, 0, 0, 0, 0, 0, 0];
-        const wd = new Date(s.date + "T12:00:00").getDay();
-        byCatDay[c][wd] += s.min;
-      });
-      const avg = S.results.length ? Math.round(S.results.reduce((a, r) => a + r.score / r.total, 0) / S.results.length * 100) : null;
+      sessMes.forEach(s => { const c = s.cat || "Geral"; if (!byCatDay[c]) byCatDay[c] = [0, 0, 0, 0, 0, 0, 0]; const wd = new Date(s.date + "T12:00:00").getDay(); byCatDay[c][wd] += s.min; });
       const pts = S.results.slice(-12).map(r => r.score / r.total * 100);
       const line = pts.length > 1 ? `<svg viewBox="0 0 300 100" style="width:100%"><polyline fill="none" stroke="#2dff7a" stroke-width="2.5" style="filter:drop-shadow(0 0 4px #2dff7a)" points="${pts.map((p, i) => `${i * 300 / (pts.length - 1)},${95 - p * .9}`).join(" ")}"/></svg>` : `<div class="empty">Faça 2+ testes para ver sua evolução</div>`;
 
-      // barras empilhadas por cor
+      // Missões Diárias Lógica
+      const m1_prog = hoje;
+      const m1_done = m1_prog >= 45;
+      const m2_done = (S.tasks || []).some(t => t.status === 'done' && t.doneDate === today());
+      const m3_done = (S.results || []).some(r => r.date === today());
+
+      const missaoHTML = (id, title, desc, done) => {
+         const claimed = (S.claimed_missions || []).includes(`${today()}_${id}`);
+         let btn = '';
+         if (claimed) {
+            btn = `<span class="tag" style="background:rgba(255,255,255,0.05);color:var(--mu);border:none;margin:0">✨ Concluída</span>`;
+         } else if (done) {
+            btn = `<button class="btn" style="padding:6px 12px; font-size:12px; border-radius:8px; animation: fadeUp 0.3s ease" onclick="claimMission('${id}')">Resgatar +25 XP</button>`;
+         } else {
+            btn = `<span class="sub" style="font-size:11px; text-transform:uppercase; letter-spacing:1px">Pendente</span>`;
+         }
+         return `<div class="item" style="align-items:center"><div class="t"><b>${title}</b><div class="sub" style="margin-top:4px">${desc}</div></div><div>${btn}</div></div>`;
+      };
+
+      const missoesCard = `
+      <div class="card">
+        <h3>Missões Diárias</h3>
+        ${missaoHTML('m1', 'Foco Extremo', `Estudar 45 minutos hoje (${Math.min(45, m1_prog)}/45)`, m1_done)}
+        ${missaoHTML('m2', 'Mão na Massa', 'Concluir 1 tarefa no Kanban hoje', m2_done)}
+        ${missaoHTML('m3', 'Mente Afiada', 'Fazer pelo menos 1 teste/quiz hoje', m3_done)}
+      </div>`;
+
       const barsHtml = last.map(x => {
         const tl = `<small style="display:block;font-size:10px;color:var(--mu)">${x.m ? fmt(x.m) : "—"}</small>`;
         if (!x.m) return `<div title="0"><div class="stacked-bar" style="height:2px;background:#1b2b1b"></div>${x.l}${tl}</div>`;
@@ -1189,16 +1244,16 @@ ${list.length ? list.map(s => {
 
       const tempoHtml = Object.entries(byCat).filter(([, m]) => m > 0).sort((a, b) => sortAlpha(a[0], b[0])).map(([c, m]) => {
         const col = subjColor(c), days = byCatDay[c] || [];
-        const segs = days.map((dm, di) => dm > 0
-          ? `<span style="flex:${dm} 1 0;min-width:0;display:block;background:${col};color:#021207;font-size:9px;font-weight:700;line-height:20px;text-align:center;overflow:hidden;white-space:nowrap;border-radius:4px" title="${DAY_L[di]}: ${fmt(dm)}">${DAY_L[di]}</span>`
-          : "").join("");
+        const segs = days.map((dm, di) => dm > 0 ? `<span style="flex:${dm} 1 0;min-width:0;display:block;background:${col};color:#fff;font-size:10px;font-weight:700;line-height:20px;text-align:center;overflow:hidden;white-space:nowrap;border-radius:4px" title="${DAY_L[di]}: ${fmt(dm)}">${DAY_L[di]}</span>` : "").join("");
         return `<div class="hb"><span style="display:flex;align-items:center;gap:6px"><i class="color-dot" style="background:${col}"></i>${esc(c)}</span><div><div style="display:flex;gap:2px;height:20px;width:${m / cm * 100}%">${segs}</div></div><span>${fmt(m)}</span></div>`;
       }).join("") || `<div class="empty">Nenhuma sessão neste mês</div>`;
 
-      return `<div class="grid">
-   <div class="card"><h3>Hoje</h3><div class="big">${fmt(hoje)}</div><div class="sub">${hojeN} ${hojeN === 1 ? "sessão" : "sessões"} hoje</div></div>
+      return `
+  ${missoesCard}
+  <div class="grid">
+   <div class="card"><h3>Hoje</h3><div class="big">${fmt(hoje)}</div><div class="sub">${hojeN}${hojeN === 1 ? "sessão" : "sessões"} hoje</div></div>
    <div class="card"><h3>Sequência</h3><div class="big" style="${estudouHoje ? "" : "filter:grayscale(1);opacity:.5"}">🔥 ${streak()}</div><div class="sub">${estudouHoje ? "dias seguidos estudando" : "estude hoje para acender a sequência"}</div></div>
-   <div class="card"><h3>Tópicos</h3><div class="big">${S.logs.length}</div><div class="sub">estudados</div></div>
+   <div class="card"><h3>Tópicos</h3><div class="big">${S.logs.length}</div><div class="sub">estudados no total</div></div>
   </div>
     <div class="card"><h3>Últimos 7 dias (por matéria)</h3>
    <div class="bars" style="height:175px">${barsHtml}</div>
@@ -1212,7 +1267,6 @@ ${list.length ? list.map(s => {
     function tog(k, id) { const o = S[k].find(x => x.id === id); o.done = !o.done; save(); render(); }
     function del(k, id) { S[k] = S[k].filter(x => x.id !== id); save(); render(); }
 
-    /* TÓPICOS ESTUDADOS */
     function entries() {
       const used = new Set(), out = [];
       S.logs.forEach(l => {
@@ -1225,8 +1279,6 @@ ${list.length ? list.map(s => {
       return out.reverse().sort((a, b) => b.date.localeCompare(a.date));
     }
 
-
-    let histClosed = new Set();
     function histTog(el) { el.open ? histClosed.delete(el.dataset.c) : histClosed.add(el.dataset.c); }
 
     function vHist() {
@@ -1236,18 +1288,11 @@ ${list.length ? list.map(s => {
       all.forEach(e => (groups[e.cat] = groups[e.cat] || []).push(e));
       const names = Object.keys(groups).sort(sortAlpha);
 
-      // Função auxiliar para borrar palavras seletivamente
       const partialBlur = (txt) => {
         if (!blurMode) return esc(txt);
-
-        // Separa o texto preservando os espaços e quebras de linha
         return txt.split(/(\s+)/).map((w, i) => {
           if (!w.trim()) return w;
-
-          // Regra: Não borra palavras de até 2 letras (ex: o, a, de), 
-          // nem ~25% das palavras maiores (baseado no tamanho e posição) para dar contexto.
           const keepVisible = w.length <= 2 || (w.length + i) % 4 === 0;
-
           return keepVisible ? esc(w) : `<span class="b-w">${esc(w)}</span>`;
         }).join("");
       };
@@ -1256,12 +1301,8 @@ ${list.length ? list.map(s => {
         const list = groups[c], col = subjColor(c);
         const tot = list.reduce((a, e) => a + (e.sess ? e.sess.min : 0), 0);
         let lastD = "";
-
         const items = list.map(e => {
-          const head = e.date !== lastD
-            ? (lastD = e.date, `<div class="sub" style="margin:12px 0 2px;letter-spacing:1px;font-weight:600">${e.date === today() ? "HOJE" : e.date.split("-").reverse().join("/")}</div>`)
-            : "";
-
+          const head = e.date !== lastD ? (lastD = e.date, `<div class="sub" style="margin:12px 0 2px;letter-spacing:1px;font-weight:600">${e.date === today() ? "HOJE" : e.date.split("-").reverse().join("/")}</div>`) : "";
           if (e.key === editEntry) {
             return head + `<div class="item"><div class="t">
           <div class="row"><input id="eh-c" list="cats" value="${esc(e.cat)}" placeholder="Matéria">${e.sess ? `<input id="eh-m" type="number" step="any" value="${e.sess.min}" placeholder="Minutos">` : ""}<input id="eh-d" type="date" value="${e.date}"></div>
@@ -1269,49 +1310,21 @@ ${list.length ? list.map(s => {
           <div style="display:flex;gap:8px"><button class="btn" onclick="saveEntry('${e.key}')">Salvar</button> <button class="btn o" onclick="editEntry=null;render()">Cancelar</button></div>
         </div></div>`;
           }
-
-          // Classes do quadro de borrão
           const blurBoxClass = blurMode ? "blur-box" : "";
           const blurClick = blurMode ? `onclick="this.classList.toggle('revealed')"` : ``;
           const tooltip = blurMode ? `title="Toque para revelar a resposta"` : ``;
-
           return head + `<div class="item"><div class="t">
         ${e.sess ? `<span class="tag" style="border-color:${col};color:#fff;background:rgba(0,0,0,0.4)">${fmt(e.sess.min)}</span>` : ""}
         ${e.log ? `<b>${esc(e.log.topic)}</b><div class="${blurBoxClass}" style="margin-top:6px;white-space:pre-wrap;" ${blurClick} ${tooltip}>${partialBlur(e.log.what)}</div>` : `<span class="sub">ajuste de tempo</span>`}
       </div><button class="btn o" style="padding:4px 10px;font-size:12px;margin-right:6px" onclick="editEntry='${e.key}';render()">✎</button><button class="btn x" style="padding:4px 10px;font-size:12px" onclick="delEntry('${e.key}')">✕</button></div>`;
         }).join("");
-
         return `<details class="hgrp" data-c="${esc(c)}" ${histClosed.has(c) ? "" : "open"} ontoggle="histTog(this)" style="border-left:3px solid ${col}">
       <summary><i class="color-dot" style="background:${col};color:${col}"></i><b style="color:${col}">${esc(c)}</b><span class="tag" style="border-color:${col};color:#fff;margin:0 0 0 8px;background:rgba(0,0,0,0.4)">${fmt(tot)}</span><span class="sub" style="margin-left:auto">${list.length} ${list.length === 1 ? "registro" : "registros"}</span></summary>
       ${items}
     </details>`;
       }).join("");
 
-      return `<style>
-    .hgrp{background:rgba(0,0,0,0.2);border:1px solid var(--line);border-radius:14px;padding:12px 16px;margin-bottom:12px;transition:background 0.2s}
-    .hgrp:hover{background:rgba(0,0,0,0.3)}
-    .hgrp summary{cursor:pointer;display:flex;align-items:center;gap:8px;flex-wrap:wrap;list-style:none}
-    .hgrp summary::-webkit-details-marker{display:none}
-    .hgrp summary::before{content:"▸";color:var(--mu);transition:transform 0.2s;font-size:16px}
-    .hgrp[open] summary::before{transform:rotate(90deg)}
-    
-    /* Estilos da Revisão Ativa (Borrão Interativo) */
-    .blur-box { 
-      cursor: pointer; user-select: none; padding: 12px; border-radius: 10px; 
-      background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.15); 
-      transition: all 0.2s ease; font-size: 14px; line-height: 1.6; 
-    }
-    .blur-box:hover { border-color: rgba(16, 185, 129, 0.5); background: rgba(16, 185, 129, 0.05); }
-    
-    .blur-box .b-w { 
-      filter: blur(4.5px); opacity: 0.6; background: rgba(255,255,255,0.08); 
-      border-radius: 4px; padding: 0 4px; transition: all 0.3s ease; 
-    }
-    
-    /* Quando revelado */
-    .blur-box.revealed .b-w { filter: blur(0); opacity: 1; background: transparent; padding: 0; }
-    .blur-box.revealed { border-style: solid; border-color: var(--line); }
-  </style>
+      return `
   <div class="card">
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
       <h3 style="margin:0">Estudado em ${mesNome} (${all.length})</h3>
@@ -1322,24 +1335,18 @@ ${list.length ? list.map(s => {
     ${catList()}${body || `<div class="empty">Nenhum estudo registrado neste mês.</div>`}
   </div>`;
     }
-    /* flashcards dos meses passados */
-
-    let fc = { cat: "", i: 0, flip: false, ord: null };
 
     function fcDeck() {
       const ini = today().slice(0, 7) + "-01";
       const d = S.logs.filter(l => l.date < ini && l.topic && l.what && (!fc.cat || (l.cat || "Geral") === fc.cat));
       d.sort((a, b) => sortAlpha(a.cat || "Geral", b.cat || "Geral") || b.date.localeCompare(a.date));
-      if (fc.ord) {
-        const r = new Map(fc.ord.map((id, i) => [id, i]));
-        d.sort((a, b) => (r.has(a.id) ? r.get(a.id) : 1e9) - (r.has(b.id) ? r.get(b.id) : 1e9));
-      }
+      if (fc.ord) { const r = new Map(fc.ord.map((id, i) => [id, i])); d.sort((a, b) => (r.has(a.id) ? r.get(a.id) : 1e9) - (r.has(b.id) ? r.get(b.id) : 1e9)); }
       return d;
     }
     function fcSet(v) { fc.cat = v; fc.i = 0; fc.flip = false; fc.ord = null; render(); }
-    function fcFlip() { fc.flip = !fc.flip; render(); }
-    function fcMove(n) { const len = fcDeck().length; if (!len) return; fc.i = (fc.i + n + len) % len; fc.flip = false; render(); }
-    function fcShuffle() { fc.ord = fcDeck().map(l => l.id).sort(() => Math.random() - .5); fc.i = 0; fc.flip = false; render(); }
+    function fcFlip() { fc.flip = !fc.flip; playSound('pop'); render(); }
+    function fcMove(n) { const len = fcDeck().length; if (!len) return; fc.i = (fc.i + n + len) % len; fc.flip = false; playSound('pop'); render(); }
+    function fcShuffle() { fc.ord = fcDeck().map(l => l.id).sort(() => Math.random() - .5); fc.i = 0; fc.flip = false; playSound('success'); render(); }
 
     function vFlash() {
       const ini = today().slice(0, 7) + "-01";
@@ -1361,25 +1368,21 @@ ${list.length ? list.map(s => {
     <div class="row"><select onchange="fcSet(this.value)"><option value="">Todas as matérias</option>${pastCats.map(c => `<option ${c === fc.cat ? "selected" : ""}>${esc(c)}</option>`).join("")}</select><button class="btn o" onclick="fcShuffle()">🔀 Embaralhar</button></div>
     ${card}</div>`;
     }
-    /* METAS */
-    function weekStart(d = new Date()) {
-      const x = new Date(d);
-      const day = x.getDay(); // 0 = domingo
-      const diff = day === 0 ? -6 : 1 - day; // começa na segunda
-      x.setDate(x.getDate() + diff);
-      return iso(x);
+
+    function weekStart(d = new Date()) { const x = new Date(d); const day = x.getDay(); const diff = day === 0 ? -6 : 1 - day; x.setDate(x.getDate() + diff); return iso(x); }
+    const goalMin = g => { const ws = weekStart(); return S.sessions.filter(s => s.date >= ws && (s.cat || "Geral").toLowerCase() === (g.cat || "").toLowerCase()).reduce((a, s) => a + s.min, 0); };
+    const goalPct = g => g.hours ? Math.min(100, goalMin(g) / 60 / g.hours * 100) : null;
+    
+    function addGoal() {
+      const t = $("#gt").value.trim(), cat = $("#gc").value.trim(), hours = +$("#gh").value;
+      if (!reqFields([["gt", t], ["gc", cat], ["gh", hours > 0]])) return;
+      ensureSubject(cat);
+      S.goals.push({ id: uid(), text: t, cat, due: $("#gd").value, hours, done: false, created: today() });
+      playSound('success');
+      save(); render();
     }
 
-    const goalMin = g => {
-      const ws = weekStart();
-      return S.sessions
-        .filter(s => s.date >= ws && (s.cat || "Geral").toLowerCase() === (g.cat || "").toLowerCase())
-        .reduce((a, s) => a + s.min, 0);
-    };
-
-    const goalPct = g => g.hours ? Math.min(100, goalMin(g) / 60 / g.hours * 100) : null;
     function vMetas() {
-      // Lógica do Kanban
       const cols = { todo: "📌 A Fazer", doing: "⏳ Fazendo", done: "✅ Concluído" };
       const kbHTML = Object.entries(cols).map(([k, label]) => {
         const list = (S.tasks || []).filter(t => t.status === k);
@@ -1409,8 +1412,11 @@ ${list.length ? list.map(s => {
 
       const kanbanCard = `
     <div class="card">
-      <h3>Kanban de Tarefas</h3>
-      <div class="row">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3>Kanban de Tarefas</h3>
+        <span class="tag" style="background:rgba(255,255,255,0.05); color:var(--g); border:1px dashed var(--g);">+5 XP por tarefa concluída</span>
+      </div>
+      <div class="row" style="margin-top:12px;">
         <input id="kb-txt" placeholder="Nova tarefa (ex: Ler capítulo 4)">
         <input id="kb-cat" list="cats" placeholder="Matéria (opcional)">
       </div>
@@ -1421,7 +1427,6 @@ ${list.length ? list.map(s => {
     </div>
   `;
 
-      // HTML das Metas Antigas
       const metasCard = `
   <div class="grid">
     <div class="card"><h3>Nova meta semanal</h3>${catList()}
@@ -1446,78 +1451,61 @@ ${list.length ? list.map(s => {
       </div>`;
       }).join("") : `<div class="empty">Nenhuma meta criada ainda.</div>`}</div>
   </div>`;
-
       return kanbanCard + metasCard;
     }
-    /* TEMPO */
-    function elapsed() { return tm.acc + (tm.run ? (Date.now() - tm.start) / 60000 : 0); }
 
+    function elapsed() { return tm.acc + (tm.run ? (Date.now() - tm.start) / 60000 : 0); }
     function updTimer() {
-      // Atualiza Cronômetro Normal
       const e = $("#tmr");
       if (e && timerMode === "prog") {
         const s = Math.floor(elapsed() * 60);
         e.textContent = [Math.floor(s / 3600), Math.floor(s % 3600 / 60), s % 60].map(n => String(n).padStart(2, "0")).join(":");
       }
-
-      // Atualiza Pomodoro
       const pe = $("#ptmr_main");
       if (pe && timerMode === "pomo") {
         if (pm.run) pm.left = Math.max(0, Math.floor((pm.end - Date.now()) / 1000));
         const m = Math.floor(pm.left / 60), s = pm.left % 60;
         pe.textContent = String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
-
-        // Transição automática quando zera
         if (pm.run && pm.left === 0) {
-          if (pm.phase === "foco") {
-            // Salva o tempo automaticamente se tiver dados preenchidos, ou apenas alerta
-            alert("🍅 Foco concluído! Hora da pausa.");
-            pm.phase = "pausa";
-            pm.left = pm.b * 60;
-          } else {
-            alert("☕ Pausa concluída! De volta ao foco.");
-            pm.phase = "foco";
-            pm.left = pm.f * 60;
-          }
+          playSound('success');
+          if (pm.phase === "foco") { alert("🍅 Foco concluído! Hora da pausa."); pm.phase = "pausa"; pm.left = pm.b * 60; } 
+          else { alert("☕ Pausa concluída! De volta ao foco."); pm.phase = "foco"; pm.left = pm.f * 60; }
           pm.end = Date.now() + pm.left * 1000;
           render();
         }
       }
-      // Funções Kanban
-      function addTask() {
-        const txt = $("#kb-txt").value.trim();
-        const cat = $("#kb-cat").value.trim();
-        if (!txt) return alert("Digite o nome da tarefa.");
-        if (cat) ensureSubject(cat);
-
-        if (!S.tasks) S.tasks = [];
-        S.tasks.push({ id: uid(), text: txt, cat: cat, status: "todo", date: today() });
-        save(); render();
-      }
-
-      function moveTask(id, newStatus) {
-        const t = S.tasks.find(x => x.id === id);
-        if (t) {
-          t.status = newStatus;
-          save(); render();
-        }
-      }
-
-      function delTask(id) {
-        if (!confirm("Apagar esta tarefa?")) return;
-        S.tasks = S.tasks.filter(x => x.id !== id);
-        save(); render();
-      }
     }
+
+    function addTask() {
+      const txt = $("#kb-txt").value.trim(), cat = $("#kb-cat").value.trim();
+      if (!txt) return alert("Digite o nome da tarefa.");
+      if (cat) ensureSubject(cat);
+      if (!S.tasks) S.tasks = [];
+      S.tasks.push({ id: uid(), text: txt, cat: cat, status: "todo", date: today() });
+      playSound('pop');
+      save(); render();
+    }
+    function moveTask(id, newStatus) { 
+      const t = S.tasks.find(x => x.id === id); 
+      if (t) { 
+        t.status = newStatus; 
+        if (newStatus === 'done') {
+            t.doneDate = today();
+            playSound('success'); // Som gratificante de XP
+        } else {
+            playSound('pop');
+        }
+        save(); render(); 
+      } 
+    }
+    function delTask(id) { if (!confirm("Apagar esta tarefa?")) return; S.tasks = S.tasks.filter(x => x.id !== id); save(); render(); }
 
     function vTempo() {
       if (!tick) tick = setInterval(() => { if (tab === "tempo") updTimer(); }, 500);
-
       const progUI = `
     <div class="timer" id="tmr">00:00:00</div>
     <div class="row"><button class="btn" onclick="tmToggle()">${tm.run ? "⏸ Pausar" : "▶ Iniciar"}</button><button class="btn o" onclick="tmStop()">✔ Finalizar e salvar</button></div>
   `;
-
       const pomoUI = `
     <div class="sub" style="text-align:center; font-weight:bold; color:${pm.phase === 'foco' ? 'var(--red)' : 'var(--g)'}; font-size:16px;">
       ${pm.phase === 'foco' ? '🍅 Foco' : '☕ Pausa'}
@@ -1533,15 +1521,12 @@ ${list.length ? list.map(s => {
       <div style="flex:1"><label class="sub">Minutos Pausa</label><input type="number" value="${pm.b}" onchange="pmConfig('b', this.value)"></div>
     </div>
   `;
-
-      // Segmented Control (Switch)
       const toggleUI = `
     <div style="display:flex; background:rgba(0,0,0,0.4); border:1px solid var(--line); border-radius:14px; padding:4px; margin: 0 auto 24px; max-width: 400px;">
        <button style="flex:1; padding:10px; border-radius:10px; border:none; cursor:pointer; font-weight:600; transition:all 0.3s; font-family:var(--font); font-size:14px; ${timerMode === 'prog' ? 'background:rgba(255,255,255,0.1); color:#fff; box-shadow:0 4px 12px rgba(0,0,0,0.3);' : 'background:transparent; color:var(--mu);'}" onclick="timerMode='prog'; render()">⏱️ Cronômetro</button>
        <button style="flex:1; padding:10px; border-radius:10px; border:none; cursor:pointer; font-weight:600; transition:all 0.3s; font-family:var(--font); font-size:14px; ${timerMode === 'pomo' ? 'background:rgba(255,255,255,0.1); color:#fff; box-shadow:0 4px 12px rgba(0,0,0,0.3);' : 'background:transparent; color:var(--mu);'}" onclick="timerMode='pomo'; render()">🍅 Pomodoro</button>
     </div>
   `;
-
       return `
   <div class="card">
     ${toggleUI}
@@ -1564,115 +1549,20 @@ ${list.length ? list.map(s => {
   </div>`;
     }
 
-    function reqFields(pairs) {
-      let ok = true;
-      pairs.forEach(([id, v]) => { const e = $("#" + id); if (e) e.style.borderColor = v ? "" : "var(--red)"; if (!v) ok = false; });
-      if (!ok) alert("Preencha todos os campos obrigatórios.");
-      return ok;
-    }
-    function tmToggle() { if (tm.run) { tm.acc = elapsed(); tm.run = false; } else { tm.start = Date.now(); tm.run = true; } render(); }
-    function tmStop() {
-      const m = elapsed(); if (m < 0.1) return;
-      const c = dr.c.trim(), t = dr.t.trim(), w = dr.w.trim();
-      if (!reqFields([["sc", c], ["st", t], ["sw", w]])) return;
-      ensureSubject(c);
-      const sid = uid();
-      S.sessions.push({ id: sid, date: today(), min: +m.toFixed(1), cat: c });
-      S.logs.push({ id: uid(), sid, topic: t, what: w, cat: c, date: today() });
-      tm = { run: false, start: 0, acc: 0 }; dr = { c: "", t: "", w: "" };
-      save(); render(); pipUpd();
-    }
-    function pmToggle() {
-      if (pm.run) {
-        pm.run = false; // Pausa
-      } else {
-        pm.end = Date.now() + (pm.left * 1000); // Inicia
-        pm.run = true;
-      }
-      render();
-    }
+    function reqFields(pairs) { let ok = true; pairs.forEach(([id, v]) => { const e = $("#" + id); if (e) e.style.borderColor = v ? "" : "var(--red)"; if (!v) ok = false; }); if (!ok) alert("Preencha todos os campos obrigatórios."); return ok; }
+    function tmToggle() { if (tm.run) { tm.acc = elapsed(); tm.run = false; } else { playSound('pop'); tm.start = Date.now(); tm.run = true; } render(); }
+    function tmStop() { const m = elapsed(); if (m < 0.1) return; const c = dr.c.trim(), t = dr.t.trim(), w = dr.w.trim(); if (!reqFields([["sc", c], ["st", t], ["sw", w]])) return; ensureSubject(c); const sid = uid(); S.sessions.push({ id: sid, date: today(), min: +m.toFixed(1), cat: c }); S.logs.push({ id: uid(), sid, topic: t, what: w, cat: c, date: today() }); tm = { run: false, start: 0, acc: 0 }; dr = { c: "", t: "", w: "" }; playSound('success'); save(); render(); pipUpd(); }
+    function pmToggle() { if (pm.run) { pm.run = false; } else { playSound('pop'); pm.end = Date.now() + (pm.left * 1000); pm.run = true; } render(); }
+    function pmSkip() { pm.phase = pm.phase === "foco" ? "pausa" : "foco"; pm.left = (pm.phase === "foco" ? pm.f : pm.b) * 60; if (pm.run) pm.end = Date.now() + (pm.left * 1000); playSound('pop'); render(); }
+    function pmConfig(tipo, valor) { const v = Math.max(1, parseInt(valor) || 1); if (tipo === 'f') pm.f = v; if (tipo === 'b') pm.b = v; if (!pm.run) { if (tipo === 'f' && pm.phase === 'foco') pm.left = v * 60; if (tipo === 'b' && pm.phase === 'pausa') pm.left = v * 60; } render(); }
+    function pmStop() { const tempoEstudadoMinutos = pm.phase === "foco" ? (pm.f * 60 - pm.left) / 60 : 0; if (tempoEstudadoMinutos < 0.1 && pm.phase === "foco") { alert("Tempo muito curto para salvar."); return; } const c = dr.c.trim(), t = dr.t.trim(), w = dr.w.trim(); if (!reqFields([["sc", c], ["st", t], ["sw", w]])) return; ensureSubject(c); const sid = uid(); const tempoParaSalvar = pm.phase === "foco" ? tempoEstudadoMinutos : pm.f; S.sessions.push({ id: sid, date: today(), min: +tempoParaSalvar.toFixed(1), cat: c }); S.logs.push({ id: uid(), sid, topic: t, what: w, cat: c, date: today() }); pm = { run: false, end: 0, phase: "foco", left: pm.f * 60, f: pm.f, b: pm.b, cat: "" }; dr = { c: "", t: "", w: "" }; playSound('success'); save(); render(); }
+    function addSess() { const m = +$("#mm").value, c = $("#mc").value.trim(), t = $("#mt").value.trim(), w = $("#mw").value.trim(); const d = $("#md").value || today(); if (!reqFields([["mc", c], ["mm", m], ["mt", t], ["mw", w]])) return; ensureSubject(c); const sid = uid(); S.sessions.push({ id: sid, date: d, min: m, cat: c }); S.logs.push({ id: uid(), sid, topic: t, what: w, cat: c, date: d }); dm = { c: "", m: "", d: "", t: "", w: "" }; playSound('success'); save(); render(); }
 
-    function pmSkip() {
-      pm.phase = pm.phase === "foco" ? "pausa" : "foco";
-      pm.left = (pm.phase === "foco" ? pm.f : pm.b) * 60;
-      if (pm.run) pm.end = Date.now() + (pm.left * 1000);
-      render();
-    }
-
-    function pmConfig(tipo, valor) {
-      const v = Math.max(1, parseInt(valor) || 1);
-      if (tipo === 'f') pm.f = v;
-      if (tipo === 'b') pm.b = v;
-      if (!pm.run) {
-        if (tipo === 'f' && pm.phase === 'foco') pm.left = v * 60;
-        if (tipo === 'b' && pm.phase === 'pausa') pm.left = v * 60;
-      }
-      render();
-    }
-
-    function pmStop() {
-      // Pega o tempo que já passou nesta fase de foco
-      const tempoEstudadoMinutos = pm.phase === "foco" ? (pm.f * 60 - pm.left) / 60 : 0;
-
-      if (tempoEstudadoMinutos < 0.1 && pm.phase === "foco") {
-        alert("Tempo muito curto para salvar.");
-        return;
-      }
-      const c = dr.c.trim(), t = dr.t.trim(), w = dr.w.trim();
-      if (!reqFields([["sc", c], ["st", t], ["sw", w]])) return;
-      ensureSubject(c);
-      const sid = uid();
-      // Se estiver na pausa, salva o tempo completo do último foco (pm.f). Se estiver no meio do foco, salva o proporcional.
-      const tempoParaSalvar = pm.phase === "foco" ? tempoEstudadoMinutos : pm.f;
-      S.sessions.push({ id: sid, date: today(), min: +tempoParaSalvar.toFixed(1), cat: c });
-      S.logs.push({ id: uid(), sid, topic: t, what: w, cat: c, date: today() });
-      // Reseta Pomodoro
-      pm = { run: false, end: 0, phase: "foco", left: pm.f * 60, f: pm.f, b: pm.b, cat: "" };
-      dr = { c: "", t: "", w: "" };
-      save(); render();
-    }
-
-    function addSess() {
-      const m = +$("#mm").value, c = $("#mc").value.trim(), t = $("#mt").value.trim(), w = $("#mw").value.trim();
-      const d = $("#md").value || today();
-      if (!reqFields([["mc", c], ["mm", m], ["mt", t], ["mw", w]])) return;
-      ensureSubject(c);
-      const sid = uid();
-      S.sessions.push({ id: sid, date: d, min: m, cat: c });
-      S.logs.push({ id: uid(), sid, topic: t, what: w, cat: c, date: d });
-      dm = { c: "", m: "", d: "", t: "", w: "" };
-      save(); render();
-    }
-
-    function saveEntry(key) {
-      const e = entries().find(x => x.key === key); if (!e) return;
-      const c = $("#eh-c").value.trim() || "Geral", d = $("#eh-d").value || e.date;
-      let m, t, w;
-      if (e.sess) { m = parseFloat($("#eh-m").value); if (!m) { alert("Informe os minutos."); return; } }
-      if (e.log) { t = $("#eh-t").value.trim(); w = $("#eh-w").value.trim(); if (!t || !w) { alert("Preencha o tópico e o que você estudou dele."); return; } }
-      ensureSubject(c);
-      if (e.sess) { e.sess.cat = c; e.sess.min = m; e.sess.date = d; }
-      if (e.log) { e.log.cat = c; e.log.date = d; e.log.topic = t; e.log.what = w; if (e.sess) e.log.sid = e.sess.id; }
-      editEntry = null; save(); render();
-    }
-    function delEntry(key) {
-      const e = entries().find(x => x.key === key); if (!e) return;
-      if (!confirm("Apagar este registro de estudo?")) return;
-      if (e.sess) S.sessions = S.sessions.filter(x => x.id !== e.sess.id);
-      if (e.log) S.logs = S.logs.filter(x => x.id !== e.log.id);
-      save(); render();
-    }
-
-    /* CALENDÁRIO */
     function vCal() {
       const b = new Date(); b.setDate(1); b.setMonth(b.getMonth() + calOff); const y = b.getFullYear(), mo = b.getMonth(), n = new Date(y, mo + 1, 0).getDate(), off = b.getDay();
       const key = d => y + "-" + String(mo + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
       const mins = k => S.sessions.filter(s => s.date === k).reduce((a, s) => a + s.min, 0);
-      const catsOf = k => {
-        const map = {};
-        S.sessions.filter(s => s.date === k).forEach(s => { map[s.cat || "Geral"] = (map[s.cat || "Geral"] || 0) + s.min; });
-        return Object.keys(map);
-      };
+      const catsOf = k => { const map = {}; S.sessions.filter(s => s.date === k).forEach(s => { map[s.cat || "Geral"] = (map[s.cat || "Geral"] || 0) + s.min; }); return Object.keys(map); };
       const mx = Math.max(30, ...[...Array(n)].map((_, i) => mins(key(i + 1))));
       let cells = ""; for (let i = 0; i < off; i++)cells += "<div></div>";
       for (let d = 1; d <= n; d++) {
@@ -1690,52 +1580,24 @@ ${list.length ? list.map(s => {
       ${gl.map(g => `<div>🎯 Meta: ${esc(g.text)}${g.cat ? " · " + esc(g.cat) : ""}${g.done ? " ✔" : ""}</div>`).join("")}      ${ss.length + tp.length + gl.length ? "" : '<div class="empty">Nada registrado neste dia</div>'}
     </div>`;
       }
-
-      /* RESUMO DO MÊS */
       const mesTxt = b.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
       const pref = y + "-" + String(mo + 1).padStart(2, "0");
       const sm = S.sessions.filter(s => (s.date || "").startsWith(pref));
       const totMes = sm.reduce((a, s) => a + s.min, 0);
-      const porMat = {};
-      sm.forEach(s => { const c = s.cat || "Geral"; porMat[c] = (porMat[c] || 0) + s.min; });
+      const porMat = {}; sm.forEach(s => { const c = s.cat || "Geral"; porMat[c] = (porMat[c] || 0) + s.min; });
       const rankMat = Object.entries(porMat).filter(([, m]) => m > 0).sort((a, b) => b[1] - a[1]);
       const DN = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
       const diaMin = Array(7).fill(0), diaDatas = Array.from({ length: 7 }, () => new Set());
-      sm.forEach(s => {
-        const wd = new Date(s.date + "T12:00:00").getDay();
-        diaMin[wd] += s.min;
-        if (s.min > 0) diaDatas[wd].add(s.date);
-      });
+      sm.forEach(s => { const wd = new Date(s.date + "T12:00:00").getDay(); diaMin[wd] += s.min; if (s.min > 0) diaDatas[wd].add(s.date); });
       const rankDia = diaMin.map((m, i) => ({ i, m, n: diaDatas[i].size })).filter(x => x.m > 0).sort((a, b) => b.m - a.m);
-      const mxM = rankMat.length ? rankMat[0][1] : 1;
-      const mxD = rankDia.length ? rankDia[0].m : 1;
+      const mxM = rankMat.length ? rankMat[0][1] : 1, mxD = rankDia.length ? rankDia[0].m : 1;
       const medal = i => ["🥇", "🥈", "🥉"][i] || (i + 1) + "º";
-      const matHtml = rankMat.map(([c, m], i) =>
-        `<div class="hb" style="grid-template-columns:28px 110px 1fr 56px">
-     <span>${medal(i)}</span>
-     <span style="display:flex;align-items:center;gap:6px">
-       <i class="color-dot" style="background:${subjColor(c)}"></i>${esc(c)}
-     </span>
-     <div class="bar"><i style="width:${m / mxM * 100}%;background:${subjColor(c)}"></i></div>
-     <span>${fmt(m)}</span>
-   </div>`
-      ).join("");
-      const diaHtml = rankDia.map((x, i) =>
-        `<div class="hb" style="grid-template-columns:28px 110px 1fr 56px">
-     <span>${medal(i)}</span>
-     <span>${DN[x.i]} <span class="sub">· ${x.n}x</span></span>
-     <div class="bar"><i style="width:${x.m / mxD * 100}%"></i></div>
-     <span>${fmt(x.m)}</span>
-   </div>`
-      ).join("");
-
-      /* METAS DO MÊS */
+      const matHtml = rankMat.map(([c, m], i) => `<div class="hb" style="grid-template-columns:28px 110px 1fr 56px"><span>${medal(i)}</span><span style="display:flex;align-items:center;gap:6px"><i class="color-dot" style="background:${subjColor(c)}"></i>${esc(c)}</span><div class="bar"><i style="width:${m / mxM * 100}%;background:${subjColor(c)}"></i></div><span>${fmt(m)}</span></div>`).join("");
+      const diaHtml = rankDia.map((x, i) => `<div class="hb" style="grid-template-columns:28px 110px 1fr 56px"><span>${medal(i)}</span><span>${DN[x.i]} <span class="sub">· ${x.n}x</span></span><div class="bar"><i style="width:${x.m / mxD * 100}%"></i></div><span>${fmt(x.m)}</span></div>`).join("");
       const refD = g => g.due || g.created || "";
       const gst = g => g.done ? "ok" : (g.due && g.due < today() ? "late" : "pend");
       const gm = S.goals.filter(g => refD(g).startsWith(pref)).sort((a, b) => refD(a).localeCompare(refD(b)));
-      const nOk = gm.filter(g => gst(g) === "ok").length;
-      const nLate = gm.filter(g => gst(g) === "late").length;
-      const nPend = gm.length - nOk - nLate;
+      const nOk = gm.filter(g => gst(g) === "ok").length, nLate = gm.filter(g => gst(g) === "late").length, nPend = gm.length - nOk - nLate;
 
       const metasCard = `<div class="card">
   <h3>Metas de ${mesTxt}</h3>
@@ -1750,8 +1612,7 @@ ${list.length ? list.map(s => {
         return `<div class="item">
       <span>${st === "ok" ? "✅" : st === "late" ? "❌" : "⏳"}</span>
       <div class="t">
-        <b style="color:${col}">${esc(g.text)}</b><br>
-        ${g.cat ? `<span class="tag" style="border-color:${subjColor(g.cat)};color:${subjColor(g.cat)}">${esc(g.cat)}</span>` : ""}
+        <b style="color:${col}">${esc(g.text)}</b><br>${g.cat ? `<span class="tag" style="border-color:${subjColor(g.cat)};color:${subjColor(g.cat)}">${esc(g.cat)}</span>` : ""}
         <span class="sub">${g.due ? "Prazo: " + g.due.split("-").reverse().join("/") : "Sem prazo"}${p !== null ? " · " + Math.round(p) + "% das " + g.hours + "h" : ""}</span>
       </div>
     </div>`;
@@ -1795,7 +1656,6 @@ ${metasCard}
 </div>${det}${resumo}`;
     }
 
-    /* DADOS */
     function vDados() {
       return `
   <div class="card">
@@ -1830,9 +1690,9 @@ ${metasCard}
       exportTxt = data; render();
     }
     function imp(f) { if (!f) return; const r = new FileReader(); r.onload = () => { try { const d = JSON.parse(r.result); if (!d.topics || !d.sessions) throw 0; S = { subjects: [], topics: [], goals: [], sessions: [], quiz: [], results: [], ...d }; migrate(); save(); render(); $("#impMsg").textContent = "✔ Backup importado!"; } catch (e) { $("#impMsg").textContent = "Arquivo inválido."; } }; r.readAsText(f); }
-    function wipe() { if (!sure) { sure = true; render(); return; } sure = false; S = { subjects: [], topics: [], goals: [], sessions: [], quiz: [], results: [], logs: [] }; save(); render(); }
+    function wipe() { if (!sure) { sure = true; render(); return; } sure = false; S = { subjects: [], topics: [], goals: [], sessions: [], quiz: [], results: [], logs: [], tasks: [] }; save(); render(); }
 
-/* QUIZ */
+    /* QUIZ */
     function vQuiz() {
       if (quizState && quizState.fin) return `<div class="card" style="text-align:center"><h3>Resultado</h3><div class="big">${quizState.score}/${quizState.qs.length}</div><p>${quizState.score === quizState.qs.length ? "Perfeito! 🏆" : quizState.score / quizState.qs.length >= .6 ? "Bom trabalho! 💪" : "Continue revisando, você chega lá 📈"}</p><button class="btn" onclick="quizState=null;render()">Voltar</button></div>`;
 
@@ -1865,11 +1725,8 @@ ${metasCard}
     function addQ() { const q = $("#qq").value.trim(), o = [0, 1, 2, 3].map(i => $("#qo" + i).value.trim()); if (!q || o.filter(Boolean).length < 2) return; const a = +document.querySelector("[name=cr]:checked").value; if (!o[a]) return; const idx = []; const opts = []; o.forEach((x, i) => { if (x) { if (i === a) idx.push(opts.length); opts.push(x); } }); const cat = $("#qc").value.trim(); if (cat) ensureSubject(cat); S.quiz.push({ id: uid(), q, cat, opts, ans: idx[0] }); save(); render(); }
     function due() { return S.quiz.filter(q => !q.due || q.due <= today()); }
     function startQuiz(m) { const c = m === "rev" ? "" : $("#qf").value; let qs = (m === "rev" ? due() : S.quiz.filter(q => !c || q.cat === c)).map(q => { const o = q.opts.map((t, i) => ({ t, c: i === q.ans })).sort(() => Math.random() - .5); return { id: q.id, q: q.q, opts: o.map(x => x.t), ans: o.findIndex(x => x.c), cat: q.cat }; }).sort(() => Math.random() - .5); quizState = { qs, i: 0, score: 0, ans: null, cat: c }; render(); }
-    function answer(i) { const q = quizState.qs[quizState.i], ok = i === q.ans; quizState.ans = i; if (ok) quizState.score++; const o = S.quiz.find(x => x.id === q.id); if (o) { const IV = [1, 3, 7, 16]; o.box = ok ? Math.min(4, (o.box || 0) + 1) : 0; const d = new Date(); d.setDate(d.getDate() + (ok ? IV[o.box - 1] : 0)); o.due = iso(d); save(); } render(); }
+    function answer(i) { const q = quizState.qs[quizState.i], ok = i === q.ans; quizState.ans = i; if (ok) { quizState.score++; playSound('success'); } else { playSound('pop'); } const o = S.quiz.find(x => x.id === q.id); if (o) { const IV = [1, 3, 7, 16]; o.box = ok ? Math.min(4, (o.box || 0) + 1) : 0; const d = new Date(); d.setDate(d.getDate() + (ok ? IV[o.box - 1] : 0)); o.due = iso(d); save(); } render(); }
     function nextQ() { if (quizState.i + 1 < quizState.qs.length) { quizState.i++; quizState.ans = null; } else { quizState.fin = true; S.results.push({ date: today(), cat: quizState.cat, score: quizState.score, total: quizState.qs.length }); save(); } render(); }
-
-    /* ===== POP-UP FLUTUANTE DO CRONÔMETRO ===== */
-    let pip = null, pipT = null;
 
     async function togglePip() {
       if (pip) { pip.close(); return; }
@@ -1884,13 +1741,13 @@ ${metasCard}
       const d = pip.document;
       d.head.innerHTML = `<meta charset="utf-8"><style>
     *{box-sizing:border-box}
-    body{margin:0;padding:12px;background:#050805;color:#d7f5df;font:14px "Segoe UI",system-ui,sans-serif}
-    .timer{font:800 44px/1 "Courier New",monospace;color:#2dff7a;text-shadow:0 0 18px #2dff7a88;text-align:center;margin:6px 0 12px}
-    input,textarea{width:100%;background:#070d07;border:1px solid #1b2b1b;color:#d7f5df;padding:8px 10px;border-radius:8px;font:inherit;margin-bottom:6px}
-    input:focus,textarea:focus{outline:none;border-color:#2dff7a}
+    body{margin:0;padding:12px;background:#09090b;color:#fafafa;font:14px "Segoe UI",system-ui,sans-serif}
+    .timer{font:800 44px/1 "Courier New",monospace;color:#10b981;text-shadow:0 0 18px rgba(16,185,129,0.3);text-align:center;margin:6px 0 12px}
+    input,textarea{width:100%;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);color:#fafafa;padding:8px 10px;border-radius:8px;font:inherit;margin-bottom:6px}
+    input:focus,textarea:focus{outline:none;border-color:#10b981}
     .row{display:flex;gap:6px;margin-bottom:8px}
-    button{flex:1;padding:9px;border-radius:8px;border:0;font:inherit;font-weight:700;cursor:pointer;background:#2dff7a;color:#021207}
-    button.o{background:transparent;color:#2dff7a;border:1px solid #2dff7a}
+    button{flex:1;padding:9px;border-radius:8px;border:0;font:inherit;font-weight:700;cursor:pointer;background:#10b981;color:#fff}
+    button.o{background:transparent;color:#10b981;border:1px solid #10b981}
   </style>`;
       d.body.innerHTML = `
     <div class="timer" id="ptmr">00:00:00</div>
@@ -1900,8 +1757,7 @@ ${metasCard}
     <input id="pt" placeholder="Tópico aprendido *">
     <textarea id="pw" rows="3" placeholder="O que você estudou? *"></textarea>`;
 
-      const $p = s => d.querySelector(s);
-      $p("#ptog").onclick = () => { tmToggle(); pipUpd(); };
+      const $p = s => d.querySelector(s);$p("#ptog").onclick = () => { tmToggle(); pipUpd(); };
       $p("#pstop").onclick = () => { tmStop(); pipUpd(); };
       $p("#pc").oninput = e => { dr.c = e.target.value; };
       $p("#pt").oninput = e => { dr.t = e.target.value; };
@@ -1923,6 +1779,7 @@ ${metasCard}
         const el = q(id); if (el && d.activeElement !== el && el.value !== v) el.value = v;
       });
     }
+
     render();
   </script>
 </body>
