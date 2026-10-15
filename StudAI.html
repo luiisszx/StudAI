@@ -7,6 +7,9 @@
   <title>StudAI</title>
   <link rel="icon" type="image/svg+xml"
     href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23050805'/%3E%3Cpath d='M43 21C43 15 38 12 32 12 25.5 12 21 15.5 21 21 21 27.5 28 29.5 32 31.5 37 34 43 36 43 43 43 49 38.5 52 32 52 25.5 52 21 48.5 21 43' fill='none' stroke='%232dff7a' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M51 9l1.6 4.4L57 15l-4.4 1.6L51 21l-1.6-4.4L45 15l4.4-1.6z' fill='%23d7f5df'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
       box-sizing: border-box;
@@ -464,6 +467,269 @@
       cursor: pointer;
       border-radius: 8px
     }
+  :root {
+    --bg: #04070a;
+    --card: rgba(255, 255, 255, .035);
+    --line: rgba(255, 255, 255, .08);
+    --g: #34f58a;
+    --g2: #16b85a;
+    --tx: #e8f4ec;
+    --mu: #8a9e92;
+    --red: #ff6b7a;
+    --r: 20px;
+    --glow: 0 0 24px rgba(52, 245, 138, .25);
+  }
+
+  html { scroll-behavior: smooth }
+
+  body {
+    font-family: "Inter", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    font-size: 15px;
+    letter-spacing: -.005em;
+    background:
+      radial-gradient(700px 420px at 85% -8%, rgba(52, 245, 138, .13), transparent 60%),
+      radial-gradient(600px 400px at -5% 105%, rgba(59, 130, 246, .10), transparent 60%),
+      var(--bg);
+    background-attachment: fixed;
+  }
+
+  ::selection { background: rgba(52, 245, 138, .3) }
+  ::-webkit-scrollbar { width: 10px; height: 10px }
+  ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .12); border-radius: 10px }
+  ::-webkit-scrollbar-track { background: transparent }
+
+  .wrap { max-width: 1040px; padding: 20px 18px 40px }
+
+  /* ---------- cabeçalho ---------- */
+  header { margin-bottom: 18px }
+  .logo { font-size: 28px; font-weight: 800; letter-spacing: -.02em }
+  .logo b { text-shadow: 0 0 22px rgba(52, 245, 138, .55) }
+  .sync { font-weight: 500; letter-spacing: .02em }
+  .lvl {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 10px 14px;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    font-weight: 600;
+    color: var(--tx);
+  }
+  #lvlTxt { margin-bottom: 6px }
+
+  /* ---------- navegação ---------- */
+  nav {
+    position: sticky;
+    top: 8px;
+    z-index: 20;
+    gap: 4px;
+    padding: 6px;
+    margin-bottom: 18px;
+    background: rgba(10, 16, 12, .72);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    scrollbar-width: none;
+  }
+  nav::-webkit-scrollbar { display: none }
+  nav button {
+    background: transparent;
+    border: 0;
+    border-radius: 999px;
+    padding: 9px 16px;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--mu);
+    transition: color .2s, background .2s, transform .15s;
+  }
+  nav button:hover { color: var(--tx); background: rgba(255, 255, 255, .06) }
+  nav button.on {
+    color: #03140a;
+    background: linear-gradient(135deg, #5dffa3, var(--g2));
+    box-shadow: var(--glow);
+  }
+
+  /* ---------- cartões ---------- */
+  .card {
+    background: linear-gradient(180deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, .02));
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    padding: 20px;
+    margin-bottom: 14px;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .04);
+    transition: border-color .25s, transform .25s, box-shadow .25s;
+  }
+  .grid > .card:hover { border-color: rgba(52, 245, 138, .28); transform: translateY(-2px) }
+  .grid { gap: 14px }
+
+  .card h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 14px;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: .14em;
+    color: var(--mu);
+  }
+  .card h3::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--g);
+    box-shadow: 0 0 10px var(--g);
+  }
+
+  .big {
+    font-size: 38px;
+    font-weight: 800;
+    letter-spacing: -.03em;
+    background: linear-gradient(135deg, #9affc4, var(--g) 55%, #1fd470);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .sub { color: var(--mu); font-size: 12.5px }
+
+  /* ---------- campos ---------- */
+  input, select, textarea {
+    background: rgba(0, 0, 0, .35);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 11px 14px;
+    transition: border-color .2s, box-shadow .2s, background .2s;
+  }
+  input::placeholder, textarea::placeholder { color: #5f7267 }
+  input:hover, select:hover, textarea:hover { border-color: rgba(255, 255, 255, .16) }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--g);
+    background: rgba(0, 0, 0, .5);
+    box-shadow: 0 0 0 4px rgba(52, 245, 138, .12);
+  }
+  select { cursor: pointer }
+  input[type=color] { border-radius: 12px }
+
+  /* ---------- botões ---------- */
+  .btn {
+    background: linear-gradient(135deg, #5dffa3, var(--g2));
+    color: #03140a;
+    border-radius: 12px;
+    padding: 10px 18px;
+    font-weight: 700;
+    letter-spacing: -.005em;
+    box-shadow: 0 6px 18px rgba(22, 184, 90, .28);
+    transition: transform .15s, box-shadow .2s, background .2s, border-color .2s;
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(22, 184, 90, .4) }
+  .btn:active { transform: translateY(0) scale(.97) }
+  .btn.o {
+    background: rgba(52, 245, 138, .06);
+    color: var(--g);
+    border: 1px solid rgba(52, 245, 138, .4);
+    box-shadow: none;
+  }
+  .btn.o:hover { background: rgba(52, 245, 138, .14); box-shadow: none }
+  .btn.x {
+    background: rgba(255, 107, 122, .06);
+    border: 1px solid rgba(255, 107, 122, .3);
+    color: var(--red);
+    box-shadow: none;
+  }
+  .btn.x:hover { background: rgba(255, 107, 122, .16); box-shadow: none }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--g); outline-offset: 2px }
+
+  /* ---------- listas, tags e barras ---------- */
+  .item { padding: 14px 0; border-top: 1px solid var(--line) }
+  .tag {
+    background: rgba(255, 255, 255, .05);
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-weight: 600;
+    font-size: 11px;
+  }
+  .bar { height: 10px; background: rgba(255, 255, 255, .06); border: 0; border-radius: 999px }
+  .bar i { border-radius: 999px; background: linear-gradient(90deg, var(--g2), var(--g)) }
+
+  .timer {
+    font-family: "Inter", "Courier New", monospace;
+    font-variant-numeric: tabular-nums;
+    font-weight: 800;
+    font-size: 64px;
+    letter-spacing: -.02em;
+    margin: 18px 0;
+    text-shadow: 0 0 36px rgba(52, 245, 138, .55);
+  }
+
+  .bars span, .stacked-bar { border-radius: 8px 8px 0 0 }
+  .hb { font-size: 13.5px }
+
+  .opt {
+    background: rgba(0, 0, 0, .3);
+    border-radius: 14px;
+    padding: 14px 16px;
+    transition: border-color .2s, transform .15s, background .2s;
+  }
+  .opt:hover { transform: translateX(3px); background: rgba(52, 245, 138, .06) }
+
+  .empty { color: var(--mu); padding: 26px; font-size: 14px }
+
+  .subj-item { padding: 14px 0 }
+  .color-dot { width: 16px; height: 16px }
+
+  /* histórico e flashcards */
+  .hgrp {
+    background: rgba(0, 0, 0, .25) !important;
+    border-radius: 16px !important;
+    transition: border-color .2s, background .2s;
+  }
+  .hgrp:hover { background: rgba(0, 0, 0, .35) !important }
+  .hgrp summary { padding: 4px 0 }
+  .fcard {
+    background: linear-gradient(160deg, rgba(52, 245, 138, .07), rgba(0, 0, 0, .3)) !important;
+    border-radius: 22px !important;
+    min-height: 200px !important;
+    transition: transform .2s, border-color .2s, box-shadow .2s;
+  }
+  .fcard:hover { transform: translateY(-2px) }
+
+  /* ---------- animação de entrada ---------- */
+  @keyframes studai-in {
+    from { opacity: 0; transform: translateY(10px) }
+    to { opacity: 1; transform: none }
+  }
+  main > * { animation: studai-in .35s ease both }
+  main > *:nth-child(2) { animation-delay: .04s }
+  main > *:nth-child(3) { animation-delay: .08s }
+  main > *:nth-child(4) { animation-delay: .12s }
+  main > *:nth-child(5) { animation-delay: .16s }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important }
+  }
+
+  /* ---------- celular: menu fixo embaixo, estilo app ---------- */
+  @media (max-width: 640px) {
+    .wrap { padding: 14px 12px 110px }
+    .big { font-size: 32px }
+    .timer { font-size: 50px }
+    .card { padding: 16px; border-radius: 18px }
+    nav {
+      position: fixed;
+      top: auto;
+      bottom: max(10px, env(safe-area-inset-bottom));
+      left: 10px;
+      right: 10px;
+      margin: 0;
+      z-index: 50;
+      justify-content: space-between;
+    }
+    nav button { padding: 10px 14px; font-size: 13px; flex: 0 0 auto }
+  }
   </style>
 </head>
 
@@ -549,7 +815,7 @@
 
     function nav() { $("#nav").innerHTML = TABS.map(([k, l]) => `<button class="${k === tab ? "on" : ""}" onclick="go('${k}')">${l}</button>`).join(""); }
     function go(k) { tab = k; render(); }
-    function render() { S.logs = S.logs || []; nav(); header(); $("#main").innerHTML = ({ painel: vPainel, materias: vMaterias, metas: vMetas, tempo: () => vTempo() + vHist(), quiz: vQuiz, calendario: vCal, dados: vDados })[tab](); if (tab === "tempo") updTimer(); }
+    function render() { S.logs = S.logs || []; nav(); header(); $("#main").innerHTML = ({ painel: vPainel, materias: vMaterias, metas: vMetas, tempo: () => vTempo() + vHist() + vFlash(), quiz: vQuiz, calendario: vCal, dados: vDados })[tab](); if (tab === "tempo") updTimer(); }
     /* ========== MATÉRIAS ========== */
     function ensureSubject(name) {
       if (!name || !name.trim()) return null;
@@ -707,54 +973,98 @@ ${list.length ? list.map(s => {
       S.sessions.forEach(s => { if (!used.has(s.id)) out.push({ key: s.id, log: null, sess: s, date: s.date, cat: s.cat || "Geral" }); });
       return out.reverse().sort((a, b) => b.date.localeCompare(a.date));
     }
-    
-/* ===== SUBSTITUA a função vHist() inteira por este bloco ===== */
 
-let histClosed = new Set();
-function histTog(el) { el.open ? histClosed.delete(el.dataset.c) : histClosed.add(el.dataset.c); }
+    /* ===== SUBSTITUA a função vHist() inteira por este bloco ===== */
 
-function vHist() {
-  const all = entries(), groups = {};
-  all.forEach(e => (groups[e.cat] = groups[e.cat] || []).push(e));
-  const names = Object.keys(groups).sort(sortAlpha);
+    let histClosed = new Set();
+    function histTog(el) { el.open ? histClosed.delete(el.dataset.c) : histClosed.add(el.dataset.c); }
 
-  const body = names.map(c => {
-    const list = groups[c], col = subjColor(c);
-    const tot = list.reduce((a, e) => a + (e.sess ? e.sess.min : 0), 0);
-    let lastD = "";
-    const items = list.map(e => {
-      const head = e.date !== lastD
-        ? (lastD = e.date, `<div class="sub" style="margin:12px 0 2px;letter-spacing:1px">${e.date === today() ? "HOJE" : e.date.split("-").reverse().join("/")}</div>`)
-        : "";
-      if (e.key === editEntry) {
-        return head + `<div class="item"><div class="t">
+    function vHist() {
+      const mes = today().slice(0, 7);
+      const mesNome = new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+      const all = entries().filter(e => (e.date || "").startsWith(mes)), groups = {};
+      all.forEach(e => (groups[e.cat] = groups[e.cat] || []).push(e));
+      const names = Object.keys(groups).sort(sortAlpha);
+
+      const body = names.map(c => {
+        const list = groups[c], col = subjColor(c);
+        const tot = list.reduce((a, e) => a + (e.sess ? e.sess.min : 0), 0);
+        let lastD = "";
+        const items = list.map(e => {
+          const head = e.date !== lastD
+            ? (lastD = e.date, `<div class="sub" style="margin:12px 0 2px;letter-spacing:1px">${e.date === today() ? "HOJE" : e.date.split("-").reverse().join("/")}</div>`)
+            : "";
+          if (e.key === editEntry) {
+            return head + `<div class="item"><div class="t">
           <div class="row"><input id="eh-c" list="cats" value="${esc(e.cat)}" placeholder="Matéria">${e.sess ? `<input id="eh-m" type="number" step="any" value="${e.sess.min}" placeholder="Minutos">` : ""}<input id="eh-d" type="date" value="${e.date}"></div>
           ${e.log ? `<div class="row"><input id="eh-t" value="${esc(e.log.topic)}" placeholder="Tópico *"></div><textarea id="eh-w" rows="3" placeholder="O que você estudou? *" style="margin-bottom:8px">${esc(e.log.what)}</textarea>` : ""}
           <button class="btn" onclick="saveEntry('${e.key}')">Salvar</button> <button class="btn o" onclick="editEntry=null;render()">Cancelar</button>
         </div></div>`;
-      }
-      return head + `<div class="item"><div class="t">
+          }
+          return head + `<div class="item"><div class="t">
           ${e.sess ? `<span class="tag" style="border-color:${col};color:#fff">${fmt(e.sess.min)}</span>` : ""}
           ${e.log ? `<b>${esc(e.log.topic)}</b><div style="margin-top:2px;white-space:pre-wrap">${esc(e.log.what)}</div>` : `<span class="sub">ajuste de tempo</span>`}
         </div><button class="btn o" onclick="editEntry='${e.key}';render()">✎</button><button class="btn x" onclick="delEntry('${e.key}')">✕</button></div>`;
-    }).join("");
+        }).join("");
 
-    return `<details class="hgrp" data-c="${esc(c)}" ${histClosed.has(c) ? "" : "open"} ontoggle="histTog(this)" style="border-left:3px solid ${col}">
+        return `<details class="hgrp" data-c="${esc(c)}" ${histClosed.has(c) ? "" : "open"} ontoggle="histTog(this)" style="border-left:3px solid ${col}">
       <summary><i class="color-dot" style="background:${col};color:${col}"></i><b style="color:${col}">${esc(c)}</b><span class="tag" style="border-color:${col};color:#fff;margin:0">${fmt(tot)}</span><span class="sub">${list.length} ${list.length === 1 ? "registro" : "registros"}</span></summary>
       ${items}
     </details>`;
-  }).join("");
+      }).join("");
 
-  return `<style>
+      return `<style>
     .hgrp{background:#070d07;border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:10px}
     .hgrp summary{cursor:pointer;display:flex;align-items:center;gap:10px;flex-wrap:wrap;list-style:none}
     .hgrp summary::-webkit-details-marker{display:none}
     .hgrp summary::before{content:"▸";color:var(--mu);transition:transform .15s}
     .hgrp[open] summary::before{transform:rotate(90deg)}
+    .fcard{min-height:170px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:8px;background:#070d07;border:1px solid var(--line);border-radius:14px;padding:22px;margin:10px 0;cursor:pointer;white-space:pre-wrap}
+    .fcard.back{border-color:var(--g);box-shadow:0 0 14px #2dff7a33}
   </style>
-  <div class="card"><h3>Histórico de estudos por matéria (${all.length})</h3>${catList()}${body || `<div class="empty">Nenhum estudo registrado ainda.</div>`}</div>`;
-}
-    /* METAS */
+  <div class="card"><h3>Estudado em ${mesNome} (${all.length})</h3>${catList()}${body || `<div class="empty">Nenhum estudo registrado neste mês.</div>`}</div>`;
+    }
+
+
+    /* flashcards dos meses passados */
+
+    let fc = { cat: "", i: 0, flip: false, ord: null };
+
+    function fcDeck() {
+      const ini = today().slice(0, 7) + "-01";
+      const d = S.logs.filter(l => l.date < ini && l.topic && l.what && (!fc.cat || (l.cat || "Geral") === fc.cat));
+      d.sort((a, b) => sortAlpha(a.cat || "Geral", b.cat || "Geral") || b.date.localeCompare(a.date));
+      if (fc.ord) {
+        const r = new Map(fc.ord.map((id, i) => [id, i]));
+        d.sort((a, b) => (r.has(a.id) ? r.get(a.id) : 1e9) - (r.has(b.id) ? r.get(b.id) : 1e9));
+      }
+      return d;
+    }
+    function fcSet(v) { fc.cat = v; fc.i = 0; fc.flip = false; fc.ord = null; render(); }
+    function fcFlip() { fc.flip = !fc.flip; render(); }
+    function fcMove(n) { const len = fcDeck().length; if (!len) return; fc.i = (fc.i + n + len) % len; fc.flip = false; render(); }
+    function fcShuffle() { fc.ord = fcDeck().map(l => l.id).sort(() => Math.random() - .5); fc.i = 0; fc.flip = false; render(); }
+
+    function vFlash() {
+      const ini = today().slice(0, 7) + "-01";
+      const pastCats = [...new Set(S.logs.filter(l => l.date < ini && l.topic && l.what).map(l => l.cat || "Geral"))].sort(sortAlpha);
+      const deck = fcDeck();
+      if (fc.i >= deck.length) fc.i = 0;
+      const l = deck[fc.i];
+      let card = `<div class="empty">Ainda não há estudos de meses passados para virar flashcards.</div>`;
+      if (l) {
+        const col = subjColor(l.cat || "Geral");
+        card = `<div class="sub" style="text-align:center">Cartão ${fc.i + 1} de ${deck.length} · ${l.date.split("-").reverse().join("/")}</div>
+      <div class="fcard ${fc.flip ? "back" : ""}" onclick="fcFlip()">
+        <span class="tag" style="border-color:${col};color:${col};margin:0">${esc(l.cat || "Geral")}</span>
+        ${fc.flip ? `<div>${esc(l.what)}</div>` : `<div style="font-size:20px"><b>${esc(l.topic)}</b></div><div class="sub">Toque para ver o que você estudou</div>`}
+      </div>
+      <div class="row"><button class="btn o" onclick="fcMove(-1)">← Anterior</button><button class="btn" onclick="fcFlip()">${fc.flip ? "Ver tópico" : "Virar"}</button><button class="btn o" onclick="fcMove(1)">Próximo →</button></div>`;
+      }
+      return `<div class="card"><h3>🃏 Flashcards de meses passados</h3>
+    <div class="row"><select onchange="fcSet(this.value)"><option value="">Todas as matérias</option>${pastCats.map(c => `<option ${c === fc.cat ? "selected" : ""}>${esc(c)}</option>`).join("")}</select><button class="btn o" onclick="fcShuffle()">🔀 Embaralhar</button></div>
+    ${card}</div>`;
+    }
     /* METAS */
     function weekStart(d = new Date()) {
       const x = new Date(d);
@@ -795,7 +1105,7 @@ function vHist() {
         <div style="flex:1;min-width:0"><b style="color:${col}">${esc(g.cat)}</b> ${esc(g.text)}${g.hours ? `<span class="tag" style="border-color:${col};color:#fff">${g.hours}h</span>` : ""}${g.due ? `<span class="tag" style="border-color:${col};color:#fff">até ${g.due.split("-").reverse().join("/")}</span>` : ""}</div>
         <button class="btn x" onclick="del('goals','${g.id}')     ">✕</button>
       </div>
-      ${h !== null ? `<div class="bar" style="margin-top:6px"><i style="width:${h}%"></i></div><div class="sub">${Math.round(h)}% das ${g.hours}h semanais de ${esc(g.cat)}</div>` : ""}    </div>`;
+      ${pct !== null ? `<div class="bar" style="margin-top:6px"><i style="width:${pct}%"></i></div><div class="sub">${Math.round(pct)}% das ${g.hours}h semanais de ${esc(g.cat)}</div>` : ""}    </div>`;
       }).join("") : `<div class="empty">Nenhuma meta criada ainda.</div>`}</div>`;
     }
     function addGoal() {
