@@ -992,6 +992,8 @@
     let S = { subjects: [], topics: [], goals: [], sessions: [], quiz: [], results: [], logs: [], tasks: [] }, tab = "painel", quizState = null, tm = { run: false, start: 0, acc: 0 }, tick = null, dbDoc = null, pm = { run: false, end: 0, phase: "foco", left: 1500, f: 25, b: 5, cat: "" }, calOff = 0, calSel = null, sure = false, exportTxt = "";
     if (!S.tasks) S.tasks = [];
     let timerMode = "prog"; // "prog" (progressivo) ou "pomo" (pomodoro)
+    let blurMode = false;
+    function toggleBlur() { blurMode = !blurMode; render(); }
     const $ = s => document.querySelector(s), uid = () => Math.random().toString(36).slice(2, 9);
     const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     const iso = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
@@ -1223,7 +1225,6 @@ ${list.length ? list.map(s => {
       return out.reverse().sort((a, b) => b.date.localeCompare(a.date));
     }
 
-    /* ===== SUBSTITUA a função vHist() inteira por este bloco ===== */
 
     let histClosed = new Set();
     function histTog(el) { el.open ? histClosed.delete(el.dataset.c) : histClosed.add(el.dataset.c); }
@@ -1235,46 +1236,92 @@ ${list.length ? list.map(s => {
       all.forEach(e => (groups[e.cat] = groups[e.cat] || []).push(e));
       const names = Object.keys(groups).sort(sortAlpha);
 
+      // Função auxiliar para borrar palavras seletivamente
+      const partialBlur = (txt) => {
+        if (!blurMode) return esc(txt);
+
+        // Separa o texto preservando os espaços e quebras de linha
+        return txt.split(/(\s+)/).map((w, i) => {
+          if (!w.trim()) return w;
+
+          // Regra: Não borra palavras de até 2 letras (ex: o, a, de), 
+          // nem ~25% das palavras maiores (baseado no tamanho e posição) para dar contexto.
+          const keepVisible = w.length <= 2 || (w.length + i) % 4 === 0;
+
+          return keepVisible ? esc(w) : `<span class="b-w">${esc(w)}</span>`;
+        }).join("");
+      };
+
       const body = names.map(c => {
         const list = groups[c], col = subjColor(c);
         const tot = list.reduce((a, e) => a + (e.sess ? e.sess.min : 0), 0);
         let lastD = "";
+
         const items = list.map(e => {
           const head = e.date !== lastD
-            ? (lastD = e.date, `<div class="sub" style="margin:12px 0 2px;letter-spacing:1px">${e.date === today() ? "HOJE" : e.date.split("-").reverse().join("/")}</div>`)
+            ? (lastD = e.date, `<div class="sub" style="margin:12px 0 2px;letter-spacing:1px;font-weight:600">${e.date === today() ? "HOJE" : e.date.split("-").reverse().join("/")}</div>`)
             : "";
+
           if (e.key === editEntry) {
             return head + `<div class="item"><div class="t">
           <div class="row"><input id="eh-c" list="cats" value="${esc(e.cat)}" placeholder="Matéria">${e.sess ? `<input id="eh-m" type="number" step="any" value="${e.sess.min}" placeholder="Minutos">` : ""}<input id="eh-d" type="date" value="${e.date}"></div>
           ${e.log ? `<div class="row"><input id="eh-t" value="${esc(e.log.topic)}" placeholder="Tópico *"></div><textarea id="eh-w" rows="3" placeholder="O que você estudou? *" style="margin-bottom:8px">${esc(e.log.what)}</textarea>` : ""}
-          <button class="btn" onclick="saveEntry('${e.key}')">Salvar</button> <button class="btn o" onclick="editEntry=null;render()">Cancelar</button>
+          <div style="display:flex;gap:8px"><button class="btn" onclick="saveEntry('${e.key}')">Salvar</button> <button class="btn o" onclick="editEntry=null;render()">Cancelar</button></div>
         </div></div>`;
           }
+
+          // Classes do quadro de borrão
+          const blurBoxClass = blurMode ? "blur-box" : "";
+          const blurClick = blurMode ? `onclick="this.classList.toggle('revealed')"` : ``;
+          const tooltip = blurMode ? `title="Toque para revelar a resposta"` : ``;
+
           return head + `<div class="item"><div class="t">
-          ${e.sess ? `<span class="tag" style="border-color:${col};color:#fff">${fmt(e.sess.min)}</span>` : ""}
-          ${e.log ? `<b>${esc(e.log.topic)}</b><div style="margin-top:2px;white-space:pre-wrap">${esc(e.log.what)}</div>` : `<span class="sub">ajuste de tempo</span>`}
-        </div><button class="btn o" onclick="editEntry='${e.key}';render()">✎</button><button class="btn x" onclick="delEntry('${e.key}')">✕</button></div>`;
+        ${e.sess ? `<span class="tag" style="border-color:${col};color:#fff;background:rgba(0,0,0,0.4)">${fmt(e.sess.min)}</span>` : ""}
+        ${e.log ? `<b>${esc(e.log.topic)}</b><div class="${blurBoxClass}" style="margin-top:6px;white-space:pre-wrap;" ${blurClick} ${tooltip}>${partialBlur(e.log.what)}</div>` : `<span class="sub">ajuste de tempo</span>`}
+      </div><button class="btn o" style="padding:4px 10px;font-size:12px;margin-right:6px" onclick="editEntry='${e.key}';render()">✎</button><button class="btn x" style="padding:4px 10px;font-size:12px" onclick="delEntry('${e.key}')">✕</button></div>`;
         }).join("");
 
         return `<details class="hgrp" data-c="${esc(c)}" ${histClosed.has(c) ? "" : "open"} ontoggle="histTog(this)" style="border-left:3px solid ${col}">
-      <summary><i class="color-dot" style="background:${col};color:${col}"></i><b style="color:${col}">${esc(c)}</b><span class="tag" style="border-color:${col};color:#fff;margin:0">${fmt(tot)}</span><span class="sub">${list.length} ${list.length === 1 ? "registro" : "registros"}</span></summary>
+      <summary><i class="color-dot" style="background:${col};color:${col}"></i><b style="color:${col}">${esc(c)}</b><span class="tag" style="border-color:${col};color:#fff;margin:0 0 0 8px;background:rgba(0,0,0,0.4)">${fmt(tot)}</span><span class="sub" style="margin-left:auto">${list.length} ${list.length === 1 ? "registro" : "registros"}</span></summary>
       ${items}
     </details>`;
       }).join("");
 
       return `<style>
-    .hgrp{background:#070d07;border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:10px}
-    .hgrp summary{cursor:pointer;display:flex;align-items:center;gap:10px;flex-wrap:wrap;list-style:none}
+    .hgrp{background:rgba(0,0,0,0.2);border:1px solid var(--line);border-radius:14px;padding:12px 16px;margin-bottom:12px;transition:background 0.2s}
+    .hgrp:hover{background:rgba(0,0,0,0.3)}
+    .hgrp summary{cursor:pointer;display:flex;align-items:center;gap:8px;flex-wrap:wrap;list-style:none}
     .hgrp summary::-webkit-details-marker{display:none}
-    .hgrp summary::before{content:"▸";color:var(--mu);transition:transform .15s}
+    .hgrp summary::before{content:"▸";color:var(--mu);transition:transform 0.2s;font-size:16px}
     .hgrp[open] summary::before{transform:rotate(90deg)}
-    .fcard{min-height:170px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:8px;background:#070d07;border:1px solid var(--line);border-radius:14px;padding:22px;margin:10px 0;cursor:pointer;white-space:pre-wrap}
-    .fcard.back{border-color:var(--g);box-shadow:0 0 14px #2dff7a33}
-  </style>
-  <div class="card"><h3>Estudado em ${mesNome} (${all.length})</h3>${catList()}${body || `<div class="empty">Nenhum estudo registrado neste mês.</div>`}</div>`;
+    
+    /* Estilos da Revisão Ativa (Borrão Interativo) */
+    .blur-box { 
+      cursor: pointer; user-select: none; padding: 12px; border-radius: 10px; 
+      background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.15); 
+      transition: all 0.2s ease; font-size: 14px; line-height: 1.6; 
     }
-
-
+    .blur-box:hover { border-color: rgba(16, 185, 129, 0.5); background: rgba(16, 185, 129, 0.05); }
+    
+    .blur-box .b-w { 
+      filter: blur(4.5px); opacity: 0.6; background: rgba(255,255,255,0.08); 
+      border-radius: 4px; padding: 0 4px; transition: all 0.3s ease; 
+    }
+    
+    /* Quando revelado */
+    .blur-box.revealed .b-w { filter: blur(0); opacity: 1; background: transparent; padding: 0; }
+    .blur-box.revealed { border-style: solid; border-color: var(--line); }
+  </style>
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+      <h3 style="margin:0">Estudado em ${mesNome} (${all.length})</h3>
+      <button class="btn o" style="padding: 6px 12px; font-size: 12px; border-radius: 8px;" onclick="toggleBlur()">
+        ${blurMode ? '👁️ Desativar Revisão Ativa' : '🫣 Ativar Revisão (Borrão)'}
+      </button>
+    </div>
+    ${catList()}${body || `<div class="empty">Nenhum estudo registrado neste mês.</div>`}
+  </div>`;
+    }
     /* flashcards dos meses passados */
 
     let fc = { cat: "", i: 0, flip: false, ord: null };
@@ -1750,11 +1797,30 @@ ${metasCard}
 
     /* DADOS */
     function vDados() {
-      return `<div class="card"><h3>Exportar</h3><p class="sub">Baixe uma cópia dos seus dados quando quiser.</p><div class="row"><button class="btn" onclick="exp('json')">⬇ Backup completo</button><button class="btn o" onclick="exp('csv')">⬇ Sessões</button><button class="btn o" onclick="exp('md')">⬇ Resumo</button></div></div>
+      return `
+  <div class="card">
+    <h3>Exportar</h3>
+    <p class="sub">Baixe uma cópia dos seus dados quando quiser.</p>
+    <div class="row">
+      <button class="btn" onclick="exp('json')">⬇ Backup completo</button>
+      <button class="btn o" onclick="exp('csv')">⬇ Sessões</button>
+      <button class="btn o" onclick="exp('md')">⬇ Resumo</button>
+    </div>
+  </div>
   ${exportTxt ? `<div class="card"><h3>Copie o conteúdo</h3><textarea rows="8" readonly onclick="this.select()">${esc(exportTxt)}</textarea></div>` : ""}
-  <div class="card"><h3>Importar backup</h3><input type="file" accept=".json,application/json" onchange="imp(this.files[0])"><div class="sub" id="impMsg" style="margin-top:6px">Substitui os dados atuais pelo conteúdo do backup.</div></div>
-  <div class="card"><h3>Zona de perigo</h3><button class="btn x" onclick="wipe()">${sure ? "Clique de novo para confirmar" : "Apagar todos os dados"}</button></div>`;
+  
+  <div class="card">
+    <h3>Importar backup</h3>
+    <input type="file" accept=".json,application/json" onchange="imp(this.files[0])">
+    <div class="sub" id="impMsg" style="margin-top:6px">Substitui os dados atuais pelo conteúdo do backup.</div>
+  </div>
+  
+  <div class="card">
+    <h3>Zona de perigo</h3>
+    <button class="btn x" onclick="wipe()">${sure ? "Clique de novo para confirmar" : "Apagar todos os dados"}</button>
+  </div>`;
     }
+
     async function exp(t) {
       const d = today(); let name, data;
       if (t === "json") { name = "studai-backup-" + d + ".json"; data = JSON.stringify(S, null, 2); }
@@ -1766,26 +1832,42 @@ ${metasCard}
     function imp(f) { if (!f) return; const r = new FileReader(); r.onload = () => { try { const d = JSON.parse(r.result); if (!d.topics || !d.sessions) throw 0; S = { subjects: [], topics: [], goals: [], sessions: [], quiz: [], results: [], ...d }; migrate(); save(); render(); $("#impMsg").textContent = "✔ Backup importado!"; } catch (e) { $("#impMsg").textContent = "Arquivo inválido."; } }; r.readAsText(f); }
     function wipe() { if (!sure) { sure = true; render(); return; } sure = false; S = { subjects: [], topics: [], goals: [], sessions: [], quiz: [], results: [], logs: [] }; save(); render(); }
 
-    /* QUIZ */
+/* QUIZ */
     function vQuiz() {
       if (quizState && quizState.fin) return `<div class="card" style="text-align:center"><h3>Resultado</h3><div class="big">${quizState.score}/${quizState.qs.length}</div><p>${quizState.score === quizState.qs.length ? "Perfeito! 🏆" : quizState.score / quizState.qs.length >= .6 ? "Bom trabalho! 💪" : "Continue revisando, você chega lá 📈"}</p><button class="btn" onclick="quizState=null;render()">Voltar</button></div>`;
+
       if (quizState) {
         const q = quizState.qs[quizState.i], a = quizState.ans;
         return `<div class="card"><h3>Pergunta ${quizState.i + 1} de ${quizState.qs.length}</h3><div class="bar" style="margin-bottom:12px"><i style="width:${quizState.i / quizState.qs.length * 100}%"></i></div><p style="font-size:18px"><b>${esc(q.q)}</b></p>${q.opts.map((o, i) => `<button class="opt ${a !== null ? (i === q.ans ? "ok" : i === a ? "bad" : "") : ""}" ${a !== null ? "disabled" : ""} onclick="answer(${i})">${esc(o)}</button>`).join("")}${a !== null ? `<button class="btn" style="margin-top:10px" onclick="nextQ()">${quizState.i + 1 < quizState.qs.length ? "Próxima →" : "Ver resultado"}</button>` : ""}</div>`;
       }
-      return `<div class="card"><h3>Fazer um teste</h3>${S.quiz.length ? `<div class="row"><select id="qf"><option value="">Todas as matérias</option>${[...new Set(S.quiz.map(q => q.cat).filter(Boolean))].sort(sortAlpha).map(c => `<option>${esc(c)}</option>`).join("")}</select><button class="btn" onclick="startQuiz()">Começar</button></div>` : `<div class="empty">Crie perguntas abaixo (ou carregue exemplos) para se testar</div>`}
-  ${due().length ? `<div class="row"><button class="btn" onclick="startQuiz('rev')">🔁 Revisão do dia (${due().length})</button></div><div class="sub" style="margin-bottom:8px">Repetição espaçada: o que você erra volta logo, o que acerta volta cada vez mais espaçado.</div>` : ""}<button class="btn o" onclick="samples()">+ Carregar 3 perguntas de exemplo</button></div>
-  <div class="card"><h3>Nova pergunta</h3>${catList()}<div class="row"><input id="qq" placeholder="Pergunta"><input id="qc" list="cats" placeholder="Matéria"></div>
-  ${[0, 1, 2, 3].map(i => `<div class="row" style="flex-wrap:nowrap;align-items:center"><input type="radio" name="cr" value="${i}" ${i === 0 ? "checked" : ""} style="flex:0"><input id="qo${i}" placeholder="Alternativa ${i + 1}${i === 0 ? " (marque a correta ao lado)" : ""}"></div>`).join("")}
-  <button class="btn" onclick="addQ()">Salvar pergunta</button></div>
-  <div class="card"><h3>Banco de perguntas (${S.quiz.length})</h3>${S.quiz.map(q => `<div class="item"><div class="t"><b>${esc(q.q)}</b><br><span class="tag" style="border-color:${subjColor(q.cat)};color:${subjColor(q.cat)}">${esc(q.cat || "Geral")}</span><span class="sub">✔ ${esc(q.opts[q.ans])}${q.due ? " · revisão " + q.due.split("-").reverse().join("/") : ""}</span></div><button class="btn x" onclick="del('quiz','${q.id}')">✕</button></div>`).join("") || `<div class="empty">Vazio</div>`}</div>`;
+
+      return `
+      <div class="card">
+        <h3>Fazer um teste</h3>
+        ${S.quiz.length ? `<div class="row"><select id="qf"><option value="">Todas as matérias</option>${[...new Set(S.quiz.map(q => q.cat).filter(Boolean))].sort(sortAlpha).map(c => `<option>${esc(c)}</option>`).join("")}</select><button class="btn" onclick="startQuiz()">Começar</button></div>` : `<div class="empty">Crie perguntas abaixo para se testar</div>`}
+        ${due().length ? `<div class="row"><button class="btn" onclick="startQuiz('rev')">🔁 Revisão do dia (${due().length})</button></div><div class="sub" style="margin-bottom:8px">Repetição espaçada: o que você erra volta logo, o que acerta volta cada vez mais espaçado.</div>` : ""}
+      </div>
+      
+      <div class="card">
+        <h3>Nova pergunta</h3>
+        ${catList()}
+        <div class="row"><input id="qq" placeholder="Pergunta"><input id="qc" list="cats" placeholder="Matéria"></div>
+        ${[0, 1, 2, 3].map(i => `<div class="row" style="flex-wrap:nowrap;align-items:center"><input type="radio" name="cr" value="${i}" ${i === 0 ? "checked" : ""} style="flex:0"><input id="qo${i}" placeholder="Alternativa ${i + 1}${i === 0 ? " (marque a correta ao lado)" : ""}"></div>`).join("")}
+        <button class="btn" onclick="addQ()">Salvar pergunta</button>
+      </div>
+      
+      <div class="card">
+        <h3>Banco de perguntas (${S.quiz.length})</h3>
+        ${S.quiz.map(q => `<div class="item"><div class="t"><b>${esc(q.q)}</b><br><span class="tag" style="border-color:${subjColor(q.cat)};color:${subjColor(q.cat)}">${esc(q.cat || "Geral")}</span><span class="sub">✔ ${esc(q.opts[q.ans])}${q.due ? " · revisão " + q.due.split("-").reverse().join("/") : ""}</span></div><button class="btn x" onclick="del('quiz','${q.id}')">✕</button></div>`).join("") || `<div class="empty">Vazio</div>`}
+      </div>`;
     }
+
     function addQ() { const q = $("#qq").value.trim(), o = [0, 1, 2, 3].map(i => $("#qo" + i).value.trim()); if (!q || o.filter(Boolean).length < 2) return; const a = +document.querySelector("[name=cr]:checked").value; if (!o[a]) return; const idx = []; const opts = []; o.forEach((x, i) => { if (x) { if (i === a) idx.push(opts.length); opts.push(x); } }); const cat = $("#qc").value.trim(); if (cat) ensureSubject(cat); S.quiz.push({ id: uid(), q, cat, opts, ans: idx[0] }); save(); render(); }
-    function samples() { S.quiz.push({ id: uid(), q: "Qual o valor de 7 × 8?", cat: "Matemática", opts: ["54", "56", "64", "48"], ans: 1 }, { id: uid(), q: "Quem escreveu 'Dom Casmurro'?", cat: "Literatura", opts: ["José de Alencar", "Machado de Assis", "Clarice Lispector", "Graciliano Ramos"], ans: 1 }, { id: uid(), q: "Qual a capital do Brasil?", cat: "Geografia", opts: ["Rio de Janeiro", "São Paulo", "Brasília", "Salvador"], ans: 2 });["Matemática", "Literatura", "Geografia"].forEach(n => ensureSubject(n)); save(); render(); }
     function due() { return S.quiz.filter(q => !q.due || q.due <= today()); }
     function startQuiz(m) { const c = m === "rev" ? "" : $("#qf").value; let qs = (m === "rev" ? due() : S.quiz.filter(q => !c || q.cat === c)).map(q => { const o = q.opts.map((t, i) => ({ t, c: i === q.ans })).sort(() => Math.random() - .5); return { id: q.id, q: q.q, opts: o.map(x => x.t), ans: o.findIndex(x => x.c), cat: q.cat }; }).sort(() => Math.random() - .5); quizState = { qs, i: 0, score: 0, ans: null, cat: c }; render(); }
     function answer(i) { const q = quizState.qs[quizState.i], ok = i === q.ans; quizState.ans = i; if (ok) quizState.score++; const o = S.quiz.find(x => x.id === q.id); if (o) { const IV = [1, 3, 7, 16]; o.box = ok ? Math.min(4, (o.box || 0) + 1) : 0; const d = new Date(); d.setDate(d.getDate() + (ok ? IV[o.box - 1] : 0)); o.due = iso(d); save(); } render(); }
     function nextQ() { if (quizState.i + 1 < quizState.qs.length) { quizState.i++; quizState.ans = null; } else { quizState.fin = true; S.results.push({ date: today(), cat: quizState.cat, score: quizState.score, total: quizState.qs.length }); save(); } render(); }
+
     /* ===== POP-UP FLUTUANTE DO CRONÔMETRO ===== */
     let pip = null, pipT = null;
 
