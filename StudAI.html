@@ -555,20 +555,29 @@
     }
 
     /* ---------- navegação ---------- */
+    /* ---------- Navegação ---------- */
     nav {
       position: sticky;
-      top: 8px;
-      z-index: 20;
-      gap: 4px;
-      padding: 6px;
-      margin-bottom: 18px;
-      background: rgba(10, 16, 12, .72);
+      top: 12px;
+      z-index: 50;
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+      /* Centraliza os botões */
+      width: fit-content;
+      max-width: 100%;
+      /* Faz a barra abraçar o conteúdo */
+      margin: 0 auto 24px;
+      /* Centraliza a barra em si na tela */
+      overflow-x: auto;
+      background: rgba(9, 9, 11, 0.8);
+      backdrop-filter: blur(16px);
+      padding: 8px 12px;
+      border-radius: 100px;
       border: 1px solid var(--line);
-      border-radius: 999px;
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
       scrollbar-width: none;
+      view-transition-name: navbar;
     }
 
     nav::-webkit-scrollbar {
@@ -906,12 +915,15 @@
       nav {
         position: fixed;
         top: auto;
-        bottom: max(10px, env(safe-area-inset-bottom));
-        left: 10px;
-        right: 10px;
+        bottom: 16px;
+        left: 16px;
+        right: 16px;
+        width: auto;
+        /* Anula o fit-content no celular */
+        max-width: none;
         margin: 0;
-        z-index: 50;
         justify-content: space-between;
+        border-radius: 20px;
       }
 
       nav button {
@@ -919,6 +931,39 @@
         font-size: 13px;
         flex: 0 0 auto
       }
+    }
+
+    /* Animação fluida nativa para troca de abas (View Transitions API) */
+    ::view-transition-old(root) {
+      animation: fade-out 0.2s cubic-bezier(0.4, 0, 1, 1) both;
+    }
+
+    ::view-transition-new(root) {
+      animation: fade-in-slide 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    @keyframes fade-out {
+      to {
+        opacity: 0;
+        transform: scale(0.98);
+      }
+    }
+
+    @keyframes fade-in-slide {
+      from {
+        opacity: 0;
+        transform: translateY(15px) scale(0.98);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* Evita que a barra de navegação pisque durante a transição */
+    nav {
+      view-transition-name: navbar;
     }
   </style>
 </head>
@@ -944,7 +989,8 @@
     const PALETTE = ["#2dff7a", "#3b82f6", "#a855f7", "#f59e0b", "#ef4444", "#06b6d4", "#ec4899", "#84cc16", "#f97316", "#8b5cf6", "#14b8a6", "#eab308"];
     let editEntry = null;
     let dr = { c: "", t: "", w: "" }, dm = { c: "", m: "", d: "", t: "", w: "" };
-    let S = { subjects: [], topics: [], goals: [], sessions: [], quiz: [], results: [], logs: [] }, tab = "painel", quizState = null, tm = { run: false, start: 0, acc: 0 }, tick = null, dbDoc = null, pm = { run: false, end: 0, phase: "foco", left: 1500, f: 25, b: 5, cat: "" }, calOff = 0, calSel = null, sure = false, exportTxt = "";
+    let S = { subjects: [], topics: [], goals: [], sessions: [], quiz: [], results: [], logs: [], tasks: [] }, tab = "painel", quizState = null, tm = { run: false, start: 0, acc: 0 }, tick = null, dbDoc = null, pm = { run: false, end: 0, phase: "foco", left: 1500, f: 25, b: 5, cat: "" }, calOff = 0, calSel = null, sure = false, exportTxt = "";
+    if (!S.tasks) S.tasks = [];
     let timerMode = "prog"; // "prog" (progressivo) ou "pomo" (pomodoro)
     const $ = s => document.querySelector(s), uid = () => Math.random().toString(36).slice(2, 9);
     const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -1005,8 +1051,20 @@
     function streak() { const d = new Set(S.sessions.map(s => s.date)); let n = 0, c = new Date(); if (!d.has(iso(c))) c.setDate(c.getDate() - 1); while (d.has(iso(c))) { n++; c.setDate(c.getDate() - 1); } return n; }
 
     function nav() { $("#nav").innerHTML = TABS.map(([k, l]) => `<button class="${k === tab ? "on" : ""}" onclick="go('${k}')">${l}</button>`).join(""); }
-    function go(k) { tab = k; render(); }
-    function render() { S.logs = S.logs || []; nav(); header(); $("#main").innerHTML = ({ painel: vPainel, materias: vMaterias, metas: vMetas, tempo: () => vTempo() + vHist() + vFlash(), quiz: vQuiz, calendario: vCal, dados: vDados })[tab](); if (tab === "tempo") updTimer(); }
+    function go(k) {
+      if (tab === k) return; // Evita animar se clicar na aba que já está aberta
+      tab = k;
+
+      // Verifica se o navegador suporta a API de transição moderna
+      if (document.startViewTransition) {
+        document.startViewTransition(() => {
+          render();
+        });
+      } else {
+        // Fallback para navegadores antigos
+        render();
+      }
+    } function render() { S.logs = S.logs || []; nav(); header(); $("#main").innerHTML = ({ painel: vPainel, materias: vMaterias, metas: vMetas, tempo: () => vTempo() + vHist() + vFlash(), quiz: vQuiz, calendario: vCal, dados: vDados })[tab](); if (tab === "tempo") updTimer(); }
     /* ========== MATÉRIAS ========== */
     function ensureSubject(name) {
       if (!name || !name.trim()) return null;
@@ -1274,48 +1332,75 @@ ${list.length ? list.map(s => {
 
     const goalPct = g => g.hours ? Math.min(100, goalMin(g) / 60 / g.hours * 100) : null;
     function vMetas() {
-      return `<div class="card"><h3>Nova meta</h3>${catList()}
-<div class="card"><h3>Nova meta semanal</h3>${catList()}
-  <div class="row">
-    <input id="gt" placeholder="Ex: Estudar 8h de NetApp *">
-    <input id="gc" list="cats" placeholder="Matéria *">
-  </div>
-  <div class="row">
-    <input id="gh" type="number" min="0.5" step="0.5" placeholder="Horas semanais *">
-    <input id="gd" type="date" title="Prazo opcional (fim da semana)">
-  </div>
-  <div class="sub" style="margin-bottom:8px">A meta é renovada toda semana (segunda a domingo). O progresso conta só as horas estudadas na semana atual.</div>
-  <button class="btn" onclick="addGoal()">Criar meta semanal</button>
-</div>
-</div>
-<div class="card"><h3>Minhas metas (${S.goals.length})</h3>${S.goals.length ? S.goals.map(g => {
-        const pct = goalPct(g), done = g.done, col = subjColor(g.cat);
-        return `<div class="goal-item">
-      <div class="row" style="align-items:center;gap:6px">
-        <input type="checkbox" ${done ? "checked" : ""} onchange="tog('goals','${g.id}')">
-        <div style="flex:1;min-width:0"><b style="color:${col}">${esc(g.cat)}</b> ${esc(g.text)}${g.hours ? `<span class="tag" style="border-color:${col};color:#fff">${g.hours}h</span>` : ""}${g.due ? `<span class="tag" style="border-color:${col};color:#fff">até ${g.due.split("-").reverse().join("/")}</span>` : ""}</div>
-        <button class="btn x" onclick="del('goals','${g.id}')     ">✕</button>
+      // Lógica do Kanban
+      const cols = { todo: "📌 A Fazer", doing: "⏳ Fazendo", done: "✅ Concluído" };
+      const kbHTML = Object.entries(cols).map(([k, label]) => {
+        const list = (S.tasks || []).filter(t => t.status === k);
+        const cards = list.map(t => {
+          const col = subjColor(t.cat);
+          const prev = k === 'done' ? 'doing' : (k === 'doing' ? 'todo' : null);
+          const next = k === 'todo' ? 'doing' : (k === 'doing' ? 'done' : null);
+          return `<div style="background:rgba(255,255,255,0.03); border:1px solid var(--line); border-radius:10px; padding:12px; margin-bottom:10px; font-size:13px; box-shadow:0 4px 12px rgba(0,0,0,0.1); transition: transform 0.2s;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+            <div style="flex:1; word-break:break-word; font-weight:500; ${k === 'done' ? 'text-decoration:line-through; color:var(--mu)' : ''}">${esc(t.text)}</div>
+            <button class="btn x" style="padding:2px 8px; font-size:10px; margin-left:8px;" onclick="delTask('${t.id}')">✕</button>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            ${t.cat ? `<span class="tag" style="border-color:${col};color:${col};margin:0;background:rgba(0,0,0,0.4)">${esc(t.cat)}</span>` : `<span></span>`}
+            <div style="display:flex; gap:6px;">
+              ${prev ? `<button class="btn o" style="padding:4px 10px; font-size:12px; border-radius:6px;" onclick="moveTask('${t.id}', '${prev}')">←</button>` : ""}
+              ${next ? `<button class="btn o" style="padding:4px 10px; font-size:12px; border-radius:6px;" onclick="moveTask('${t.id}', '${next}')">→</button>` : ""}
+            </div>
+          </div>
+        </div>`;
+        }).join("");
+        return `<div style="flex:1; min-width:240px; background:rgba(0,0,0,0.2); border-radius:14px; padding:14px; border:1px solid var(--line);">
+      <h4 style="margin:0 0 16px; text-align:center; color:var(--mu); font-size:12px; text-transform:uppercase; letter-spacing:0.1em; display:flex; justify-content:space-between;"><span>${label}</span> <span>${list.length}</span></h4>
+      ${cards || `<div class="empty" style="padding:10px; font-size:13px; opacity:0.6">Nenhuma tarefa</div>`}
+    </div>`;
+      }).join("");
+
+      const kanbanCard = `
+    <div class="card">
+      <h3>Kanban de Tarefas</h3>
+      <div class="row">
+        <input id="kb-txt" placeholder="Nova tarefa (ex: Ler capítulo 4)">
+        <input id="kb-cat" list="cats" placeholder="Matéria (opcional)">
       </div>
-      ${pct !== null ? `<div class="bar" style="margin-top:6px"><i style="width:${pct}%"></i></div><div class="sub">${Math.round(pct)}% das ${g.hours}h semanais de ${esc(g.cat)}</div>` : ""}    </div>`;
-      }).join("") : `<div class="empty">Nenhuma meta criada ainda.</div>`}</div>`;
-    }
-    function addGoal() {
-      const t = $("#gt").value.trim();
-      const cat = $("#gc").value.trim();
-      const hours = +$("#gh").value;
-      if (!reqFields([["gt", t], ["gc", cat], ["gh", hours > 0]])) return;
-      ensureSubject(cat);
-      S.goals.push({
-        id: uid(),
-        text: t,
-        cat,
-        due: $("#gd").value,
-        hours,
-        done: false,
-        created: today()
-      });
-      save();
-      render();
+      <button class="btn" onclick="addTask()">+ Adicionar Tarefa</button>
+      <div style="display:flex; gap:16px; margin-top:20px; overflow-x:auto; padding-bottom:8px; scrollbar-width: thin;">
+        ${kbHTML}
+      </div>
+    </div>
+  `;
+
+      // HTML das Metas Antigas
+      const metasCard = `
+  <div class="grid">
+    <div class="card"><h3>Nova meta semanal</h3>${catList()}
+      <div class="row"><input id="gt" placeholder="Ex: Estudar 8h de NetApp *"><input id="gc" list="cats" placeholder="Matéria *"></div>
+      <div class="row"><input id="gh" type="number" min="0.5" step="0.5" placeholder="Horas semanais *"><input id="gd" type="date" title="Prazo opcional"></div>
+      <div class="sub" style="margin-bottom:12px">A meta é renovada toda semana.</div>
+      <button class="btn" onclick="addGoal()">Criar meta semanal</button>
+    </div>
+    <div class="card"><h3>Minhas metas (${S.goals.length})</h3>${S.goals.length ? S.goals.map(g => {
+        const pct = goalPct(g), done = g.done, col = subjColor(g.cat);
+        return `<div class="item" style="flex-direction:column; align-items:stretch;">
+        <div class="row" style="align-items:center; gap:10px; margin-bottom:6px">
+          <input type="checkbox" style="width:18px;height:18px" ${done ? "checked" : ""} onchange="tog('goals','${g.id}')">
+          <div style="flex:1; min-width:0; font-size:14px"><b style="color:${col}">${esc(g.cat)}</b>${esc(g.text)}</div>
+          <button class="btn x" style="padding:4px 8px" onclick="del('goals','${g.id}')">✕</button>
+        </div>
+        <div style="display:flex; gap:6px; margin-bottom:8px;">
+          ${g.hours ? `<span class="tag" style="border-color:${col};color:#fff;background:rgba(255,255,255,0.05)">${g.hours}h</span>` : ""}
+          ${g.due ? `<span class="tag" style="border-color:${col};color:#fff;background:rgba(255,255,255,0.05)">até ${g.due.split("-").reverse().join("/")}</span>` : ""}
+        </div>
+        ${pct !== null ? `<div class="bar"><i style="width:${pct}%"></i></div><div class="sub" style="margin-top:4px">${Math.round(pct)}% das ${g.hours}h da semana</div>` : ""}
+      </div>`;
+      }).join("") : `<div class="empty">Nenhuma meta criada ainda.</div>`}</div>
+  </div>`;
+
+      return kanbanCard + metasCard;
     }
     /* TEMPO */
     function elapsed() { return tm.acc + (tm.run ? (Date.now() - tm.start) / 60000 : 0); }
@@ -1351,25 +1436,48 @@ ${list.length ? list.map(s => {
           render();
         }
       }
+      // Funções Kanban
+      function addTask() {
+        const txt = $("#kb-txt").value.trim();
+        const cat = $("#kb-cat").value.trim();
+        if (!txt) return alert("Digite o nome da tarefa.");
+        if (cat) ensureSubject(cat);
+
+        if (!S.tasks) S.tasks = [];
+        S.tasks.push({ id: uid(), text: txt, cat: cat, status: "todo", date: today() });
+        save(); render();
+      }
+
+      function moveTask(id, newStatus) {
+        const t = S.tasks.find(x => x.id === id);
+        if (t) {
+          t.status = newStatus;
+          save(); render();
+        }
+      }
+
+      function delTask(id) {
+        if (!confirm("Apagar esta tarefa?")) return;
+        S.tasks = S.tasks.filter(x => x.id !== id);
+        save(); render();
+      }
     }
 
     function vTempo() {
       if (!tick) tick = setInterval(() => { if (tab === "tempo") updTimer(); }, 500);
 
-      // UI do Cronômetro Progressivo
       const progUI = `
     <div class="timer" id="tmr">00:00:00</div>
     <div class="row"><button class="btn" onclick="tmToggle()">${tm.run ? "⏸ Pausar" : "▶ Iniciar"}</button><button class="btn o" onclick="tmStop()">✔ Finalizar e salvar</button></div>
   `;
 
-      // UI do Pomodoro
       const pomoUI = `
     <div class="sub" style="text-align:center; font-weight:bold; color:${pm.phase === 'foco' ? 'var(--red)' : 'var(--g)'}; font-size:16px;">
       ${pm.phase === 'foco' ? '🍅 Foco' : '☕ Pausa'}
     </div>
     <div class="timer" id="ptmr_main">${String(Math.floor(pm.left / 60)).padStart(2, "0")}:${String(pm.left % 60).padStart(2, "0")}</div>
     <div class="row">
-      <button class="btn" style="background:${pm.phase === 'foco' ? 'var(--red)' : 'var(--g)'}; color:#fff;" onclick="pmToggle()">${pm.run ? "⏸ Pausar" : "▶ Iniciar"}</button>
+      <button class="btn" style="background:${pm.phase === 'foco' ? 'var(--red)' : 'var(--g)'}; color:#000;" onclick="pmToggle()">${pm.run ? "⏸ Pausar" : "▶ Iniciar"}</button>
       <button class="btn o" onclick="pmSkip()">⏭ Pular</button>
       <button class="btn o" onclick="pmStop()">✔ Finalizar e salvar</button>
     </div>
@@ -1379,16 +1487,20 @@ ${list.length ? list.map(s => {
     </div>
   `;
 
+      // Segmented Control (Switch)
+      const toggleUI = `
+    <div style="display:flex; background:rgba(0,0,0,0.4); border:1px solid var(--line); border-radius:14px; padding:4px; margin: 0 auto 24px; max-width: 400px;">
+       <button style="flex:1; padding:10px; border-radius:10px; border:none; cursor:pointer; font-weight:600; transition:all 0.3s; font-family:var(--font); font-size:14px; ${timerMode === 'prog' ? 'background:rgba(255,255,255,0.1); color:#fff; box-shadow:0 4px 12px rgba(0,0,0,0.3);' : 'background:transparent; color:var(--mu);'}" onclick="timerMode='prog'; render()">⏱️ Cronômetro</button>
+       <button style="flex:1; padding:10px; border-radius:10px; border:none; cursor:pointer; font-weight:600; transition:all 0.3s; font-family:var(--font); font-size:14px; ${timerMode === 'pomo' ? 'background:rgba(255,255,255,0.1); color:#fff; box-shadow:0 4px 12px rgba(0,0,0,0.3);' : 'background:transparent; color:var(--mu);'}" onclick="timerMode='pomo'; render()">🍅 Pomodoro</button>
+    </div>
+  `;
+
       return `
   <div class="card">
-    <h3>Modo de Estudo</h3>
-    <div class="row" style="margin-bottom:16px;">
-      <button class="btn ${timerMode === 'prog' ? '' : 'o'}" onclick="timerMode='prog'; render()">⏱️ Cronômetro</button>
-      <button class="btn ${timerMode === 'pomo' ? '' : 'o'}" onclick="timerMode='pomo'; render()">🍅 Pomodoro</button>
-    </div>
+    ${toggleUI}
     ${catList()}
     ${timerMode === 'prog' ? progUI : pomoUI}
-    <hr style="border:0; border-top:1px solid var(--line); margin: 16px 0;">
+    <hr style="border:0; border-top:1px solid var(--line); margin: 20px 0;">
     <div class="row">
       <input id="sc" list="cats" placeholder="Matéria *" value="${esc(dr.c)}" oninput="dr.c=this.value">
       <input id="st" placeholder="Tópico aprendido *" value="${esc(dr.t)}" oninput="dr.t=this.value">
