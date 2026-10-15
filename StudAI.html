@@ -467,269 +467,459 @@
       cursor: pointer;
       border-radius: 8px
     }
-  :root {
-    --bg: #04070a;
-    --card: rgba(255, 255, 255, .035);
-    --line: rgba(255, 255, 255, .08);
-    --g: #34f58a;
-    --g2: #16b85a;
-    --tx: #e8f4ec;
-    --mu: #8a9e92;
-    --red: #ff6b7a;
-    --r: 20px;
-    --glow: 0 0 24px rgba(52, 245, 138, .25);
-  }
 
-  html { scroll-behavior: smooth }
-
-  body {
-    font-family: "Inter", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
-    font-size: 15px;
-    letter-spacing: -.005em;
-    background:
-      radial-gradient(700px 420px at 85% -8%, rgba(52, 245, 138, .13), transparent 60%),
-      radial-gradient(600px 400px at -5% 105%, rgba(59, 130, 246, .10), transparent 60%),
-      var(--bg);
-    background-attachment: fixed;
-  }
-
-  ::selection { background: rgba(52, 245, 138, .3) }
-  ::-webkit-scrollbar { width: 10px; height: 10px }
-  ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .12); border-radius: 10px }
-  ::-webkit-scrollbar-track { background: transparent }
-
-  .wrap { max-width: 1040px; padding: 20px 18px 40px }
-
-  /* ---------- cabeçalho ---------- */
-  header { margin-bottom: 18px }
-  .logo { font-size: 28px; font-weight: 800; letter-spacing: -.02em }
-  .logo b { text-shadow: 0 0 22px rgba(52, 245, 138, .55) }
-  .sync { font-weight: 500; letter-spacing: .02em }
-  .lvl {
-    background: var(--card);
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 10px 14px;
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    font-weight: 600;
-    color: var(--tx);
-  }
-  #lvlTxt { margin-bottom: 6px }
-
-  /* ---------- navegação ---------- */
-  nav {
-    position: sticky;
-    top: 8px;
-    z-index: 20;
-    gap: 4px;
-    padding: 6px;
-    margin-bottom: 18px;
-    background: rgba(10, 16, 12, .72);
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
-    scrollbar-width: none;
-  }
-  nav::-webkit-scrollbar { display: none }
-  nav button {
-    background: transparent;
-    border: 0;
-    border-radius: 999px;
-    padding: 9px 16px;
-    font-weight: 600;
-    font-size: 14px;
-    color: var(--mu);
-    transition: color .2s, background .2s, transform .15s;
-  }
-  nav button:hover { color: var(--tx); background: rgba(255, 255, 255, .06) }
-  nav button.on {
-    color: #03140a;
-    background: linear-gradient(135deg, #5dffa3, var(--g2));
-    box-shadow: var(--glow);
-  }
-
-  /* ---------- cartões ---------- */
-  .card {
-    background: linear-gradient(180deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, .02));
-    border: 1px solid var(--line);
-    border-radius: var(--r);
-    padding: 20px;
-    margin-bottom: 14px;
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    box-shadow: 0 8px 28px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .04);
-    transition: border-color .25s, transform .25s, box-shadow .25s;
-  }
-  .grid > .card:hover { border-color: rgba(52, 245, 138, .28); transform: translateY(-2px) }
-  .grid { gap: 14px }
-
-  .card h3 {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 0 0 14px;
-    font-size: 11.5px;
-    font-weight: 700;
-    letter-spacing: .14em;
-    color: var(--mu);
-  }
-  .card h3::before {
-    content: "";
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--g);
-    box-shadow: 0 0 10px var(--g);
-  }
-
-  .big {
-    font-size: 38px;
-    font-weight: 800;
-    letter-spacing: -.03em;
-    background: linear-gradient(135deg, #9affc4, var(--g) 55%, #1fd470);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  .sub { color: var(--mu); font-size: 12.5px }
-
-  /* ---------- campos ---------- */
-  input, select, textarea {
-    background: rgba(0, 0, 0, .35);
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    padding: 11px 14px;
-    transition: border-color .2s, box-shadow .2s, background .2s;
-  }
-  input::placeholder, textarea::placeholder { color: #5f7267 }
-  input:hover, select:hover, textarea:hover { border-color: rgba(255, 255, 255, .16) }
-  input:focus, select:focus, textarea:focus {
-    border-color: var(--g);
-    background: rgba(0, 0, 0, .5);
-    box-shadow: 0 0 0 4px rgba(52, 245, 138, .12);
-  }
-  select { cursor: pointer }
-  input[type=color] { border-radius: 12px }
-
-  /* ---------- botões ---------- */
-  .btn {
-    background: linear-gradient(135deg, #5dffa3, var(--g2));
-    color: #03140a;
-    border-radius: 12px;
-    padding: 10px 18px;
-    font-weight: 700;
-    letter-spacing: -.005em;
-    box-shadow: 0 6px 18px rgba(22, 184, 90, .28);
-    transition: transform .15s, box-shadow .2s, background .2s, border-color .2s;
-  }
-  .btn:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(22, 184, 90, .4) }
-  .btn:active { transform: translateY(0) scale(.97) }
-  .btn.o {
-    background: rgba(52, 245, 138, .06);
-    color: var(--g);
-    border: 1px solid rgba(52, 245, 138, .4);
-    box-shadow: none;
-  }
-  .btn.o:hover { background: rgba(52, 245, 138, .14); box-shadow: none }
-  .btn.x {
-    background: rgba(255, 107, 122, .06);
-    border: 1px solid rgba(255, 107, 122, .3);
-    color: var(--red);
-    box-shadow: none;
-  }
-  .btn.x:hover { background: rgba(255, 107, 122, .16); box-shadow: none }
-  button:focus-visible, input:focus-visible { outline: 2px solid var(--g); outline-offset: 2px }
-
-  /* ---------- listas, tags e barras ---------- */
-  .item { padding: 14px 0; border-top: 1px solid var(--line) }
-  .tag {
-    background: rgba(255, 255, 255, .05);
-    border-radius: 999px;
-    padding: 2px 10px;
-    font-weight: 600;
-    font-size: 11px;
-  }
-  .bar { height: 10px; background: rgba(255, 255, 255, .06); border: 0; border-radius: 999px }
-  .bar i { border-radius: 999px; background: linear-gradient(90deg, var(--g2), var(--g)) }
-
-  .timer {
-    font-family: "Inter", "Courier New", monospace;
-    font-variant-numeric: tabular-nums;
-    font-weight: 800;
-    font-size: 64px;
-    letter-spacing: -.02em;
-    margin: 18px 0;
-    text-shadow: 0 0 36px rgba(52, 245, 138, .55);
-  }
-
-  .bars span, .stacked-bar { border-radius: 8px 8px 0 0 }
-  .hb { font-size: 13.5px }
-
-  .opt {
-    background: rgba(0, 0, 0, .3);
-    border-radius: 14px;
-    padding: 14px 16px;
-    transition: border-color .2s, transform .15s, background .2s;
-  }
-  .opt:hover { transform: translateX(3px); background: rgba(52, 245, 138, .06) }
-
-  .empty { color: var(--mu); padding: 26px; font-size: 14px }
-
-  .subj-item { padding: 14px 0 }
-  .color-dot { width: 16px; height: 16px }
-
-  /* histórico e flashcards */
-  .hgrp {
-    background: rgba(0, 0, 0, .25) !important;
-    border-radius: 16px !important;
-    transition: border-color .2s, background .2s;
-  }
-  .hgrp:hover { background: rgba(0, 0, 0, .35) !important }
-  .hgrp summary { padding: 4px 0 }
-  .fcard {
-    background: linear-gradient(160deg, rgba(52, 245, 138, .07), rgba(0, 0, 0, .3)) !important;
-    border-radius: 22px !important;
-    min-height: 200px !important;
-    transition: transform .2s, border-color .2s, box-shadow .2s;
-  }
-  .fcard:hover { transform: translateY(-2px) }
-
-  /* ---------- animação de entrada ---------- */
-  @keyframes studai-in {
-    from { opacity: 0; transform: translateY(10px) }
-    to { opacity: 1; transform: none }
-  }
-  main > * { animation: studai-in .35s ease both }
-  main > *:nth-child(2) { animation-delay: .04s }
-  main > *:nth-child(3) { animation-delay: .08s }
-  main > *:nth-child(4) { animation-delay: .12s }
-  main > *:nth-child(5) { animation-delay: .16s }
-
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation: none !important; transition: none !important }
-  }
-
-  /* ---------- celular: menu fixo embaixo, estilo app ---------- */
-  @media (max-width: 640px) {
-    .wrap { padding: 14px 12px 110px }
-    .big { font-size: 32px }
-    .timer { font-size: 50px }
-    .card { padding: 16px; border-radius: 18px }
-    nav {
-      position: fixed;
-      top: auto;
-      bottom: max(10px, env(safe-area-inset-bottom));
-      left: 10px;
-      right: 10px;
-      margin: 0;
-      z-index: 50;
-      justify-content: space-between;
+    :root {
+      --bg: #04070a;
+      --card: rgba(255, 255, 255, .035);
+      --line: rgba(255, 255, 255, .08);
+      --g: #34f58a;
+      --g2: #16b85a;
+      --tx: #e8f4ec;
+      --mu: #8a9e92;
+      --red: #ff6b7a;
+      --r: 20px;
+      --glow: 0 0 24px rgba(52, 245, 138, .25);
     }
-    nav button { padding: 10px 14px; font-size: 13px; flex: 0 0 auto }
-  }
+
+    html {
+      scroll-behavior: smooth
+    }
+
+    body {
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+      font-size: 15px;
+      letter-spacing: -.005em;
+      background:
+        radial-gradient(700px 420px at 85% -8%, rgba(52, 245, 138, .13), transparent 60%),
+        radial-gradient(600px 400px at -5% 105%, rgba(59, 130, 246, .10), transparent 60%),
+        var(--bg);
+      background-attachment: fixed;
+    }
+
+    ::selection {
+      background: rgba(52, 245, 138, .3)
+    }
+
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, .12);
+      border-radius: 10px
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent
+    }
+
+    .wrap {
+      max-width: 1040px;
+      padding: 20px 18px 40px
+    }
+
+    /* ---------- cabeçalho ---------- */
+    header {
+      margin-bottom: 18px
+    }
+
+    .logo {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -.02em
+    }
+
+    .logo b {
+      text-shadow: 0 0 22px rgba(52, 245, 138, .55)
+    }
+
+    .sync {
+      font-weight: 500;
+      letter-spacing: .02em
+    }
+
+    .lvl {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px 14px;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      font-weight: 600;
+      color: var(--tx);
+    }
+
+    #lvlTxt {
+      margin-bottom: 6px
+    }
+
+    /* ---------- navegação ---------- */
+    nav {
+      position: sticky;
+      top: 8px;
+      z-index: 20;
+      gap: 4px;
+      padding: 6px;
+      margin-bottom: 18px;
+      background: rgba(10, 16, 12, .72);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+      scrollbar-width: none;
+    }
+
+    nav::-webkit-scrollbar {
+      display: none
+    }
+
+    nav button {
+      background: transparent;
+      border: 0;
+      border-radius: 999px;
+      padding: 9px 16px;
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--mu);
+      transition: color .2s, background .2s, transform .15s;
+    }
+
+    nav button:hover {
+      color: var(--tx);
+      background: rgba(255, 255, 255, .06)
+    }
+
+    nav button.on {
+      color: #03140a;
+      background: linear-gradient(135deg, #5dffa3, var(--g2));
+      box-shadow: var(--glow);
+    }
+
+    /* ---------- cartões ---------- */
+    .card {
+      background: linear-gradient(180deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, .02));
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      padding: 20px;
+      margin-bottom: 14px;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .04);
+      transition: border-color .25s, transform .25s, box-shadow .25s;
+    }
+
+    .grid>.card:hover {
+      border-color: rgba(52, 245, 138, .28);
+      transform: translateY(-2px)
+    }
+
+    .grid {
+      gap: 14px
+    }
+
+    .card h3 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      color: var(--mu);
+    }
+
+    .card h3::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--g);
+      box-shadow: 0 0 10px var(--g);
+    }
+
+    .big {
+      font-size: 38px;
+      font-weight: 800;
+      letter-spacing: -.03em;
+      background: linear-gradient(135deg, #9affc4, var(--g) 55%, #1fd470);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .sub {
+      color: var(--mu);
+      font-size: 12.5px
+    }
+
+    /* ---------- campos ---------- */
+    input,
+    select,
+    textarea {
+      background: rgba(0, 0, 0, .35);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 11px 14px;
+      transition: border-color .2s, box-shadow .2s, background .2s;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: #5f7267
+    }
+
+    input:hover,
+    select:hover,
+    textarea:hover {
+      border-color: rgba(255, 255, 255, .16)
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--g);
+      background: rgba(0, 0, 0, .5);
+      box-shadow: 0 0 0 4px rgba(52, 245, 138, .12);
+    }
+
+    select {
+      cursor: pointer
+    }
+
+    input[type=color] {
+      border-radius: 12px
+    }
+
+    /* ---------- botões ---------- */
+    .btn {
+      background: linear-gradient(135deg, #5dffa3, var(--g2));
+      color: #03140a;
+      border-radius: 12px;
+      padding: 10px 18px;
+      font-weight: 700;
+      letter-spacing: -.005em;
+      box-shadow: 0 6px 18px rgba(22, 184, 90, .28);
+      transition: transform .15s, box-shadow .2s, background .2s, border-color .2s;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 24px rgba(22, 184, 90, .4)
+    }
+
+    .btn:active {
+      transform: translateY(0) scale(.97)
+    }
+
+    .btn.o {
+      background: rgba(52, 245, 138, .06);
+      color: var(--g);
+      border: 1px solid rgba(52, 245, 138, .4);
+      box-shadow: none;
+    }
+
+    .btn.o:hover {
+      background: rgba(52, 245, 138, .14);
+      box-shadow: none
+    }
+
+    .btn.x {
+      background: rgba(255, 107, 122, .06);
+      border: 1px solid rgba(255, 107, 122, .3);
+      color: var(--red);
+      box-shadow: none;
+    }
+
+    .btn.x:hover {
+      background: rgba(255, 107, 122, .16);
+      box-shadow: none
+    }
+
+    button:focus-visible,
+    input:focus-visible {
+      outline: 2px solid var(--g);
+      outline-offset: 2px
+    }
+
+    /* ---------- listas, tags e barras ---------- */
+    .item {
+      padding: 14px 0;
+      border-top: 1px solid var(--line)
+    }
+
+    .tag {
+      background: rgba(255, 255, 255, .05);
+      border-radius: 999px;
+      padding: 2px 10px;
+      font-weight: 600;
+      font-size: 11px;
+    }
+
+    .bar {
+      height: 10px;
+      background: rgba(255, 255, 255, .06);
+      border: 0;
+      border-radius: 999px
+    }
+
+    .bar i {
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--g2), var(--g))
+    }
+
+    .timer {
+      font-family: "Inter", "Courier New", monospace;
+      font-variant-numeric: tabular-nums;
+      font-weight: 800;
+      font-size: 64px;
+      letter-spacing: -.02em;
+      margin: 18px 0;
+      text-shadow: 0 0 36px rgba(52, 245, 138, .55);
+    }
+
+    .bars span,
+    .stacked-bar {
+      border-radius: 8px 8px 0 0
+    }
+
+    .hb {
+      font-size: 13.5px
+    }
+
+    .opt {
+      background: rgba(0, 0, 0, .3);
+      border-radius: 14px;
+      padding: 14px 16px;
+      transition: border-color .2s, transform .15s, background .2s;
+    }
+
+    .opt:hover {
+      transform: translateX(3px);
+      background: rgba(52, 245, 138, .06)
+    }
+
+    .empty {
+      color: var(--mu);
+      padding: 26px;
+      font-size: 14px
+    }
+
+    .subj-item {
+      padding: 14px 0
+    }
+
+    .color-dot {
+      width: 16px;
+      height: 16px
+    }
+
+    /* histórico e flashcards */
+    .hgrp {
+      background: rgba(0, 0, 0, .25) !important;
+      border-radius: 16px !important;
+      transition: border-color .2s, background .2s;
+    }
+
+    .hgrp:hover {
+      background: rgba(0, 0, 0, .35) !important
+    }
+
+    .hgrp summary {
+      padding: 4px 0
+    }
+
+    .fcard {
+      background: linear-gradient(160deg, rgba(52, 245, 138, .07), rgba(0, 0, 0, .3)) !important;
+      border-radius: 22px !important;
+      min-height: 200px !important;
+      transition: transform .2s, border-color .2s, box-shadow .2s;
+    }
+
+    .fcard:hover {
+      transform: translateY(-2px)
+    }
+
+    /* ---------- animação de entrada ---------- */
+    @keyframes studai-in {
+      from {
+        opacity: 0;
+        transform: translateY(10px)
+      }
+
+      to {
+        opacity: 1;
+        transform: none
+      }
+    }
+
+    main>* {
+      animation: studai-in .35s ease both
+    }
+
+    main>*:nth-child(2) {
+      animation-delay: .04s
+    }
+
+    main>*:nth-child(3) {
+      animation-delay: .08s
+    }
+
+    main>*:nth-child(4) {
+      animation-delay: .12s
+    }
+
+    main>*:nth-child(5) {
+      animation-delay: .16s
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+      *,
+      *::before,
+      *::after {
+        animation: none !important;
+        transition: none !important
+      }
+    }
+
+    /* ---------- celular: menu fixo embaixo, estilo app ---------- */
+    @media (max-width: 640px) {
+      .wrap {
+        padding: 14px 12px 110px
+      }
+
+      .big {
+        font-size: 32px
+      }
+
+      .timer {
+        font-size: 50px
+      }
+
+      .card {
+        padding: 16px;
+        border-radius: 18px
+      }
+
+      nav {
+        position: fixed;
+        top: auto;
+        bottom: max(10px, env(safe-area-inset-bottom));
+        left: 10px;
+        right: 10px;
+        margin: 0;
+        z-index: 50;
+        justify-content: space-between;
+      }
+
+      nav button {
+        padding: 10px 14px;
+        font-size: 13px;
+        flex: 0 0 auto
+      }
+    }
   </style>
 </head>
 
@@ -755,6 +945,7 @@
     let editEntry = null;
     let dr = { c: "", t: "", w: "" }, dm = { c: "", m: "", d: "", t: "", w: "" };
     let S = { subjects: [], topics: [], goals: [], sessions: [], quiz: [], results: [], logs: [] }, tab = "painel", quizState = null, tm = { run: false, start: 0, acc: 0 }, tick = null, dbDoc = null, pm = { run: false, end: 0, phase: "foco", left: 1500, f: 25, b: 5, cat: "" }, calOff = 0, calSel = null, sure = false, exportTxt = "";
+    let timerMode = "prog"; // "prog" (progressivo) ou "pomo" (pomodoro)
     const $ = s => document.querySelector(s), uid = () => Math.random().toString(36).slice(2, 9);
     const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     const iso = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
@@ -1128,20 +1319,90 @@ ${list.length ? list.map(s => {
     }
     /* TEMPO */
     function elapsed() { return tm.acc + (tm.run ? (Date.now() - tm.start) / 60000 : 0); }
-    function updTimer() { const e = $("#tmr"); if (!e) return; const s = Math.floor(elapsed() * 60); e.textContent = [Math.floor(s / 3600), Math.floor(s % 3600 / 60), s % 60].map(n => String(n).padStart(2, "0")).join(":"); }
+
+    function updTimer() {
+      // Atualiza Cronômetro Normal
+      const e = $("#tmr");
+      if (e && timerMode === "prog") {
+        const s = Math.floor(elapsed() * 60);
+        e.textContent = [Math.floor(s / 3600), Math.floor(s % 3600 / 60), s % 60].map(n => String(n).padStart(2, "0")).join(":");
+      }
+
+      // Atualiza Pomodoro
+      const pe = $("#ptmr_main");
+      if (pe && timerMode === "pomo") {
+        if (pm.run) pm.left = Math.max(0, Math.floor((pm.end - Date.now()) / 1000));
+        const m = Math.floor(pm.left / 60), s = pm.left % 60;
+        pe.textContent = String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+
+        // Transição automática quando zera
+        if (pm.run && pm.left === 0) {
+          if (pm.phase === "foco") {
+            // Salva o tempo automaticamente se tiver dados preenchidos, ou apenas alerta
+            alert("🍅 Foco concluído! Hora da pausa.");
+            pm.phase = "pausa";
+            pm.left = pm.b * 60;
+          } else {
+            alert("☕ Pausa concluída! De volta ao foco.");
+            pm.phase = "foco";
+            pm.left = pm.f * 60;
+          }
+          pm.end = Date.now() + pm.left * 1000;
+          render();
+        }
+      }
+    }
+
     function vTempo() {
       if (!tick) tick = setInterval(() => { if (tab === "tempo") updTimer(); }, 500);
-      return `<div class="card"><h3>Cronômetro de estudo</h3>${catList()}<div class="timer" id="tmr">00:00:00</div>
-  <div class="row"><button class="btn" onclick="tmToggle()">${tm.run ? "⏸ Pausar" : "▶ Iniciar"}</button><button class="btn o" onclick="tmStop()">✔ Finalizar e salvar</button></div>
-  <div class="row"><input id="sc" list="cats" placeholder="Matéria *" value="${esc(dr.c)}" oninput="dr.c=this.value"><input id="st" placeholder="Tópico aprendido *" value="${esc(dr.t)}" oninput="dr.t=this.value"></div>
-  <textarea id="sw" rows="3" placeholder="O que você estudou desse tópico? *" oninput="dr.w=this.value" style="margin-bottom:8px">${esc(dr.w)}</textarea>
-  <div class="sub">* obrigatórios para finalizar e salvar o tempo</div></div>
+
+      // UI do Cronômetro Progressivo
+      const progUI = `
+    <div class="timer" id="tmr">00:00:00</div>
+    <div class="row"><button class="btn" onclick="tmToggle()">${tm.run ? "⏸ Pausar" : "▶ Iniciar"}</button><button class="btn o" onclick="tmStop()">✔ Finalizar e salvar</button></div>
+  `;
+
+      // UI do Pomodoro
+      const pomoUI = `
+    <div class="sub" style="text-align:center; font-weight:bold; color:${pm.phase === 'foco' ? 'var(--red)' : 'var(--g)'}; font-size:16px;">
+      ${pm.phase === 'foco' ? '🍅 Foco' : '☕ Pausa'}
+    </div>
+    <div class="timer" id="ptmr_main">${String(Math.floor(pm.left / 60)).padStart(2, "0")}:${String(pm.left % 60).padStart(2, "0")}</div>
+    <div class="row">
+      <button class="btn" style="background:${pm.phase === 'foco' ? 'var(--red)' : 'var(--g)'}; color:#fff;" onclick="pmToggle()">${pm.run ? "⏸ Pausar" : "▶ Iniciar"}</button>
+      <button class="btn o" onclick="pmSkip()">⏭ Pular</button>
+      <button class="btn o" onclick="pmStop()">✔ Finalizar e salvar</button>
+    </div>
+    <div class="row" style="margin-top:12px;">
+      <div style="flex:1"><label class="sub">Minutos Foco</label><input type="number" value="${pm.f}" onchange="pmConfig('f', this.value)"></div>
+      <div style="flex:1"><label class="sub">Minutos Pausa</label><input type="number" value="${pm.b}" onchange="pmConfig('b', this.value)"></div>
+    </div>
+  `;
+
+      return `
+  <div class="card">
+    <h3>Modo de Estudo</h3>
+    <div class="row" style="margin-bottom:16px;">
+      <button class="btn ${timerMode === 'prog' ? '' : 'o'}" onclick="timerMode='prog'; render()">⏱️ Cronômetro</button>
+      <button class="btn ${timerMode === 'pomo' ? '' : 'o'}" onclick="timerMode='pomo'; render()">🍅 Pomodoro</button>
+    </div>
+    ${catList()}
+    ${timerMode === 'prog' ? progUI : pomoUI}
+    <hr style="border:0; border-top:1px solid var(--line); margin: 16px 0;">
+    <div class="row">
+      <input id="sc" list="cats" placeholder="Matéria *" value="${esc(dr.c)}" oninput="dr.c=this.value">
+      <input id="st" placeholder="Tópico aprendido *" value="${esc(dr.t)}" oninput="dr.t=this.value">
+    </div>
+    <textarea id="sw" rows="3" placeholder="O que você estudou desse tópico? *" oninput="dr.w=this.value" style="margin-bottom:8px">${esc(dr.w)}</textarea>
+    <div class="sub">* obrigatórios para finalizar e salvar o tempo</div>
+  </div>
+  
   <div class="card"><h3>Adicionar manualmente</h3>
-  <div class="row"><input id="mc" list="cats" placeholder="Matéria *" value="${esc(dm.c)}" oninput="dm.c=this.value"><input id="mm" type="number" min="1" placeholder="Minutos *" value="${esc(dm.m)}" oninput="dm.m=this.value"><input id="md" type="date" value="${dm.d || today()}" oninput="dm.d=this.value"></div>
-  <div class="row"><input id="mt" placeholder="Tópico aprendido *" value="${esc(dm.t)}" oninput="dm.t=this.value"></div>
-  <div class="row"><button class="btn" onclick="tmToggle()">${tm.run ? "⏸ Pausar" : "▶ Iniciar"}</button><button class="btn o" onclick="tmStop()">✔ Finalizar e salvar</button><button class="btn o" onclick="togglePip()">${pip ? "✖ Fechar pop-up" : "🗗 Pop-up flutuante"}</button></div>
-  <textarea id="mw" rows="2" placeholder="O que você estudou desse tópico? *" oninput="dm.w=this.value" style="margin-bottom:8px">${esc(dm.w)}</textarea>
-  <button class="btn" onclick="addSess()">Registrar</button></div>`;
+    <div class="row"><input id="mc" list="cats" placeholder="Matéria *" value="${esc(dm.c)}" oninput="dm.c=this.value"><input id="mm" type="number" min="1" placeholder="Minutos *" value="${esc(dm.m)}" oninput="dm.m=this.value"><input id="md" type="date" value="${dm.d || today()}" oninput="dm.d=this.value"></div>
+    <div class="row"><input id="mt" placeholder="Tópico aprendido *" value="${esc(dm.t)}" oninput="dm.t=this.value"></div>
+    <div class="row"><button class="btn" onclick="addSess()">Registrar</button><button class="btn o" onclick="togglePip()">${pip ? "✖ Fechar pop-up" : "🗗 Pop-up flutuante"}</button></div>
+    <textarea id="mw" rows="2" placeholder="O que você estudou desse tópico? *" oninput="dm.w=this.value" style="margin-bottom:8px">${esc(dm.w)}</textarea>
+  </div>`;
     }
 
     function reqFields(pairs) {
@@ -1162,6 +1423,56 @@ ${list.length ? list.map(s => {
       tm = { run: false, start: 0, acc: 0 }; dr = { c: "", t: "", w: "" };
       save(); render(); pipUpd();
     }
+    function pmToggle() {
+      if (pm.run) {
+        pm.run = false; // Pausa
+      } else {
+        pm.end = Date.now() + (pm.left * 1000); // Inicia
+        pm.run = true;
+      }
+      render();
+    }
+
+    function pmSkip() {
+      pm.phase = pm.phase === "foco" ? "pausa" : "foco";
+      pm.left = (pm.phase === "foco" ? pm.f : pm.b) * 60;
+      if (pm.run) pm.end = Date.now() + (pm.left * 1000);
+      render();
+    }
+
+    function pmConfig(tipo, valor) {
+      const v = Math.max(1, parseInt(valor) || 1);
+      if (tipo === 'f') pm.f = v;
+      if (tipo === 'b') pm.b = v;
+      if (!pm.run) {
+        if (tipo === 'f' && pm.phase === 'foco') pm.left = v * 60;
+        if (tipo === 'b' && pm.phase === 'pausa') pm.left = v * 60;
+      }
+      render();
+    }
+
+    function pmStop() {
+      // Pega o tempo que já passou nesta fase de foco
+      const tempoEstudadoMinutos = pm.phase === "foco" ? (pm.f * 60 - pm.left) / 60 : 0;
+
+      if (tempoEstudadoMinutos < 0.1 && pm.phase === "foco") {
+        alert("Tempo muito curto para salvar.");
+        return;
+      }
+      const c = dr.c.trim(), t = dr.t.trim(), w = dr.w.trim();
+      if (!reqFields([["sc", c], ["st", t], ["sw", w]])) return;
+      ensureSubject(c);
+      const sid = uid();
+      // Se estiver na pausa, salva o tempo completo do último foco (pm.f). Se estiver no meio do foco, salva o proporcional.
+      const tempoParaSalvar = pm.phase === "foco" ? tempoEstudadoMinutos : pm.f;
+      S.sessions.push({ id: sid, date: today(), min: +tempoParaSalvar.toFixed(1), cat: c });
+      S.logs.push({ id: uid(), sid, topic: t, what: w, cat: c, date: today() });
+      // Reseta Pomodoro
+      pm = { run: false, end: 0, phase: "foco", left: pm.f * 60, f: pm.f, b: pm.b, cat: "" };
+      dr = { c: "", t: "", w: "" };
+      save(); render();
+    }
+
     function addSess() {
       const m = +$("#mm").value, c = $("#mc").value.trim(), t = $("#mt").value.trim(), w = $("#mw").value.trim();
       const d = $("#md").value || today();
