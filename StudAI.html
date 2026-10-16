@@ -965,6 +965,23 @@
     nav {
       view-transition-name: navbar;
     }
+
+    /* Revisão ativa (borrão) */
+    .b-w {
+      filter: blur(6px);
+      transition: filter .25s;
+      user-select: none;
+      display: inline-block;
+    }
+
+    .blur-box {
+      cursor: pointer;
+    }
+
+    .blur-box.revealed .b-w {
+      filter: none;
+      user-select: auto;
+    }
   </style>
 </head>
 
@@ -984,7 +1001,7 @@
     <main id="main"></main>
   </div>
   <script>
-const TABS = [["painel", "📊 Painel"], ["materias", "📚 Matérias"], ["metas", "🎯 Metas"], ["tempo", "⏱️ Tempo"], ["quiz", "🧠 Quiz"], ["calendario", "📅 Calendário"], ["dados", "💾 Dados"]];
+    const TABS = [["painel", "📊 Painel"], ["materias", "📚 Matérias"], ["metas", "🎯 Metas"], ["tempo", "⏱️ Tempo"], ["quiz", "🧠 Quiz"], ["calendario", "📅 Calendário"], ["dados", "💾 Dados"]];
     const KEY = "studai_v2";
     const PALETTE = ["#2dff7a", "#3b82f6", "#a855f7", "#f59e0b", "#ef4444", "#06b6d4", "#ec4899", "#84cc16", "#f97316", "#8b5cf6", "#14b8a6", "#eab308"];
     let editEntry = null;
@@ -1075,22 +1092,22 @@ const TABS = [["painel", "📊 Painel"], ["materias", "📚 Matérias"], ["metas
     }
 
     /* XP / Nível e Gamificação Aprimorada */
-    function xp() { 
-      const minXP = S.sessions.reduce((a, s) => a + s.min, 0) * 2; 
+    function xp() {
+      const minXP = S.sessions.reduce((a, s) => a + s.min, 0) * 2;
       const topicosXP = (S.logs || []).length * 20;
       const metasXP = S.goals.filter(g => g.done).length * 50;
       const testesXP = S.results.reduce((a, r) => a + (r.score * 10) + ((r.score === r.total && r.total > 0) ? 50 : 0), 0);
       const ofensivaXP = streak() * 15;
       const tarefasXP = (S.tasks || []).filter(t => t.status === 'done').length * 5;
       const missoesXP = (S.claimed_missions || []).length * 25;
-      return Math.round(minXP + topicosXP + metasXP + testesXP + ofensivaXP + tarefasXP + missoesXP); 
+      return Math.round(minXP + topicosXP + metasXP + testesXP + ofensivaXP + tarefasXP + missoesXP);
     }
 
-    function header() { 
+    function header() {
       const x = xp();
-      const l = Math.floor(Math.sqrt(x / 50)) + 1; 
-      const a = 50 * (l - 1) ** 2; 
-      const b = 50 * l ** 2; 
+      const l = Math.floor(Math.sqrt(x / 50)) + 1;
+      const a = 50 * (l - 1) ** 2;
+      const b = 50 * l ** 2;
 
       const ranks = [
         { lvl: 1, title: "🌱 Iniciante" }, { lvl: 5, title: "📖 Aprendiz" }, { lvl: 10, title: "💡 Estudioso" },
@@ -1104,8 +1121,8 @@ const TABS = [["painel", "📊 Painel"], ["materias", "📚 Matérias"], ["metas
       if (lastLevel !== null && l > lastLevel) { playSound('levelup'); }
       lastLevel = l;
 
-      $("#lvlTxt").innerHTML = `Nível ${l} <span style="opacity:0.7; font-size:11px; margin-left:4px">${rankAtual}</span><div style="font-weight:800; color:var(--g); margin-top:2px">${x} XP</div>`; 
-      $("#xpBar").style.width = Math.min(100, (x - a) / (b - a) * 100) + "%"; 
+      $("#lvlTxt").innerHTML = `Nível ${l} <span style="opacity:0.7; font-size:11px; margin-left:4px">${rankAtual}</span><div style="font-weight:800; color:var(--g); margin-top:2px">${x} XP</div>`;
+      $("#xpBar").style.width = Math.min(100, (x - a) / (b - a) * 100) + "%";
     }
 
     function streak() { const d = new Set(S.sessions.map(s => s.date)); let n = 0, c = new Date(); if (!d.has(iso(c))) c.setDate(c.getDate() - 1); while (d.has(iso(c))) { n++; c.setDate(c.getDate() - 1); } return n; }
@@ -1116,12 +1133,12 @@ const TABS = [["painel", "📊 Painel"], ["materias", "📚 Matérias"], ["metas
       tab = k;
       playSound('pop'); // Feedback tátil/sonoro ao trocar de aba
       if (document.startViewTransition) { document.startViewTransition(() => { render(); }); } else { render(); }
-    } 
-    
-    function render() { 
-      S.logs = S.logs || []; nav(); header(); 
-      $("#main").innerHTML = ({ painel: vPainel, materias: vMaterias, metas: vMetas, tempo: () => vTempo() + vHist() + vFlash(), quiz: vQuiz, calendario: vCal, dados: vDados })[tab](); 
-      if (tab === "tempo") updTimer(); 
+    }
+
+    function render() {
+      S.logs = S.logs || []; nav(); header();
+      $("#main").innerHTML = ({ painel: vPainel, materias: vMaterias, metas: vMetas, tempo: () => vTempo() + vHist() + vFlash(), quiz: vQuiz, calendario: vCal, dados: vDados })[tab]();
+      if (tab === "tempo") updTimer();
     }
 
     /* MISSÕES DIÁRIAS */
@@ -1139,7 +1156,7 @@ const TABS = [["painel", "📊 Painel"], ["materias", "📚 Matérias"], ["metas
       return s;
     }
     function totalTime(name) { return S.sessions.filter(s => (s.cat || "Geral").toLowerCase() === (name || "").toLowerCase()).reduce((a, s) => a + s.min, 0); }
-    
+
     function vMaterias() {
       const list = sortedSubjects();
       return `<div class="card"><h3>Nova matéria</h3>
@@ -1212,16 +1229,16 @@ ${list.length ? list.map(s => {
       const m3_done = (S.results || []).some(r => r.date === today());
 
       const missaoHTML = (id, title, desc, done) => {
-         const claimed = (S.claimed_missions || []).includes(`${today()}_${id}`);
-         let btn = '';
-         if (claimed) {
-            btn = `<span class="tag" style="background:rgba(255,255,255,0.05);color:var(--mu);border:none;margin:0">✨ Concluída</span>`;
-         } else if (done) {
-            btn = `<button class="btn" style="padding:6px 12px; font-size:12px; border-radius:8px; animation: fadeUp 0.3s ease" onclick="claimMission('${id}')">Resgatar +25 XP</button>`;
-         } else {
-            btn = `<span class="sub" style="font-size:11px; text-transform:uppercase; letter-spacing:1px">Pendente</span>`;
-         }
-         return `<div class="item" style="align-items:center"><div class="t"><b>${title}</b><div class="sub" style="margin-top:4px">${desc}</div></div><div>${btn}</div></div>`;
+        const claimed = (S.claimed_missions || []).includes(`${today()}_${id}`);
+        let btn = '';
+        if (claimed) {
+          btn = `<span class="tag" style="background:rgba(255,255,255,0.05);color:var(--mu);border:none;margin:0">✨ Concluída</span>`;
+        } else if (done) {
+          btn = `<button class="btn" style="padding:6px 12px; font-size:12px; border-radius:8px; animation: fadeUp 0.3s ease" onclick="claimMission('${id}')">Resgatar +25 XP</button>`;
+        } else {
+          btn = `<span class="sub" style="font-size:11px; text-transform:uppercase; letter-spacing:1px">Pendente</span>`;
+        }
+        return `<div class="item" style="align-items:center"><div class="t"><b>${title}</b><div class="sub" style="margin-top:4px">${desc}</div></div><div>${btn}</div></div>`;
       };
 
       const missoesCard = `
@@ -1372,7 +1389,7 @@ ${list.length ? list.map(s => {
     function weekStart(d = new Date()) { const x = new Date(d); const day = x.getDay(); const diff = day === 0 ? -6 : 1 - day; x.setDate(x.getDate() + diff); return iso(x); }
     const goalMin = g => { const ws = weekStart(); return S.sessions.filter(s => s.date >= ws && (s.cat || "Geral").toLowerCase() === (g.cat || "").toLowerCase()).reduce((a, s) => a + s.min, 0); };
     const goalPct = g => g.hours ? Math.min(100, goalMin(g) / 60 / g.hours * 100) : null;
-    
+
     function addGoal() {
       const t = $("#gt").value.trim(), cat = $("#gc").value.trim(), hours = +$("#gh").value;
       if (!reqFields([["gt", t], ["gc", cat], ["gh", hours > 0]])) return;
@@ -1468,7 +1485,7 @@ ${list.length ? list.map(s => {
         pe.textContent = String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
         if (pm.run && pm.left === 0) {
           playSound('success');
-          if (pm.phase === "foco") { alert("🍅 Foco concluído! Hora da pausa."); pm.phase = "pausa"; pm.left = pm.b * 60; } 
+          if (pm.phase === "foco") { alert("🍅 Foco concluído! Hora da pausa."); pm.phase = "pausa"; pm.left = pm.b * 60; }
           else { alert("☕ Pausa concluída! De volta ao foco."); pm.phase = "foco"; pm.left = pm.f * 60; }
           pm.end = Date.now() + pm.left * 1000;
           render();
@@ -1485,18 +1502,18 @@ ${list.length ? list.map(s => {
       playSound('pop');
       save(); render();
     }
-    function moveTask(id, newStatus) { 
-      const t = S.tasks.find(x => x.id === id); 
-      if (t) { 
-        t.status = newStatus; 
+    function moveTask(id, newStatus) {
+      const t = S.tasks.find(x => x.id === id);
+      if (t) {
+        t.status = newStatus;
         if (newStatus === 'done') {
-            t.doneDate = today();
-            playSound('success'); // Som gratificante de XP
+          t.doneDate = today();
+          playSound('success'); // Som gratificante de XP
         } else {
-            playSound('pop');
+          playSound('pop');
         }
-        save(); render(); 
-      } 
+        save(); render();
+      }
     }
     function delTask(id) { if (!confirm("Apagar esta tarefa?")) return; S.tasks = S.tasks.filter(x => x.id !== id); save(); render(); }
 
@@ -1757,7 +1774,7 @@ ${metasCard}
     <input id="pt" placeholder="Tópico aprendido *">
     <textarea id="pw" rows="3" placeholder="O que você estudou? *"></textarea>`;
 
-      const $p = s => d.querySelector(s);$p("#ptog").onclick = () => { tmToggle(); pipUpd(); };
+      const $p = s => d.querySelector(s); $p("#ptog").onclick = () => { tmToggle(); pipUpd(); };
       $p("#pstop").onclick = () => { tmStop(); pipUpd(); };
       $p("#pc").oninput = e => { dr.c = e.target.value; };
       $p("#pt").oninput = e => { dr.t = e.target.value; };
@@ -1781,6 +1798,289 @@ ${metasCard}
     }
 
     render();
+    /* =====================================================================
+       StudAI — ADD-ON: Quiz por IA + Pomodoro melhorado
+       COMO USAR: cole TODO este bloco dentro do <script>, logo ANTES da
+       última linha `render();` (depois de todas as funções existentes).
+       Cole só uma vez.
+       ===================================================================== */
+
+    /* ---------------------------------------------------------------------
+       1) QUIZ GERADO POR IA
+       --------------------------------------------------------------------- */
+    let ai = {
+      src: "logs",      // "logs" = usar meus registros | "text" = colar um texto
+      cat: "",          // matéria (filtra os registros e rotula as perguntas)
+      n: 5,             // quantidade de perguntas
+      text: "",
+      loading: false,
+      err: "",
+      items: null       // perguntas geradas aguardando aprovação
+    };
+
+    const aiKey = () => { try { return localStorage.getItem("studai_gemini_key") || ""; } catch (e) { return ""; } };
+    const aiModel = () => { try { return localStorage.getItem("studai_gemini_model") || "gemini-2.5-flash"; } catch (e) { return "gemini-2.5-flash"; } };
+
+    async function aiAsk(prompt) {
+      const key = aiKey();
+      if (!key) throw new Error("Cole sua chave de API do Gemini e clique em “Salvar chave”.");
+      const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(aiModel()) + ":generateContent", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-goog-api-key": key
+        },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: { responseMimeType: "application/json", temperature: 0.7 }
+        })
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error((j.error && j.error.message) || ("Erro " + r.status));
+      const parts = (j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts) || [];
+      const txt = parts.map(p => p.text || "").join("");
+      if (!txt) throw new Error("O Gemini não devolveu texto (a resposta pode ter sido bloqueada). Tente de novo.");
+      return txt;
+    }
+
+    function aiSaveKey() {
+      const v = ($("#ai-key").value || "").trim();
+      const m = ($("#ai-model").value || "").trim();
+      try {
+        if (v && !v.startsWith("•")) localStorage.setItem("studai_gemini_key", v);
+        if (m) localStorage.setItem("studai_gemini_model", m);
+      } catch (e) { }
+      ai.err = "";
+      render();
+    }
+
+    function aiSource() {
+      if (ai.src === "text") return ai.text.trim();
+      return S.logs
+        .filter(l => !ai.cat || (l.cat || "Geral") === ai.cat)
+        .slice(-40)
+        .map(l => "- " + l.topic + ": " + l.what)
+        .join("\n");
+    }
+
+    async function aiGenerate() {
+      const src = aiSource();
+      if (!src) {
+        ai.err = ai.src === "text" ? "Cole um texto para gerar as perguntas." : "Nenhum registro de estudo encontrado para essa matéria.";
+        render(); return;
+      }
+      const n = Math.max(1, Math.min(15, +ai.n || 5));
+      ai.loading = true; ai.err = ""; ai.items = null; render();
+      try {
+        const prompt =
+          `Você é um professor criando um teste de estudo. Crie ${n} perguntas de múltipla escolha, em português do Brasil, ` +
+          `baseadas SOMENTE no material abaixo. Cada pergunta deve ter exatamente 4 alternativas, com apenas uma correta e ` +
+          `3 erradas plausíveis. Varie a posição da alternativa correta. ` +
+          `Responda APENAS com JSON válido, sem markdown e sem explicações, neste formato: ` +
+          `[{"q":"pergunta","opts":["a","b","c","d"],"ans":0}] onde "ans" é o índice (0 a 3) da alternativa correta.\n\n` +
+          `MATERIAL:\n${src}`;
+        const raw = await aiAsk(prompt);
+        const a = raw.indexOf("["), b = raw.lastIndexOf("]");
+        if (a < 0 || b < 0) throw new Error("A IA não respondeu no formato esperado. Tente de novo.");
+        const arr = JSON.parse(raw.slice(a, b + 1));
+        ai.items = arr
+          .filter(x => x && x.q && Array.isArray(x.opts) && x.opts.length >= 2 && Number.isInteger(x.ans) && x.opts[x.ans] != null)
+          .map(x => ({ q: String(x.q), opts: x.opts.map(String), ans: x.ans, sel: true, pick: null }));
+        if (!ai.items.length) throw new Error("A IA não retornou perguntas válidas. Tente de novo.");
+      } catch (e) {
+        ai.err = e.message || String(e);
+      }
+      ai.loading = false; render();
+    }
+
+    function aiToggle(i) { ai.items[i].sel = !ai.items[i].sel; render(); }
+
+    /* responder uma pergunta da prévia: só revela certo/errado depois do clique */
+    function aiPick(i, j) {
+      const it = ai.items[i];
+      if (it.pick !== null) return;
+      it.pick = j;
+      playSound(j === it.ans ? "success" : "pop");
+      render();
+    }
+
+    function aiAdd() {
+      const cat = (ai.cat || "").trim();
+      if (cat) ensureSubject(cat);
+      ai.items.filter(x => x.sel).forEach(x => S.quiz.push({ id: uid(), q: x.q, cat, opts: x.opts, ans: x.ans }));
+      ai.items = null;
+      playSound("success");
+      save(); render();
+    }
+
+    function vAI() {
+      const logsN = S.logs.filter(l => !ai.cat || (l.cat || "Geral") === ai.cat).length;
+      const keyBox = `
+    <div class="row">
+      <input id="ai-key" type="password" placeholder="Chave de API do Gemini (AIza...)" value="${aiKey() ? "••••••••" : ""}" onfocus="if(this.value.startsWith('•'))this.value=''">
+      <input id="ai-model" placeholder="Modelo" value="${esc(aiModel())}" title="Modelo do Gemini" style="max-width:190px">
+      <button class="btn o" onclick="aiSaveKey()">Salvar</button>
+    </div>
+    <div class="sub" style="margin-bottom:12px">${aiKey() ? "✔ Chave salva." : "Pegue a chave em aistudio.google.com/apikey."} Fica só neste navegador e não entra no backup.</div>`;
+
+      const preview = ai.items ? `
+    <div style="margin-top:14px">
+      ${ai.items.map((x, i) => `
+        <div class="item">
+          <input type="checkbox" ${x.sel ? "checked" : ""} onchange="aiToggle(${i})">
+          <div class="t"><b>${esc(x.q)}</b>
+            ${x.opts.map((o, j) => {
+        const done = x.pick !== null;
+        const cls = done ? (j === x.ans ? "ok" : j === x.pick ? "bad" : "") : "";
+        return `<button class="opt ${cls}" ${done ? "disabled" : ""} onclick="aiPick(${i},${j})">${esc(o)}</button>`;
+      }).join("")}
+            ${x.pick !== null ? `<div class="sub" style="margin-top:4px;color:${x.pick === x.ans ? "var(--g)" : "var(--red)"}">${x.pick === x.ans ? "✔ Correto!" : "✘ Errado — a correta está em verde."}</div>` : ""}
+          </div>
+        </div>`).join("")}
+      <div class="row" style="margin-top:10px">
+        <button class="btn" onclick="aiAdd()">Adicionar selecionadas (${ai.items.filter(x => x.sel).length})</button>
+        <button class="btn o" onclick="ai.items=null;render()">Descartar</button>
+      </div>
+    </div>` : "";
+
+      return `<div class="card"><h3>✨ Gerar quiz com IA</h3>
+    ${keyBox}
+    <div class="row">
+      <select onchange="ai.src=this.value;render()">
+        <option value="logs" ${ai.src === "logs" ? "selected" : ""}>A partir dos meus registros de estudo</option>
+        <option value="text" ${ai.src === "text" ? "selected" : ""}>A partir de um texto que vou colar</option>
+      </select>
+      <input list="cats" placeholder="Matéria" value="${esc(ai.cat)}" onchange="ai.cat=this.value;render()">
+      <input type="number" min="1" max="15" value="${ai.n}" title="Quantidade de perguntas" oninput="ai.n=this.value" style="max-width:90px">
+    </div>
+    ${ai.src === "text"
+          ? `<textarea rows="5" placeholder="Cole aqui o conteúdo (resumo, anotação, trecho do livro)..." oninput="ai.text=this.value" style="margin-bottom:8px">${esc(ai.text)}</textarea>`
+          : `<div class="sub" style="margin-bottom:8px">${logsN} ${logsN === 1 ? "registro disponível" : "registros disponíveis"}${ai.cat ? " em " + esc(ai.cat) : ""}. Usa os 40 mais recentes.</div>`}
+    <button class="btn" onclick="aiGenerate()" ${ai.loading ? "disabled" : ""}>${ai.loading ? "⏳ Gerando perguntas..." : "✨ Gerar perguntas"}</button>
+    ${ai.err ? `<div class="sub" style="color:var(--red);margin-top:8px">${esc(ai.err)}</div>` : ""}
+    ${preview}
+  </div>`;
+    }
+
+    /* encaixa o card de IA no topo da aba Quiz (sem mexer no vQuiz original) */
+    const _vQuiz = vQuiz;
+    vQuiz = function () {
+      const base = _vQuiz();
+      return quizState ? base : vAI() + base;
+    };
+
+
+    /* ---------------------------------------------------------------------
+       2) POMODORO MELHORADO
+       - Soma TODOS os ciclos de foco concluídos ao salvar (antes se perdiam)
+       - Pausa longa a cada 4 ciclos
+       - Notificação do navegador em vez de alert() (que travava a tela)
+       - Continua rodando e avisando mesmo se você trocar de aba
+       - Tempo restante no título da aba
+       - Auto-iniciar a próxima fase (opcional)
+       --------------------------------------------------------------------- */
+    Object.assign(pm, { lb: 15, cycles: 0, acc: 0, auto: true });
+
+    const pmLen = p => (p === "foco" ? pm.f : p === "longa" ? pm.lb : pm.b) * 60;
+
+    function notify(title, body) {
+      try { if ("Notification" in window && Notification.permission === "granted") new Notification(title, { body }); } catch (e) { }
+    }
+    function askNotif() {
+      if ("Notification" in window) Notification.requestPermission().then(() => render());
+    }
+
+    function pmPhaseDone() {
+      playSound("success");
+      if (pm.phase === "foco") {
+        pm.acc += pm.f;
+        pm.cycles++;
+        pm.phase = pm.cycles % 4 === 0 ? "longa" : "pausa";
+        notify("🍅 Foco concluído!", pm.phase === "longa" ? "Hora da pausa longa." : "Hora da pausa curta.");
+      } else {
+        pm.phase = "foco";
+        notify("☕ Pausa concluída!", "De volta ao foco.");
+      }
+      pm.left = pmLen(pm.phase);
+      if (pm.auto) pm.end = Date.now() + pm.left * 1000; else pm.run = false;
+      if (tab === "tempo") render();
+    }
+
+    function pmTick() {
+      if (pm.run) {
+        pm.left = Math.max(0, Math.round((pm.end - Date.now()) / 1000));
+        if (pm.left === 0) pmPhaseDone();
+      }
+      const mm = String(Math.floor(pm.left / 60)).padStart(2, "0"), ss = String(pm.left % 60).padStart(2, "0");
+      document.title = pm.run ? `${mm}:${ss} ${pm.phase === "foco" ? "🍅" : "☕"} · StudAI` : "StudAI";
+    }
+    setInterval(pmTick, 500);
+
+    /* substitui o updTimer: só atualiza o texto, sem alert() */
+    function updTimer() {
+      const e = $("#tmr");
+      if (e && timerMode === "prog") {
+        const s = Math.floor(elapsed() * 60);
+        e.textContent = [Math.floor(s / 3600), Math.floor(s % 3600 / 60), s % 60].map(n => String(n).padStart(2, "0")).join(":");
+      }
+      const pe = $("#ptmr_main");
+      if (pe && timerMode === "pomo") {
+        pe.textContent = String(Math.floor(pm.left / 60)).padStart(2, "0") + ":" + String(pm.left % 60).padStart(2, "0");
+      }
+    }
+
+    /* substitui o pmStop: salva ciclos concluídos + o parcial do foco atual */
+    function pmStop() {
+      const parcial = pm.phase === "foco" ? (pm.f * 60 - pm.left) / 60 : 0;
+      const total = pm.acc + parcial;
+      if (total < 0.1) { alert("Tempo muito curto para salvar."); return; }
+      const c = dr.c.trim(), t = dr.t.trim(), w = dr.w.trim();
+      if (!reqFields([["sc", c], ["st", t], ["sw", w]])) return;
+      ensureSubject(c);
+      const sid = uid();
+      S.sessions.push({ id: sid, date: today(), min: +total.toFixed(1), cat: c });
+      S.logs.push({ id: uid(), sid, topic: t, what: w, cat: c, date: today() });
+      const { f, b, lb, auto } = pm;
+      pm = { run: false, end: 0, phase: "foco", left: f * 60, f, b, lb, auto, cycles: 0, acc: 0, cat: "" };
+      dr = { c: "", t: "", w: "" };
+      playSound("success"); save(); render(); pipUpd();
+    }
+
+    /* card extra na aba Tempo (só aparece no modo Pomodoro) */
+    const _vTempo = vTempo;
+    vTempo = function () {
+      const base = _vTempo();
+      if (timerMode !== "pomo") return base;
+      const perm = "Notification" in window ? Notification.permission : "unsupported";
+      const dots = pm.cycles ? "🍅".repeat(Math.min(pm.cycles, 12)) : "—";
+      const notifBtn = perm === "granted" ? `<span class="tag" style="margin:0">🔔 Notificações ativas</span>`
+        : perm === "denied" ? `<span class="sub">Notificações bloqueadas no navegador.</span>`
+          : perm === "unsupported" ? `<span class="sub">Este navegador não suporta notificações.</span>`
+            : `<button class="btn o" onclick="askNotif()">🔔 Ativar notificações</button>`;
+      return base + `
+  <div class="card"><h3>Pomodoro</h3>
+    <div class="row" style="align-items:center">
+      <div><div class="sub">Ciclos nesta sessão</div><div style="font-size:22px">${dots}</div></div>
+      <div><div class="sub">Foco acumulado</div><b>${fmt(pm.acc)}</b></div>
+      <div><div class="sub">Próxima pausa longa</div><b>em ${4 - (pm.cycles % 4)} ${4 - (pm.cycles % 4) === 1 ? "ciclo" : "ciclos"}</b></div>
+    </div>
+    <div class="row">
+      <div><label class="sub">Minutos da pausa longa</label>
+        <input type="number" min="1" value="${pm.lb}" onchange="pm.lb=Math.max(1,parseInt(this.value)||15);if(!pm.run&&pm.phase==='longa')pm.left=pm.lb*60;render()"></div>
+      <label class="sub" style="display:flex;align-items:center;gap:8px;margin-top:20px">
+        <input type="checkbox" ${pm.auto ? "checked" : ""} onchange="pm.auto=this.checked"> Iniciar a próxima fase sozinho
+      </label>
+    </div>
+    <div class="row">${notifBtn}</div>
+    <details style="margin-top:10px"><summary class="sub" style="cursor:pointer">Como funciona o método Pomodoro</summary>
+      <div class="sub" style="margin-top:8px;line-height:1.6">
+        1. Escolha uma tarefa. 2. Foque por 25 min sem interrupções (1 ciclo). 3. Pausa curta de 5 min.
+        4. A cada 4 ciclos, pausa longa de 15–30 min. Se surgir uma distração, anote e volte ao foco.
+        Ao clicar em “Finalizar e salvar”, todos os ciclos concluídos são somados ao seu tempo de estudo.
+      </div>
+    </details>
+  </div>`;
+    };
   </script>
 </body>
 
