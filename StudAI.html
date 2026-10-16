@@ -982,6 +982,342 @@
       filter: none;
       user-select: auto;
     }
+
+    /* ---------- Metas semanais ---------- */
+    .ghead {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px
+    }
+
+    .ghead h3 {
+      margin: 0 0 4px
+    }
+
+    .gstats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 10px;
+      margin-bottom: 18px
+    }
+
+    .gstat {
+      background: rgba(0, 0, 0, .25);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 14px
+    }
+
+    .gstat b {
+      display: block;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -.02em;
+      color: var(--g)
+    }
+
+    .gstat span {
+      font-size: 11.5px;
+      color: var(--mu)
+    }
+
+    .ggrid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+      gap: 14px
+    }
+
+    .gcard {
+      --c: var(--g);
+      background: rgba(0, 0, 0, .28);
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--c);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: transform .2s, box-shadow .2s
+    }
+
+    .gcard:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 26px rgba(0, 0, 0, .35)
+    }
+
+    .gcard.done {
+      opacity: .6
+    }
+
+    .gcard.done .gtitle {
+      text-decoration: line-through
+    }
+
+    .gtop {
+      display: flex;
+      align-items: center;
+      gap: 12px
+    }
+
+    .gring {
+      --p: 0;
+      width: 54px;
+      height: 54px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: conic-gradient(var(--c) calc(var(--p) * 1%), rgba(255, 255, 255, .08) 0)
+    }
+
+    .gring span {
+      width: 43px;
+      height: 43px;
+      border-radius: 50%;
+      background: #0a100c;
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      font-weight: 800
+    }
+
+    .ginfo {
+      flex: 1;
+      min-width: 0
+    }
+
+    .gcat {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--c)
+    }
+
+    .gtitle {
+      font-weight: 600;
+      line-height: 1.35;
+      word-break: break-word
+    }
+
+    .gact {
+      display: flex;
+      gap: 4px;
+      align-self: flex-start
+    }
+
+    .gbtn {
+      background: rgba(255, 255, 255, .05);
+      border: 1px solid var(--line);
+      color: var(--mu);
+      width: 30px;
+      height: 30px;
+      border-radius: 9px;
+      cursor: pointer;
+      font: inherit;
+      font-size: 13px;
+      transition: color .2s, background .2s
+    }
+
+    .gbtn:hover {
+      color: var(--tx);
+      background: rgba(255, 255, 255, .1)
+    }
+
+    .gbtn.x:hover {
+      color: var(--red);
+      background: rgba(255, 107, 122, .12)
+    }
+
+    .gmeta {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 12.5px;
+      color: var(--mu)
+    }
+
+    .gmeta b {
+      color: var(--tx)
+    }
+
+    .gfoot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap
+    }
+
+    .gchip {
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .06);
+      color: var(--mu)
+    }
+
+    .gchip.warn {
+      background: rgba(245, 158, 11, .14);
+      color: #f5b23a
+    }
+
+    .gchip.late {
+      background: rgba(255, 107, 122, .14);
+      color: var(--red)
+    }
+
+    .gdone {
+      padding: 5px 12px !important;
+      font-size: 12px !important;
+      border-radius: 9px !important
+    }
+
+    .gform {
+      background: rgba(0, 0, 0, .25);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 18px
+    }
+
+    .gform-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 12px
+    }
+
+    .gform label span {
+      display: block;
+      margin-bottom: 4px
+    }
+
+    .gform-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+      flex-wrap: wrap
+    }
+
+    .gsep {
+      margin: 22px 0 12px;
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--mu)
+    }
+
+    details.gfin>summary {
+      cursor: pointer;
+      list-style: none
+    }
+
+    details.gfin>summary::-webkit-details-marker {
+      display: none
+    }
+
+    details.gfin[open]>summary {
+      margin-bottom: 12px
+    }
+
+    /* ---------- Estudado no mês ---------- */
+    .hgrp {
+      padding: 12px 16px !important;
+      margin-bottom: 12px;
+      border: 1px solid var(--line)
+    }
+
+    .hgrp>summary {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      list-style: none
+    }
+
+    .hgrp>summary::-webkit-details-marker {
+      display: none
+    }
+
+    .hgrp>summary::after {
+      content: "▾";
+      color: var(--mu);
+      font-size: 12px;
+      transition: transform .2s
+    }
+
+    .hgrp:not([open])>summary::after {
+      transform: rotate(-90deg)
+    }
+
+    .hgrp[open]>summary {
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--line)
+    }
+
+    .hdate {
+      margin: 14px 0 2px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      color: var(--mu)
+    }
+
+    .hgrp .item {
+      border-top: 0;
+      border-bottom: 1px dashed var(--line);
+      padding: 10px 0;
+      align-items: center
+    }
+
+    .hgrp .item:last-child {
+      border-bottom: 0;
+      padding-bottom: 2px
+    }
+
+    .hline {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap
+    }
+
+    .hline .tag {
+      margin: 0
+    }
+
+    .hwhat {
+      margin-top: 6px;
+      white-space: pre-wrap;
+      color: #b9cdc0;
+      font-size: 14px;
+      line-height: 1.55
+    }
+
+    .hact {
+      display: flex;
+      gap: 4px;
+      align-self: flex-start;
+      opacity: .55;
+      transition: opacity .2s
+    }
+
+    .item:hover .hact {
+      opacity: 1
+    }
+
+    .hsub {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 14px;
+      margin-top: 4px
+    }
   </style>
 </head>
 
@@ -1319,7 +1655,7 @@ ${list.length ? list.map(s => {
         const tot = list.reduce((a, e) => a + (e.sess ? e.sess.min : 0), 0);
         let lastD = "";
         const items = list.map(e => {
-          const head = e.date !== lastD ? (lastD = e.date, `<div class="sub" style="margin:12px 0 2px;letter-spacing:1px;font-weight:600">${e.date === today() ? "HOJE" : e.date.split("-").reverse().join("/")}</div>`) : "";
+          const head = e.date !== lastD ? (lastD = e.date, `<div class="hdate">${e.date === today() ? "HOJE" : e.date.split("-").reverse().join("/")}</div>`) : "";
           if (e.key === editEntry) {
             return head + `<div class="item"><div class="t">
           <div class="row"><input id="eh-c" list="cats" value="${esc(e.cat)}" placeholder="Matéria">${e.sess ? `<input id="eh-m" type="number" step="any" value="${e.sess.min}" placeholder="Minutos">` : ""}<input id="eh-d" type="date" value="${e.date}"></div>
@@ -1331,9 +1667,12 @@ ${list.length ? list.map(s => {
           const blurClick = blurMode ? `onclick="this.classList.toggle('revealed')"` : ``;
           const tooltip = blurMode ? `title="Toque para revelar a resposta"` : ``;
           return head + `<div class="item"><div class="t">
-        ${e.sess ? `<span class="tag" style="border-color:${col};color:#fff;background:rgba(0,0,0,0.4)">${fmt(e.sess.min)}</span>` : ""}
-        ${e.log ? `<b>${esc(e.log.topic)}</b><div class="${blurBoxClass}" style="margin-top:6px;white-space:pre-wrap;" ${blurClick} ${tooltip}>${partialBlur(e.log.what)}</div>` : `<span class="sub">ajuste de tempo</span>`}
-      </div><button class="btn o" style="padding:4px 10px;font-size:12px;margin-right:6px" onclick="editEntry='${e.key}';render()">✎</button><button class="btn x" style="padding:4px 10px;font-size:12px" onclick="delEntry('${e.key}')">✕</button></div>`;
+        <div class="hline">
+          ${e.sess ? `<span class="tag" style="border-color:${col};color:#fff;background:rgba(0,0,0,0.4)">${fmt(e.sess.min)}</span>` : ""}
+          ${e.log ? `<b>${esc(e.log.topic)}</b>` : `<span class="sub">ajuste de tempo</span>`}
+        </div>
+        ${e.log ? `<div class="hwhat ${blurBoxClass}" ${blurClick} ${tooltip}>${partialBlur(e.log.what)}</div>` : ""}
+      </div><div class="hact"><button class="gbtn" title="Editar" onclick="editEntry='${e.key}';render()">✎</button><button class="gbtn x" title="Apagar" onclick="delEntry('${e.key}')">✕</button></div></div>`;
         }).join("");
         return `<details class="hgrp" data-c="${esc(c)}" ${histClosed.has(c) ? "" : "open"} ontoggle="histTog(this)" style="border-left:3px solid ${col}">
       <summary><i class="color-dot" style="background:${col};color:${col}"></i><b style="color:${col}">${esc(c)}</b><span class="tag" style="border-color:${col};color:#fff;margin:0 0 0 8px;background:rgba(0,0,0,0.4)">${fmt(tot)}</span><span class="sub" style="margin-left:auto">${list.length} ${list.length === 1 ? "registro" : "registros"}</span></summary>
@@ -1344,7 +1683,10 @@ ${list.length ? list.map(s => {
       return `
   <div class="card">
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
-      <h3 style="margin:0">Estudado em ${mesNome} (${all.length})</h3>
+      <div>
+        <h3 style="margin:0">Estudado em <span style="text-transform:capitalize">${mesNome}</span></h3>
+        <div class="hsub sub"><span><b style="color:var(--tx)">${fmt(all.reduce((a, e) => a + (e.sess ? e.sess.min : 0), 0))}</b> de estudo</span><span>${all.length} ${all.length === 1 ? "registro" : "registros"}</span><span>${names.length} ${names.length === 1 ? "matéria" : "matérias"}</span></div>
+      </div>
       <button class="btn o" style="padding: 6px 12px; font-size: 12px; border-radius: 8px;" onclick="toggleBlur()">
         ${blurMode ? '👁️ Desativar Revisão Ativa' : '🫣 Ativar Revisão (Borrão)'}
       </button>
@@ -1390,13 +1732,116 @@ ${list.length ? list.map(s => {
     const goalMin = g => { const ws = weekStart(); return S.sessions.filter(s => s.date >= ws && (s.cat || "Geral").toLowerCase() === (g.cat || "").toLowerCase()).reduce((a, s) => a + s.min, 0); };
     const goalPct = g => g.hours ? Math.min(100, goalMin(g) / 60 / g.hours * 100) : null;
 
+    let gEdit = null, gForm = false;
+
     function addGoal() {
       const t = $("#gt").value.trim(), cat = $("#gc").value.trim(), hours = +$("#gh").value;
       if (!reqFields([["gt", t], ["gc", cat], ["gh", hours > 0]])) return;
       ensureSubject(cat);
       S.goals.push({ id: uid(), text: t, cat, due: $("#gd").value, hours, done: false, created: today() });
+      gForm = false;
       playSound('success');
       save(); render();
+    }
+
+    function saveGoal(id) {
+      const g = S.goals.find(x => x.id === id); if (!g) return;
+      const t = $("#egt").value.trim(), cat = $("#egc").value.trim(), hours = +$("#egh").value;
+      if (!reqFields([["egt", t], ["egc", cat], ["egh", hours > 0]])) return;
+      ensureSubject(cat);
+      Object.assign(g, { text: t, cat, hours, due: $("#egd").value });
+      gEdit = null;
+      playSound('pop');
+      save(); render();
+    }
+
+    function delGoal(id) {
+      const g = S.goals.find(x => x.id === id); if (!g) return;
+      if (!confirm(`Apagar a meta "${g.text}"?`)) return;
+      S.goals = S.goals.filter(x => x.id !== id);
+      if (gEdit === id) gEdit = null;
+      save(); render();
+    }
+
+    /* prazo em linguagem humana + estado (atrasada / perto / normal) */
+    function goalDue(g) {
+      if (!g.due) return null;
+      const br = g.due.split("-").reverse().join("/");
+      if (g.done) return { t: "Prazo " + br, c: "" };
+      const d = Math.round((new Date(g.due + "T12:00:00") - new Date(today() + "T12:00:00")) / 86400000);
+      if (d < 0) return { t: "Atrasada há " + (-d) + (d === -1 ? " dia" : " dias"), c: "late" };
+      if (d === 0) return { t: "Vence hoje", c: "warn" };
+      if (d <= 3) return { t: "Faltam " + d + (d === 1 ? " dia" : " dias"), c: "warn" };
+      return { t: "Até " + br, c: "" };
+    }
+
+    /* formulário usado tanto para criar (g = null) quanto para editar */
+    function goalForm(g) {
+      const p = g ? "eg" : "g";
+      return `<div class="gform">
+        ${catList()}
+        <div class="gform-grid">
+          <label><span class="sub">Meta *</span><input id="${p}t" value="${esc(g ? g.text : "")}" placeholder="Ex: Estudar 8h de NetApp"></label>
+          <label><span class="sub">Matéria *</span><input id="${p}c" list="cats" value="${esc(g ? g.cat : "")}" placeholder="Escolha ou crie"></label>
+          <label><span class="sub">Horas por semana *</span><input id="${p}h" type="number" min="0.5" step="0.5" value="${g ? g.hours : ""}" placeholder="8"></label>
+          <label><span class="sub">Prazo (opcional)</span><input id="${p}d" type="date" value="${g ? esc(g.due || "") : ""}"></label>
+        </div>
+        <div class="gform-actions">
+          ${g ? `<button class="btn" onclick="saveGoal('${g.id}')">Salvar alterações</button><button class="btn o" onclick="gEdit=null;render()">Cancelar</button>`
+            : `<button class="btn" onclick="addGoal()">Criar meta</button><button class="btn o" onclick="gForm=false;render()">Cancelar</button>`}
+        </div>
+      </div>`;
+    }
+
+    function goalCard(g) {
+      const col = subjColor(g.cat);
+      if (g.id === gEdit) {
+        return `<div class="gcard" style="--c:${col};grid-column:1/-1"><div class="gsep" style="margin:0">Editar meta</div>${goalForm(g)}</div>`;
+      }
+      const m = goalMin(g), pct = goalPct(g) || 0, left = Math.max(0, (g.hours || 0) * 60 - m), hit = pct >= 100, due = goalDue(g);
+      return `<div class="gcard${g.done ? " done" : ""}" style="--c:${col}">
+        <div class="gtop">
+          <div class="gring" style="--p:${pct}"><span>${Math.round(pct)}%</span></div>
+          <div class="ginfo"><span class="gcat">${esc(g.cat)}</span><div class="gtitle">${esc(g.text)}</div></div>
+          <div class="gact">
+            <button class="gbtn" title="Editar" onclick="gEdit='${g.id}';gForm=false;render()">✎</button>
+            <button class="gbtn x" title="Apagar" onclick="delGoal('${g.id}')">✕</button>
+          </div>
+        </div>
+        <div class="bar"><i style="width:${pct}%;background:${col}"></i></div>
+        <div class="gmeta"><span><b>${fmt(m)}</b> de ${g.hours}h</span><span>${hit ? "🎉 Meta da semana batida" : "faltam " + fmt(left)}</span></div>
+        <div class="gfoot">
+          <span class="gchip ${due ? due.c : ""}">${due ? due.t : "Sem prazo"}</span>
+          <button class="btn o gdone" onclick="tog('goals','${g.id}')">${g.done ? "↩ Reabrir" : "✔ Concluir"}</button>
+        </div>
+      </div>`;
+    }
+
+    function vGoals() {
+      const act = S.goals.filter(g => !g.done).sort((a, b) => (a.due || "9999").localeCompare(b.due || "9999") || sortAlpha(a.cat, b.cat));
+      const fin = S.goals.filter(g => g.done);
+      const nHit = act.filter(g => (goalPct(g) || 0) >= 100).length;
+      const sumDone = act.reduce((a, g) => a + goalMin(g), 0), sumTarget = act.reduce((a, g) => a + (g.hours || 0) * 60, 0);
+      const ws = weekStart().split("-").reverse().slice(0, 2).join("/");
+
+      const stats = `<div class="gstats">
+        <div class="gstat"><b>${act.length}</b><span>metas ativas</span></div>
+        <div class="gstat"><b>${nHit}</b><span>batidas nesta semana</span></div>
+        <div class="gstat"><b>${fmt(sumDone)}</b><span>de ${fmt(sumTarget)} planejados</span></div>
+      </div>`;
+
+      const empty = `<div class="empty">Nenhuma meta ativa. Crie uma para acompanhar quantas horas quer estudar por semana.</div>`;
+
+      return `<div class="card">
+        <div class="ghead">
+          <div><h3>Metas semanais</h3><div class="sub">O progresso zera toda segunda-feira · semana atual desde ${ws}</div></div>
+          <button class="btn${gForm ? " o" : ""}" onclick="gForm=!gForm;gEdit=null;render()">${gForm ? "Fechar" : "+ Nova meta"}</button>
+        </div>
+        ${S.goals.length ? stats : ""}
+        ${gForm ? goalForm(null) : ""}
+        ${act.length ? `<div class="ggrid">${act.map(goalCard).join("")}</div>` : (gForm ? "" : empty)}
+        ${fin.length ? `<details class="gfin"><summary class="gsep">✅ Concluídas (${fin.length}) ▾</summary><div class="ggrid">${fin.map(goalCard).join("")}</div></details>` : ""}
+      </div>`;
     }
 
     function vMetas() {
@@ -1444,31 +1889,7 @@ ${list.length ? list.map(s => {
     </div>
   `;
 
-      const metasCard = `
-  <div class="grid">
-    <div class="card"><h3>Nova meta semanal</h3>${catList()}
-      <div class="row"><input id="gt" placeholder="Ex: Estudar 8h de NetApp *"><input id="gc" list="cats" placeholder="Matéria *"></div>
-      <div class="row"><input id="gh" type="number" min="0.5" step="0.5" placeholder="Horas semanais *"><input id="gd" type="date" title="Prazo opcional"></div>
-      <div class="sub" style="margin-bottom:12px">A meta é renovada toda semana.</div>
-      <button class="btn" onclick="addGoal()">Criar meta semanal</button>
-    </div>
-    <div class="card"><h3>Minhas metas (${S.goals.length})</h3>${S.goals.length ? S.goals.map(g => {
-        const pct = goalPct(g), done = g.done, col = subjColor(g.cat);
-        return `<div class="item" style="flex-direction:column; align-items:stretch;">
-        <div class="row" style="align-items:center; gap:10px; margin-bottom:6px">
-          <input type="checkbox" style="width:18px;height:18px" ${done ? "checked" : ""} onchange="tog('goals','${g.id}')">
-          <div style="flex:1; min-width:0; font-size:14px"><b style="color:${col}">${esc(g.cat)}</b>${esc(g.text)}</div>
-          <button class="btn x" style="padding:4px 8px" onclick="del('goals','${g.id}')">✕</button>
-        </div>
-        <div style="display:flex; gap:6px; margin-bottom:8px;">
-          ${g.hours ? `<span class="tag" style="border-color:${col};color:#fff;background:rgba(255,255,255,0.05)">${g.hours}h</span>` : ""}
-          ${g.due ? `<span class="tag" style="border-color:${col};color:#fff;background:rgba(255,255,255,0.05)">até ${g.due.split("-").reverse().join("/")}</span>` : ""}
-        </div>
-        ${pct !== null ? `<div class="bar"><i style="width:${pct}%"></i></div><div class="sub" style="margin-top:4px">${Math.round(pct)}% das ${g.hours}h da semana</div>` : ""}
-      </div>`;
-      }).join("") : `<div class="empty">Nenhuma meta criada ainda.</div>`}</div>
-  </div>`;
-      return kanbanCard + metasCard;
+      return kanbanCard + vGoals();
     }
 
     function elapsed() { return tm.acc + (tm.run ? (Date.now() - tm.start) / 60000 : 0); }
