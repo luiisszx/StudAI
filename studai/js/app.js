@@ -28,7 +28,14 @@ import {
 import {
   renderQuiz,
   activeQuizGame,
-  setActiveQuizGame
+  setActiveQuizGame,
+  quizBankFilter,
+  quizHistoryFilter,
+  setQuizBankFilter,
+  resetQuizBankFilters,
+  setQuizHistoryFilter,
+  getFilteredQuizList,
+  renderQuizBankItems
 } from "./views/quizView.js";
 import {
   renderCalendar,
@@ -811,6 +818,74 @@ class Application {
       sounds.playPop();
       store.save();
       showToast("Pergunta removida.");
+    });
+  }
+
+  onQuizBankSearch(query) {
+    setQuizBankFilter("search", query);
+    this.refreshQuizBankList();
+  }
+
+  onQuizBankCategory(cat) {
+    setQuizBankFilter("category", cat);
+    this.refreshQuizBankList();
+  }
+
+  onQuizBankStatus(status) {
+    setQuizBankFilter("status", status);
+    this.refreshQuizBankList();
+  }
+
+  resetQuizBankFilters() {
+    resetQuizBankFilters();
+    sounds.playPop();
+    const searchInput = document.getElementById("qb-search");
+    const catSelect = document.getElementById("qb-cat");
+    const statusSelect = document.getElementById("qb-status");
+    if (searchInput) searchInput.value = "";
+    if (catSelect) catSelect.value = "";
+    if (statusSelect) statusSelect.value = "all";
+    this.refreshQuizBankList();
+  }
+
+  refreshQuizBankList() {
+    const container = document.getElementById("qb-items-container");
+    const countEl = document.getElementById("qb-count");
+    if (!container) {
+      this.render();
+      return;
+    }
+
+    const today = getTodayIso();
+    const allQuizList = store.state.quiz || [];
+    const filteredQuizList = getFilteredQuizList();
+
+    container.innerHTML = renderQuizBankItems(filteredQuizList, today);
+
+    if (countEl) {
+      countEl.textContent = filteredQuizList.length === allQuizList.length
+        ? `${allQuizList.length} ${allQuizList.length === 1 ? "pergunta salva" : "perguntas salvas"}`
+        : `Exibindo ${filteredQuizList.length} de ${allQuizList.length} perguntas`;
+    }
+
+    const clearBtnContainer = document.getElementById("qb-clear-container");
+    if (clearBtnContainer) {
+      const hasActive = Boolean(quizBankFilter.search || quizBankFilter.category || quizBankFilter.status !== "all");
+      clearBtnContainer.style.display = hasActive ? "block" : "none";
+    }
+  }
+
+  setQuizHistoryCategory(cat) {
+    setQuizHistoryFilter("category", cat);
+    this.render();
+  }
+
+  clearQuizHistory() {
+    showConfirm("Deseja apagar todo o histórico de testes realizados?", () => {
+      store.state.results = [];
+      sounds.playPop();
+      store.save();
+      showToast("Histórico de testes apagado com sucesso.");
     });
   }
 
