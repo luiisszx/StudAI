@@ -801,28 +801,33 @@ class Application {
     if (originalQuizItem) {
       const intervals = [1, 3, 7, 16];
       originalQuizItem.box = isCorrect ? Math.min(4, (originalQuizItem.box || 0) + 1) : 0;
+
       const nextDueDate = new Date();
       nextDueDate.setDate(nextDueDate.getDate() + (isCorrect ? intervals[originalQuizItem.box - 1] : 0));
-      originalQuizItem.due = getTodayIso();
+
+      // CORREÇÃO: Aplica a data futura em formato YYYY-MM-DD em vez de getTodayIso()
+      originalQuizItem.due = nextDueDate.toISOString().split("T")[0];
+
       store.save();
     }
-
-    this.render();
   }
-
   nextQuizQuestion() {
-    if (!activeQuizGame) return;
+    // 1. BLOQUEIO DE CLIQUE DUPLO: Aborta se o quiz já estiver finalizado
+    if (!activeQuizGame || activeQuizGame.isFinished) return;
+
     if (activeQuizGame.currentIndex + 1 < activeQuizGame.questions.length) {
       activeQuizGame.currentIndex++;
       activeQuizGame.userAnswer = null;
     } else {
       activeQuizGame.isFinished = true;
-      // Record quiz outcome in results history
+
+      // 2. SALVAMENTO ESTRITO: Garante que os números não quebrem o XP
       store.state.results.push({
+        id: generateId(),
         date: getTodayIso(),
         cat: activeQuizGame.category || "Geral",
-        score: activeQuizGame.score,
-        total: activeQuizGame.questions.length
+        score: Number(activeQuizGame.score),
+        total: Number(activeQuizGame.questions.length)
       });
       sounds.playSuccess();
       store.save();
