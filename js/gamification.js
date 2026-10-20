@@ -23,19 +23,35 @@ let lastKnownLevel = null;
  * @returns {number}
  */
 export function calculateXP(state) {
-  const minXP = (state.sessions || []).reduce((sum, s) => sum + (Number(s.min) || 0), 0) * 2;
+  // 1. Soma de minutos (com failsafe contra NaN)
+  const minXP = (state.sessions || []).reduce((sum, s) => {
+    const val = Number(s.min);
+    return sum + (isNaN(val) ? 0 : val);
+  }, 0) * 2;
+
   const topicosXP = (state.logs || []).length * 20;
   const metasXP = (state.goals || []).filter(g => g.done).length * 50;
+
+  // 2. Soma de quizzes (com failsafe contra NaN)
   const testesXP = (state.results || []).reduce((sum, r) => {
-    const base = (r.score || 0) * 10;
-    const perfectBonus = (r.score === r.total && r.total > 0) ? 50 : 0;
+    const score = Number(r.score);
+    const total = Number(r.total);
+    if (isNaN(score) || isNaN(total)) return sum; // Ignora testes corrompidos
+
+    const base = score * 10;
+    const perfectBonus = (score === total && total > 0) ? 50 : 0;
     return sum + base + perfectBonus;
   }, 0);
+
   const ofensivaXP = calculateStreak(state.sessions) * 15;
   const tarefasXP = (state.tasks || []).filter(t => t.status === "done").length * 5;
   const missoesXP = (state.claimed_missions || []).length * 25;
 
-  return Math.round(minXP + topicosXP + metasXP + testesXP + ofensivaXP + tarefasXP + missoesXP);
+  // 3. Soma final garantida
+  const total = Math.round(minXP + topicosXP + metasXP + testesXP + ofensivaXP + tarefasXP + missoesXP);
+
+  // Se mesmo assim algo falhar, retorna 0 em vez de quebrar a interface
+  return isNaN(total) ? 0 : total;
 }
 
 /**
