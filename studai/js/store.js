@@ -64,11 +64,23 @@ class AppStore {
     setTimeout(() => {
       const btnLogin = document.getElementById("btn-login");
       const btnLogout = document.getElementById("btn-logout");
-      if (btnLogin) btnLogin.onclick = () => signInWithRedirect(auth, provider);
+
+      if (btnLogin) {
+        btnLogin.onclick = () => {
+          // Deteta se é um telemóvel (Android/iOS)
+          const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+          if (isMobile) {
+            signInWithRedirect(auth, provider); // Redirecionamento seguro para telemóveis
+          } else {
+            signInWithPopup(auth, provider); // Pop-up rápido e direto para PC
+          }
+        };
+      }
+
       if (btnLogout) btnLogout.onclick = () => signOut(auth);
     }, 100);
   }
-
   updateAuthUI(user) {
     const btnLogin = document.getElementById("btn-login");
     const userInfo = document.getElementById("user-info");
