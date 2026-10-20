@@ -90,25 +90,38 @@ class Application {
   }
 
   updateHeader() {
-    const totalXp = calculateXP(store.state);
-    const { level, rankTitle, progressPct } = calculateLevelData(totalXp);
+    try {
+      // 1. Calcula o XP
+      const totalXp = calculateXP(store.state) || 0;
+      console.log("🛠️ DIAGNÓSTICO 1 - XP Calculado:", totalXp);
 
-    const lvlTxtEl = document.getElementById("lvlTxt");
-    const xpBarEl = document.getElementById("xpBar");
+      // 2. Calcula o Nível\\
+      const nivelData = calculateLevelData(totalXp);
+      console.log("🛠️ DIAGNÓSTICO 2 - Dados Nível:", nivelData);
 
-    if (lvlTxtEl) {
-      lvlTxtEl.innerHTML = `
-        Nível ${level} <span style="opacity:0.75; font-size:11.5px; margin-left:4px">${rankTitle}</span>
-        <div style="font-weight:800; color:var(--g); margin-top:2px">${totalXp} XP</div>
-      `;
+      // 3. Procura a barra no HTML (DOM)
+      const lvlTxtEl = document.getElementById("lvlTxt");
+      const xpBarEl = document.getElementById("xpBar");
+      console.log("🛠️ DIAGNÓSTICO 3 - Elementos HTML encontrados:", {
+        texto: !!lvlTxtEl,
+        barra: !!xpBarEl
+      });
+
+      // 4. Injeta os dados
+      if (lvlTxtEl) {
+        lvlTxtEl.innerHTML = `
+          Nível ${nivelData.level} <span style="opacity:0.75; font-size:11.5px; margin-left:4px">${nivelData.rankTitle}</span>
+          <div style="font-weight:800; color:var(--g); margin-top:2px">${totalXp} XP</div>
+        `;
+      }
+
+      if (xpBarEl) {
+        xpBarEl.style.width = `${nivelData.progressPct}%`;
+      }
+    } catch (err) {
+      console.error("Erro ao desenhar o cabeçalho:", err);
     }
-
-    if (xpBarEl) {
-      xpBarEl.style.width = `${progressPct}%`;
-    }
-  }
-
-  updateNav() {
+  } updateNav() {
     const navEl = document.getElementById("nav");
     if (!navEl) return;
 
@@ -689,6 +702,8 @@ class Application {
     store.ensureSubject(cat);
 
     const selected = aiConfig.generatedItems.filter(x => x.selected);
+    const timeStamp = new Date().toISOString(); // <-- Cria o carimbo exato de hora para o Lote inteiro
+
     selected.forEach(x => {
       store.state.quiz.push({
         id: generateId(),
@@ -697,7 +712,8 @@ class Application {
         opts: x.opts,
         ans: x.ans,
         box: 0,
-        due: getTodayIso()
+        due: getTodayIso(),
+        createdAt: timeStamp // <-- Salva a hora exata
       });
     });
 
@@ -706,7 +722,6 @@ class Application {
     store.save();
     showToast(`${selected.length} perguntas adicionadas ao banco!`);
   }
-
   discardAiQuestions() {
     aiConfig.generatedItems = null;
     this.render();
@@ -875,7 +890,8 @@ class Application {
       opts: cleanOpts,
       ans: cleanAnswerIndex,
       box: 0,
-      due: getTodayIso()
+      due: getTodayIso(),
+      createdAt: new Date().toISOString() // <-- Carimbo para a pergunta manual
     });
 
     sounds.playSuccess();
@@ -883,119 +899,119 @@ class Application {
     showToast("Pergunta adicionada ao banco!");
   }
 
-  deleteQuizQuestion(id) {
-    showConfirm("Deseja apagar esta pergunta do banco?", () => {
-      store.state.quiz = store.state.quiz.filter(q => q.id !== id);
-      sounds.playPop();
-      store.save();
-      showToast("Pergunta removida.");
-    });
-  }
-
-  onQuizBankSearch(query) {
-    setQuizBankFilter("search", query);
-    this.refreshQuizBankList();
-  }
-
-  onQuizBankCategory(cat) {
-    setQuizBankFilter("category", cat);
-    this.refreshQuizBankList();
-  }
-
-  onQuizBankStatus(status) {
-    setQuizBankFilter("status", status);
-    this.refreshQuizBankList();
-  }
-
-  resetQuizBankFilters() {
-    resetQuizBankFilters();
+deleteQuizQuestion(id) {
+  showConfirm("Deseja apagar esta pergunta do banco?", () => {
+    store.state.quiz = store.state.quiz.filter(q => q.id !== id);
     sounds.playPop();
-    const searchInput = document.getElementById("qb-search");
-    const catSelect = document.getElementById("qb-cat");
-    const statusSelect = document.getElementById("qb-status");
-    if (searchInput) searchInput.value = "";
-    if (catSelect) catSelect.value = "";
-    if (statusSelect) statusSelect.value = "all";
-    this.refreshQuizBankList();
-  }
+    store.save();
+    showToast("Pergunta removida.");
+  });
+}
 
-  refreshQuizBankList() {
-    const container = document.getElementById("qb-items-container");
-    const countEl = document.getElementById("qb-count");
-    if (!container) {
-      this.render();
-      return;
-    }
+onQuizBankSearch(query) {
+  setQuizBankFilter("search", query);
+  this.refreshQuizBankList();
+}
 
-    const today = getTodayIso();
-    const allQuizList = store.state.quiz || [];
-    const filteredQuizList = getFilteredQuizList();
+onQuizBankCategory(cat) {
+  setQuizBankFilter("category", cat);
+  this.refreshQuizBankList();
+}
 
-    container.innerHTML = renderQuizBankItems(filteredQuizList, today);
+onQuizBankStatus(status) {
+  setQuizBankFilter("status", status);
+  this.refreshQuizBankList();
+}
 
-    if (countEl) {
-      countEl.textContent = filteredQuizList.length === allQuizList.length
-        ? `${allQuizList.length} ${allQuizList.length === 1 ? "pergunta salva" : "perguntas salvas"}`
-        : `Exibindo ${filteredQuizList.length} de ${allQuizList.length} perguntas`;
-    }
+resetQuizBankFilters() {
+  resetQuizBankFilters();
+  sounds.playPop();
+  const searchInput = document.getElementById("qb-search");
+  const catSelect = document.getElementById("qb-cat");
+  const statusSelect = document.getElementById("qb-status");
+  if (searchInput) searchInput.value = "";
+  if (catSelect) catSelect.value = "";
+  if (statusSelect) statusSelect.value = "all";
+  this.refreshQuizBankList();
+}
 
-    const clearBtnContainer = document.getElementById("qb-clear-container");
-    if (clearBtnContainer) {
-      const hasActive = Boolean(quizBankFilter.search || quizBankFilter.category || quizBankFilter.status !== "all");
-      clearBtnContainer.style.display = hasActive ? "block" : "none";
-    }
-  }
-
-  setQuizHistoryCategory(cat) {
-    setQuizHistoryFilter("category", cat);
+refreshQuizBankList() {
+  const container = document.getElementById("qb-items-container");
+  const countEl = document.getElementById("qb-count");
+  if (!container) {
     this.render();
+    return;
   }
 
-  clearQuizHistory() {
-    showConfirm("Deseja apagar todo o histórico de testes realizados?", () => {
-      store.state.results = [];
-      sounds.playPop();
-      store.save();
-      showToast("Histórico de testes apagado com sucesso.");
-    });
+  const today = getTodayIso();
+  const allQuizList = store.state.quiz || [];
+  const filteredQuizList = getFilteredQuizList();
+
+  container.innerHTML = renderQuizBankItems(filteredQuizList, today);
+
+  if (countEl) {
+    countEl.textContent = filteredQuizList.length === allQuizList.length
+      ? `${allQuizList.length} ${allQuizList.length === 1 ? "pergunta salva" : "perguntas salvas"}`
+      : `Exibindo ${filteredQuizList.length} de ${allQuizList.length} perguntas`;
   }
 
-  // Calendário
-  changeCalendarMonth(delta) {
-    setCalendarMonthOffset(calendarMonthOffset + delta);
-    setSelectedCalendarDate(null);
+  const clearBtnContainer = document.getElementById("qb-clear-container");
+  if (clearBtnContainer) {
+    const hasActive = Boolean(quizBankFilter.search || quizBankFilter.category || quizBankFilter.status !== "all");
+    clearBtnContainer.style.display = hasActive ? "block" : "none";
+  }
+}
+
+setQuizHistoryCategory(cat) {
+  setQuizHistoryFilter("category", cat);
+  this.render();
+}
+
+clearQuizHistory() {
+  showConfirm("Deseja apagar todo o histórico de testes realizados?", () => {
+    store.state.results = [];
     sounds.playPop();
+    store.save();
+    showToast("Histórico de testes apagado com sucesso.");
+  });
+}
+
+// Calendário
+changeCalendarMonth(delta) {
+  setCalendarMonthOffset(calendarMonthOffset + delta);
+  setSelectedCalendarDate(null);
+  sounds.playPop();
+  this.render();
+}
+
+selectCalendarDate(dateKey) {
+  setSelectedCalendarDate(dateKey);
+  sounds.playPop();
+  this.render();
+}
+
+// Dados
+exportData(type) {
+  exportData(type);
+}
+
+importBackup(file) {
+  importBackupFile(file);
+}
+
+wipeAllData() {
+  if (!isWipePendingConfirmation) {
+    setWipePending(true);
+    showToast("Atenção: Clique novamente no botão para confirmar a exclusão de todos os dados.", "error");
     this.render();
+    return;
   }
 
-  selectCalendarDate(dateKey) {
-    setSelectedCalendarDate(dateKey);
-    sounds.playPop();
-    this.render();
-  }
-
-  // Dados
-  exportData(type) {
-    exportData(type);
-  }
-
-  importBackup(file) {
-    importBackupFile(file);
-  }
-
-  wipeAllData() {
-    if (!isWipePendingConfirmation) {
-      setWipePending(true);
-      showToast("Atenção: Clique novamente no botão para confirmar a exclusão de todos os dados.", "error");
-      this.render();
-      return;
-    }
-
-    setWipePending(false);
-    store.resetAll();
-    sounds.playPop();
-    showToast("Todos os dados foram apagados com sucesso.");
-  }
+  setWipePending(false);
+  store.resetAll();
+  sounds.playPop();
+  showToast("Todos os dados foram apagados com sucesso.");
+}
 }
 
 // Instantiate and expose globally

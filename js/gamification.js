@@ -23,79 +23,95 @@ let lastKnownLevel = null;
  * @returns {number}
  */
 export function calculateXP(state) {
-  // 1. Soma de minutos (com failsafe contra NaN)
-  const minXP = (state.sessions || []).reduce((sum, s) => {
-    const val = Number(s.min);
-    return sum + (isNaN(val) ? 0 : val);
-  }, 0) * 2;
+  try {
+    // Garante que tudo é tratado como array vazio se estiver corrompido
+    const sessions = Array.isArray(state.sessions) ? state.sessions : [];
+    const logs = Array.isArray(state.logs) ? state.logs : [];
+    const goals = Array.isArray(state.goals) ? state.goals : [];
+    const results = Array.isArray(state.results) ? state.results : [];
+    const tasks = Array.isArray(state.tasks) ? state.tasks : [];
+    const missions = Array.isArray(state.claimed_missions) ? state.claimed_missions : [];
 
-  const topicosXP = (state.logs || []).length * 20;
-  const metasXP = (state.goals || []).filter(g => g.done).length * 50;
+    const minXP = sessions.reduce((sum, s) => {
+      const val = Number(s.min);
+      return sum + (isNaN(val) ? 0 : val);
+    }, 0) * 2;
 
-  // 2. Soma de quizzes (com failsafe contra NaN)
-  const testesXP = (state.results || []).reduce((sum, r) => {
-    const score = Number(r.score);
-    const total = Number(r.total);
-    if (isNaN(score) || isNaN(total)) return sum; // Ignora testes corrompidos
+    const topicosXP = logs.length * 20;
+    const metasXP = goals.filter(g => g && g.done).length * 50;
 
-    const base = score * 10;
-    const perfectBonus = (score === total && total > 0) ? 50 : 0;
-    return sum + base + perfectBonus;
-  }, 0);
+    const testesXP = results.reduce((sum, r) => {
+      if (!r) return sum;
+      const score = Number(r.score);
+      const total = Number(r.total);
+      if (isNaN(score) || isNaN(total)) return sum;
 
-  const ofensivaXP = calculateStreak(state.sessions) * 15;
-  const tarefasXP = (state.tasks || []).filter(t => t.status === "done").length * 5;
-  const missoesXP = (state.claimed_missions || []).length * 25;
+      const base = score * 10;
+      const perfectBonus = (score === total && total > 0) ? 50 : 0;
+      return sum + base + perfectBonus;
+    }, 0);
 
-  // 3. Soma final garantida
-  const total = Math.round(minXP + topicosXP + metasXP + testesXP + ofensivaXP + tarefasXP + missoesXP);
+    const ofensivaXP = calculateStreak(sessions) * 15;
+    const tarefasXP = tasks.filter(t => t && t.status === "done").length * 5;
+    const missoesXP = missions.length * 25;
 
-  // Se mesmo assim algo falhar, retorna 0 em vez de quebrar a interface
-  return isNaN(total) ? 0 : total;
+    const total = Math.round(minXP + topicosXP + metasXP + testesXP + ofensivaXP + tarefasXP + missoesXP);
+    return isNaN(total) ? 0 : total;
+
+  } catch (error) {
+    console.error("Erro fatal ao calcular XP:", error);
+    return 0; // Se tudo falhar, devolve 0 e impede que a app fique branca/sem barra
+  }
 }
-
 /**
  * Calculates user level and rank title.
  * @param {number} totalXp 
  * @returns {{ level: number, rankTitle: string, progressPct: number, currentLevelBaseXp: number, nextLevelBaseXp: number }}
  */
 export function calculateLevelData(totalXp) {
-  const level = Math.floor(Math.sqrt(totalXp / 50)) + 1;
-  const prevLevelBase = 50 * (level - 1) ** 2;
-  const nextLevelBase = 50 * level ** 2;
-  const progressPct = Math.min(100, Math.max(0, ((totalXp - prevLevelBase) / (nextLevelBase - prevLevelBase)) * 100));
+  try {
+    const safeXp = (isNaN(totalXp) || totalXp < 0) ? 0 : totalXp;
+    const level = Math.floor(Math.sqrt(safeXp / 50)) + 1;
+    const prevLevelBase = 50 * (level - 1) ** 2;
+    const nextLevelBase = 50 * level ** 2;
 
-  let rankTitle = RANKS[0].title;
-  for (const r of RANKS) {
-    if (level >= r.lvl) rankTitle = r.title;
+    let progressPct = Math.min(100, Math.max(0, ((safeXp - prevLevelBase) / (nextLevelBase - prevLevelBase)) * 100));
+    if (isNaN(progressPct)) progressPct = 0;
+
+    let rankTitle = RANKS[0].title;
+    for (const r of RANKS) {
+      if (level >= r.lvl) rankTitle = r.title;
+    }
+
+    if (lastKnownLevel !== null && level > lastKnownLevel) {
+      if (typeof sounds !== 'undefined' && sounds.playLevelUp) {
+        sounds.playLevelUp();
+      }
+    }
+    lastKnownLevel = level;
+
+    return { level, rankTitle, progressPct, currentLevelBaseXp: prevLevelBase, nextLevelBaseXp: nextLevelBase };
+  } catch (err) {
+    console.error("Erro fatal ao calcular Nível:", err);
+    return { level: 1, rankTitle: RANKS[0].title, progressPct: 0, currentLevelBaseXp: 0, nextLevelBaseXp: 50 };
   }
-
-  // Play celebratory sound if level increased
-  if (lastKnownLevel !== null && level > lastKnownLevel) {
-    sounds.playLevelUp();
-  }
-  lastKnownLevel = level;
-
-  return {
-    level,
-    rankTitle,
-    progressPct,
-    currentLevelBaseXp: prevLevelBase,
-    nextLevelBaseXp: nextLevelBase
-  };
 }
-
 /**
  * Calculates current daily consecutive study streak.
  * @param {Array} sessions 
  * @returns {number}
  */
 export function calculateStreak(sessions = []) {
-  const dates = new Set(sessions.map(s => s.date));
+  // Garante que é uma lista válida e ignora sessões corrompidas sem data
+  if (!Array.isArray(sessions)) return 0;
+
+  const dates = new Set(
+    sessions.filter(s => s && s.date).map(s => s.date)
+  );
+
   let streak = 0;
   const checkDate = new Date();
 
-  // If haven't studied today yet, check starting from yesterday
   if (!dates.has(formatDateIso(checkDate))) {
     checkDate.setDate(checkDate.getDate() - 1);
   }
@@ -107,7 +123,6 @@ export function calculateStreak(sessions = []) {
 
   return streak;
 }
-
 /**
  * Evaluates daily missions for today.
  * @param {object} state 

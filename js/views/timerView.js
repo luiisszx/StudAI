@@ -186,13 +186,13 @@ function renderHistorySection() {
     let lastRenderedDate = "";
     const itemsHtml = list.map(entry => {
       const isNewDateHeader = entry.date !== lastRenderedDate
-        ? (lastRenderedDate = entry.date, `<div class="hdate">${entry.date === getTodayIso() ? "HOJE" : formatDateBr(entry.date)}</div>`)
+        ? (lastRenderedDate = entry.date, `<div class="hdate" style="margin-top:16px; margin-bottom:8px; font-size:11px; font-weight:700; color:var(--mu); letter-spacing:1px;">${entry.date === getTodayIso() ? "HOJE" : formatDateBr(entry.date)}</div>`)
         : "";
 
       if (entry.key === editingHistoryKey) {
         return `
           ${isNewDateHeader}
-          <div class="item">
+          <div class="item" style="padding:12px; border:1px solid rgba(255,255,255,0.05); border-radius:8px; background:rgba(0,0,0,0.2); margin-bottom:8px;">
             <div class="t">
               <div class="row">
                 <input id="eh-c" list="cats" value="${escapeHtml(entry.cat)}" placeholder="Matéria">
@@ -218,33 +218,60 @@ function renderHistorySection() {
       const blurAction = activeBlurMode ? `onclick="this.classList.toggle('revealed')"` : "";
       const tooltip = activeBlurMode ? `title="Toque para revelar o conteúdo"` : "";
 
+      // Item ultra-minimalista com anotações recolhíveis
       return `
         ${isNewDateHeader}
-        <div class="item">
-          <div class="t">
-            <div class="hline">
-              ${entry.sess ? `<span class="tag" style="border-color:${color};color:#fff;background:rgba(0,0,0,0.4)">${formatDuration(entry.sess.min)}</span>` : ""}
-              ${entry.log ? `<b>${escapeHtml(entry.log.topic)}</b>` : `<span class="sub">Ajuste manual de tempo</span>`}
+        <div class="item" style="border: 1px solid rgba(255,255,255,0.03); background: rgba(255,255,255,0.01); border-radius: 8px; margin-bottom: 8px; padding: 12px 16px;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+            <div style="flex:1; min-width:0;">
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom: ${entry.log ? '6px' : '0'}; flex-wrap:wrap;">
+                ${entry.sess ? `<span class="tag" style="border-color:${color}; color:${color}; background:transparent; padding:2px 6px; font-size:11px; margin:0;">${formatDuration(entry.sess.min)}</span>` : ""}
+                ${entry.log ? `<b style="font-size:14.5px; color:#e4e4e7;">${escapeHtml(entry.log.topic)}</b>` : `<span class="sub" style="font-size:13px;">Ajuste manual de tempo</span>`}
+              </div>
+              
+              ${entry.log && entry.log.what ? `
+                <details style="margin-top:8px;">
+                  <summary style="cursor:pointer; outline:none; font-size:12px; color:var(--mu); font-weight:600; list-style:none; display:inline-flex; align-items:center; gap:4px; transition:color 0.2s;" onmouseover="this.style.color='#a1a1aa'" onmouseout="this.style.color='var(--mu)'">
+                    Ler anotações detalhadas ▾
+                  </summary>
+                  <div class="hwhat ${blurClass}" ${blurAction}${tooltip} style="margin-top:10px; font-size:13.5px; line-height:1.6; color:#a1a1aa; padding-left:12px; border-left:2px solid rgba(255,255,255,0.05);">
+                    ${applyPartialBlur(entry.log.what).replace(/\n/g, '<br>')}
+                  </div>
+                </details>
+              ` : ""}
             </div>
-            ${entry.log ? `<div class="hwhat ${blurClass}" ${blurAction} ${tooltip}>${applyPartialBlur(entry.log.what)}</div>` : ""}
-          </div>
-          <div class="hact">
-            <button class="gbtn" title="Editar" onclick="window.studai.startEditHistoryEntry('${entry.key}')">✎</button>
-            <button class="gbtn x" title="Apagar" onclick="window.studai.deleteHistoryEntry('${entry.key}')">✕</button>
+            
+            <div class="hact" style="display:flex; gap:4px;">
+              <button class="gbtn" title="Editar" onclick="window.studai.startEditHistoryEntry('${entry.key}')" style="background:transparent; border:none; color:#71717a; cursor:pointer; font-size:14px;">✎</button>
+              <button class="gbtn x" title="Apagar" onclick="window.studai.deleteHistoryEntry('${entry.key}')" style="background:transparent; border:none; color:#71717a; cursor:pointer; font-size:14px;">✕</button>
+            </div>
           </div>
         </div>
       `;
     }).join("");
 
+    // O "open" foi removido daqui para as matérias ficarem fechadas por padrão
     return `
-      <details class="hgrp" open style="border-left:4px solid ${color}">
-        <summary>
-          <i class="color-dot" style="background:${color}"></i>
-          <b style="color:${color}">${escapeHtml(cat)}</b>
-          <span class="tag" style="border-color:${color};color:#fff;margin:0 0 0 8px;background:rgba(0,0,0,0.4)">${formatDuration(totalMinutes)}</span>
-          <span class="sub" style="margin-left:auto">${list.length} ${list.length === 1 ? "registro" : "registros"}</span>
+      <details class="hgrp" style="border-left:4px solid ${color}; background:rgba(255,255,255,0.02); border-radius:0 8px 8px 0; margin-bottom:8px; padding:14px; transition:background 0.2s;">
+        <summary style="cursor:pointer; outline:none; display:flex; justify-content:space-between; align-items:center; list-style:none; width:100%;">
+          
+          <!-- Lado Esquerdo: Nome da Matéria e Tempo -->
+          <div style="display:flex; align-items:center; gap:10px;">
+            <i class="color-dot" style="background:${color}; margin:0;"></i>
+            <b style="color:${color}; font-size:15px;">${escapeHtml(cat)}</b>
+            <span class="tag" style="border-color:${color}; color:${color}; margin:0; padding:2px 8px; background:transparent;">${formatDuration(totalMinutes)}</span>
+          </div>
+          
+          <!-- Lado Direito: Quantidade de Registros -->
+          <div class="sub" style="font-size:12px; white-space:nowrap;">
+            ${list.length} ${list.length === 1 ? "registro" : "registros"} ▾
+          </div>
+          
         </summary>
-        ${itemsHtml}
+        
+        <div style="margin-top:16px;">
+          ${itemsHtml}
+        </div>
       </details>
     `;
   }).join("");

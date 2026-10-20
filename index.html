@@ -18,13 +18,25 @@
 
 <body>
   <div class="wrap">
-    <header role="banner">
+    <header role="banner"
+      style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+      <!-- Lado esquerdo: Logo e Info do Usuário -->
       <div>
         <h1 class="logo">Stud<b>AI</b></h1>
         <div id="user-info" style="display: none; align-items: center; gap: 8px; margin-top: 5px;">
           <span id="user-name" style="font-size: 12px; color: #aaa;"></span>
           <button id="btn-logout"
             style="background: transparent; color: #ef4444; border: 1px solid #ef4444; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 10px;">Sair</button>
+        </div>
+      </div>
+
+      <!-- Lado direito: Nível e Barra de XP -->
+      <div class="user-level-container" style="flex: 1; max-width: 250px; min-width: 150px;">
+        <div id="lvlTxt" style="font-size: 14px; text-align: right;">Nível...</div>
+        <div class="bar"
+          style="margin-top: 6px; width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">
+          <i id="xpBar"
+            style="display: block; height: 100%; background: var(--g, #2dff7a); box-shadow: 0 0 8px var(--g, #2dff7a); width: 0%; transition: width 0.3s ease;"></i>
         </div>
       </div>
     </header>

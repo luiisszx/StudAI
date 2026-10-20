@@ -72,58 +72,105 @@ export function renderQuizBankItems(questions, today) {
   if (!questions.length) {
     const hasAnyInStore = (store.state.quiz || []).length > 0;
     return `
-      <div class="empty">
+      <div class="empty" style="opacity:0.7; border:1px dashed rgba(255,255,255,0.1); border-radius:8px; padding:30px;">
         ${hasAnyInStore
-          ? `Nenhuma pergunta ou resposta encontrada para os filtros selecionados.<br><button class="btn o" style="margin-top:12px;" onclick="window.studai.resetQuizBankFilters()">Limpar filtros</button>`
-          : "Banco de perguntas vazio. Adicione perguntas acima ou gere com a IA."
-        }
+        ? `Nenhuma pergunta encontrada.<br><button class="btn o" style="margin-top:12px;" onclick="window.studai.resetQuizBankFilters()">Limpar filtros</button>`
+        : "Banco de perguntas vazio. Adicione perguntas acima ou gere com a IA."
+      }
       </div>
     `;
   }
 
   const intervals = [1, 3, 7, 16];
 
-  return questions.map(q => {
-    const color = store.getSubjectColor(q.cat);
-    const isDue = !q.due || q.due <= today;
-    const box = q.box || 0;
-    const boxLabel = box === 0 ? "Caixa 0 (Novo)" : `Caixa ${box} (${intervals[box - 1] || 1}d)`;
+  // 1. Agrupar perguntas pela data/hora de criação
+  const groups = {};
+  questions.forEach(q => {
+    let key = "Perguntas Antigas";
+    let sortVal = 0;
 
-    return `
-      <div class="item" id="q-item-${q.id}">
-        <div class="t">
-          <b>${escapeHtml(q.q)}</b>
-          <div style="margin-top:6px; display:flex; flex-wrap:wrap; align-items:center; gap:6px;">
-            <span class="tag" style="border-color:${color};color:${color};margin-right:0;">${escapeHtml(q.cat || "Geral")}</span>
-            <span class="tag" style="border-color:rgba(255,255,255,0.15);color:var(--mu);margin-right:0;" title="Intervalo de Repetição Espaçada">${boxLabel}</span>
-            ${isDue
-              ? `<span class="tag" style="border-color:var(--yellow);color:var(--yellow);background:rgba(245,158,11,0.08);margin-right:0;">Revisão pendente</span>`
-              : `<span class="tag" style="border-color:rgba(45,255,122,0.3);color:var(--g);background:rgba(45,255,122,0.05);margin-right:0;">✔ Em dia</span>`
-            }
-          </div>
-          <div class="sub" style="margin-top:8px; font-size:13.5px; color:var(--tx); line-height:1.4;">
-            <span style="color:var(--g); font-weight:700;">✔ Resposta correta:</span> ${escapeHtml(q.opts[q.ans])}
-            ${q.due ? `<span style="opacity:0.75; font-size:12px; margin-left:6px;">· Próxima revisão: ${formatDateBr(q.due)}</span>` : ""}
-          </div>
-          ${q.opts && q.opts.length > 1 ? `
-            <details style="margin-top:6px; font-size:12px; color:var(--mu);">
-              <summary style="cursor:pointer; user-select:none; outline:none;">Ver todas as ${q.opts.length} alternativas</summary>
-              <ul style="margin:6px 0 0 18px; padding:0; list-style-type:disc;">
-                ${q.opts.map((opt, idx) => `
-                  <li style="margin-bottom:2px; color:${idx === q.ans ? "var(--g)" : "var(--mu)"}; font-weight:${idx === q.ans ? "600" : "normal"};">
-                    ${escapeHtml(opt)} ${idx === q.ans ? "✔ (correta)" : ""}
-                  </li>
-                `).join("")}
-              </ul>
-            </details>
-          ` : ""}
-        </div>
-        <button class="btn x" title="Apagar pergunta" onclick="window.studai.deleteQuizQuestion('${q.id}')">✕</button>
+    if (q.createdAt) {
+      const d = new Date(q.createdAt);
+      const dateStr = d.toLocaleDateString("pt-BR");
+      const timeStr = d.toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' });
+      key = `${dateStr} • ${timeStr}`;
+      sortVal = d.getTime();
+    }
+
+    if (!groups[key]) {
+      groups[key] = { title: key, sortVal, items: [] };
+    }
+    groups[key].items.push(q);
+  });
+
+  // 2. Ordenar grupos (mais recentes primeiro)
+  const sortedGroups = Object.values(groups).sort((a, b) => b.sortVal - a.sortVal);
+
+  // 3. Renderizar cada grupo
+  return sortedGroups.map(group => {
+    // Cabeçalho do Grupo (Data e Hora)
+    const groupHeader = `
+      <div style="margin: 24px 0 12px 0; font-size: 11px; font-weight: 700; color: var(--g); text-transform: uppercase; letter-spacing: 1.5px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 6px; display:flex; align-items:center; gap:6px;">
+        <i style="font-style:normal; font-size:14px;">⏱️</i> Lote gerado em: ${group.title}
       </div>
     `;
+
+    // Itens minimalistas dentro do grupo
+    const itemsHtml = group.items.map(q => {
+      const color = store.getSubjectColor(q.cat);
+      const isDue = !q.due || q.due <= today;
+      const box = q.box || 0;
+      const boxLabel = box === 0 ? "Novo" : `Caixa ${box} (${intervals[box - 1] || 1}d)`;
+
+      const statusIcon = isDue
+        ? `<span style="color:#f59e0b;">🟠 Pendente</span>`
+        : `<span style="color:var(--g);">🟢 Em dia</span>`;
+
+      return `
+        <div class="item" id="q-item-${q.id}" style="border:1px solid rgba(255,255,255,0.03); background:rgba(255,255,255,0.01); border-radius:8px; padding:16px; margin-bottom:8px; display:flex; gap:16px; align-items:flex-start;">
+          <div style="flex:1; min-width:0;">
+            <div style="display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">
+              <span style="color:${color}; display:flex; align-items:center; gap:4px;">
+                <i style="width:6px; height:6px; border-radius:50%; background:${color};"></i>
+                ${escapeHtml(q.cat || "Geral")}
+              </span>
+              <span style="color:var(--mu);">·</span>
+              <span style="color:var(--mu);">${boxLabel}</span>
+              <span style="color:var(--mu);">·</span>
+              ${statusIcon}
+            </div>
+            
+            <b style="font-size:14.5px; color:#e4e4e7; line-height:1.5; display:block; margin-bottom:8px;">
+              ${escapeHtml(q.q)}
+            </b>
+            
+            <div style="font-size:13px; color:#a1a1aa; line-height:1.5;">
+              <span style="color:var(--g); font-weight:700; margin-right:4px;">R:</span>${escapeHtml(q.opts[q.ans])}
+            </div>
+
+            ${q.opts && q.opts.length > 1 ? `
+              <details style="margin-top:10px; font-size:12px; color:#71717a;">
+                <summary style="cursor:pointer; outline:none; transition:color 0.2s;" onmouseover="this.style.color='#a1a1aa'" onmouseout="this.style.color='#71717a'">
+                  Ver as ${q.opts.length} alternativas
+                </summary>
+                <ul style="margin:8px 0 0 16px; padding:0; list-style-type:circle;">
+                  ${q.opts.map((opt, idx) => `
+                    <li style="margin-bottom:4px; color:${idx === q.ans ? "var(--g)" : "#71717a"}; opacity:${idx === q.ans ? "1" : "0.7"};">
+                      ${escapeHtml(opt)}
+                    </li>
+                  `).join("")}
+                </ul>
+              </details>
+            ` : ""}
+          </div>
+          <button class="btn x" title="Apagar pergunta" onclick="window.studai.deleteQuizQuestion('${q.id}')" style="background:transparent; border:none; color:#71717a; padding:4px 8px; font-size:14px; transition:color 0.2s;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#71717a'">✕</button>
+        </div>
+      `;
+    }).join("");
+
+    return groupHeader + itemsHtml;
   }).join("");
 }
-
 export function renderQuiz() {
   // 1. If currently inside a quiz gameplay session:
   if (activeQuizGame) {
@@ -159,17 +206,17 @@ export function renderQuiz() {
         </div>
         <p style="font-size:18px; font-weight:700; margin-bottom:16px;">${escapeHtml(currentQuestion.q)}</p>
         ${currentQuestion.opts.map((optText, optIndex) => {
-          let optionClass = "";
-          if (userSelectedAnswer !== null) {
-            if (optIndex === currentQuestion.ans) optionClass = "ok";
-            else if (optIndex === userSelectedAnswer) optionClass = "bad";
-          }
-          return `
+      let optionClass = "";
+      if (userSelectedAnswer !== null) {
+        if (optIndex === currentQuestion.ans) optionClass = "ok";
+        else if (optIndex === userSelectedAnswer) optionClass = "bad";
+      }
+      return `
             <button class="opt ${optionClass}" ${userSelectedAnswer !== null ? "disabled" : ""} onclick="window.studai.answerQuizQuestion(${optIndex})">
               ${escapeHtml(optText)}
             </button>
           `;
-        }).join("")}
+    }).join("")}
         ${userSelectedAnswer !== null ? `
           <div style="display:flex; justify-content:flex-end; margin-top:16px;">
             <button class="btn" onclick="window.studai.nextQuizQuestion()">
@@ -210,16 +257,16 @@ export function renderQuiz() {
           <div class="t">
             <b>${escapeHtml(item.q)}</b>
             ${item.opts.map((optText, optIdx) => {
-              const isAnswered = item.userPick !== null;
-              const optionClass = isAnswered
-                ? (optIdx === item.ans ? "ok" : (optIdx === item.userPick ? "bad" : ""))
-                : "";
-              return `
+    const isAnswered = item.userPick !== null;
+    const optionClass = isAnswered
+      ? (optIdx === item.ans ? "ok" : (optIdx === item.userPick ? "bad" : ""))
+      : "";
+    return `
                 <button class="opt ${optionClass}" ${isAnswered ? "disabled" : ""} onclick="window.studai.previewAiAnswer(${qIdx}, ${optIdx})">
                   ${escapeHtml(optText)}
                 </button>
               `;
-            }).join("")}
+  }).join("")}
             ${item.userPick !== null ? `
               <div class="sub" style="margin-top:4px; color:${item.userPick === item.ans ? "var(--g)" : "var(--red)"}">
                 ${item.userPick === item.ans ? "✔ Correto!" : "✘ Incorreto — a resposta correta está destacada em verde."}
@@ -251,9 +298,9 @@ export function renderQuiz() {
         <input type="number" min="1" max="15" value="${aiConfig.questionCount}" title="Quantidade de perguntas" oninput="window.studai.setAiQuestionCount(this.value)" style="max-width:90px">
       </div>
       ${aiConfig.sourceType === "text"
-        ? `<textarea rows="4" placeholder="Cole aqui seu resumo, artigo ou anotação..." oninput="window.studai.setAiCustomText(this.value)" style="margin-bottom:8px">${escapeHtml(aiConfig.customText)}</textarea>`
-        : `<div class="sub" style="margin-bottom:10px">${availableLogsCount} ${availableLogsCount === 1 ? "registro disponível" : "registros disponíveis"}${aiConfig.category ? " em " + escapeHtml(aiConfig.category) : ""}. Usa os mais recentes.</div>`
-      }
+      ? `<textarea rows="4" placeholder="Cole aqui seu resumo, artigo ou anotação..." oninput="window.studai.setAiCustomText(this.value)" style="margin-bottom:8px">${escapeHtml(aiConfig.customText)}</textarea>`
+      : `<div class="sub" style="margin-bottom:10px">${availableLogsCount} ${availableLogsCount === 1 ? "registro disponível" : "registros disponíveis"}${aiConfig.category ? " em " + escapeHtml(aiConfig.category) : ""}. Usa os mais recentes.</div>`
+    }
       <button class="btn" onclick="window.studai.triggerAiGeneration()" ${aiConfig.isLoading ? "disabled" : ""}>
         ${aiConfig.isLoading ? "⏳ Gerando com IA..." : "✨ Gerar Perguntas"}
       </button>
@@ -319,9 +366,9 @@ export function renderQuiz() {
         <h3 style="margin:0;">Banco de Perguntas & Respostas (${allQuizList.length})</h3>
         <span class="sub" id="qb-count">
           ${filteredQuizList.length === allQuizList.length
-            ? `${allQuizList.length} ${allQuizList.length === 1 ? "pergunta salva" : "perguntas salvas"}`
-            : `Exibindo ${filteredQuizList.length} de ${allQuizList.length} perguntas`
-          }
+      ? `${allQuizList.length} ${allQuizList.length === 1 ? "pergunta salva" : "perguntas salvas"}`
+      : `Exibindo ${filteredQuizList.length} de ${allQuizList.length} perguntas`
+    }
         </span>
       </div>
 
@@ -410,13 +457,13 @@ export function renderQuiz() {
       ` : ""}
 
       ${filteredResults.length ? filteredResults.map(r => {
-        const color = store.getSubjectColor(r.cat);
-        const score = Number(r.score) || 0;
-        const total = Number(r.total) || 1;
-        const pct = Math.round((score / total) * 100);
-        const barColor = pct >= 70 ? "var(--g)" : pct >= 50 ? "var(--yellow)" : "var(--red)";
+    const color = store.getSubjectColor(r.cat);
+    const score = Number(r.score) || 0;
+    const total = Number(r.total) || 1;
+    const pct = Math.round((score / total) * 100);
+    const barColor = pct >= 70 ? "var(--g)" : pct >= 50 ? "var(--yellow)" : "var(--red)";
 
-        return `
+    return `
           <div class="item">
             <div class="t">
               <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
@@ -434,12 +481,12 @@ export function renderQuiz() {
             </div>
           </div>
         `;
-      }).join("") : `
+  }).join("") : `
         <div class="empty">
           ${allResults.length === 0
-            ? "Nenhum teste concluído ainda. Inicie um teste acima para registrar seus resultados!"
-            : "Nenhum resultado encontrado para esta matéria."
-          }
+      ? "Nenhum teste concluído ainda. Inicie um teste acima para registrar seus resultados!"
+      : "Nenhum resultado encontrado para esta matéria."
+    }
         </div>
       `}
     </div>
