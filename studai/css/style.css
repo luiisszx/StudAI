@@ -13,8 +13,8 @@
   /* Color Palette */
   --bg: #050805;
   --bg-gradient: radial-gradient(800px 420px at 85% -8%, rgba(45, 255, 122, 0.12), transparent 60%),
-                 radial-gradient(600px 400px at -5% 105%, rgba(59, 130, 246, 0.08), transparent 60%),
-                 #050805;
+    radial-gradient(600px 400px at -5% 105%, rgba(59, 130, 246, 0.08), transparent 60%),
+    #050805;
   --card: rgba(13, 22, 14, 0.75);
   --card-hover: rgba(18, 30, 20, 0.85);
   --card-gradient: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.015) 100%);
@@ -46,7 +46,9 @@
 /* --------------------------------------------------------------------------
    2. Reset & Base Styles
    -------------------------------------------------------------------------- */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -77,13 +79,16 @@ body {
   width: 8px;
   height: 8px;
 }
+
 ::-webkit-scrollbar-thumb {
   background: rgba(45, 255, 122, 0.18);
   border-radius: var(--radius-full);
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(45, 255, 122, 0.35);
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
@@ -177,13 +182,13 @@ nav {
   max-width: 100%;
   margin: 0 auto 26px;
   overflow-x: auto;
-  background: rgba(8, 14, 9, 0.82);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(7, 13, 8, 0.62);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   padding: 8px 12px;
   border-radius: var(--radius-full);
-  border: 1px solid var(--line);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(45, 255, 122, 0.18);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   scrollbar-width: none;
   view-transition-name: navbar;
 }
@@ -239,7 +244,7 @@ nav button.on {
   transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
 }
 
-.grid > .card:hover {
+.grid>.card:hover {
   border-color: rgba(45, 255, 122, 0.3);
   transform: translateY(-2px);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
@@ -299,7 +304,7 @@ nav button.on {
   margin-bottom: 10px;
 }
 
-.row > * {
+.row>* {
   flex: 1;
   min-width: 140px;
 }
@@ -416,7 +421,7 @@ input[type="radio"] {
   border-top: 0;
 }
 
-.item > .t {
+.item>.t {
   flex: 1;
   min-width: 0;
 }
@@ -495,7 +500,7 @@ input[type="radio"] {
   height: 160px;
 }
 
-.bars > div {
+.bars>div {
   flex: 1;
   text-align: center;
   font-size: 11px;
@@ -815,7 +820,7 @@ input[type="radio"] {
   margin-bottom: 12px;
 }
 
-.hgrp > summary {
+.hgrp>summary {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -823,11 +828,11 @@ input[type="radio"] {
   list-style: none;
 }
 
-.hgrp > summary::-webkit-details-marker {
+.hgrp>summary::-webkit-details-marker {
   display: none;
 }
 
-.hgrp > summary::after {
+.hgrp>summary::after {
   content: "▾";
   color: var(--mu);
   font-size: 13px;
@@ -835,7 +840,7 @@ input[type="radio"] {
   transition: transform 0.2s;
 }
 
-.hgrp:not([open]) > summary::after {
+.hgrp:not([open])>summary::after {
   transform: rotate(-90deg);
 }
 
@@ -958,13 +963,27 @@ input[type="radio"] {
 }
 
 @keyframes toastIn {
-  from { opacity: 0; transform: translateY(16px) scale(0.96); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @keyframes toastOut {
-  from { opacity: 1; transform: translateY(0) scale(1); }
-  to { opacity: 0; transform: translateY(12px) scale(0.96); }
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
 }
 
 /* Modal Dialog */
@@ -993,24 +1012,43 @@ input[type="radio"] {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes scaleUp {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /* --------------------------------------------------------------------------
    16. View Transitions & Animations
    -------------------------------------------------------------------------- */
 @keyframes studai-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-main > * {
+main>* {
   animation: studai-in 0.3s ease both;
 }
 
@@ -1023,12 +1061,22 @@ main > * {
 }
 
 @keyframes fade-out {
-  to { opacity: 0; transform: scale(0.98); }
+  to {
+    opacity: 0;
+    transform: scale(0.98);
+  }
 }
 
 @keyframes fade-in-slide {
-  from { opacity: 0; transform: translateY(12px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -1073,7 +1121,10 @@ main > * {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+
+  *,
+  *::before,
+  *::after {
     animation: none !important;
     transition: none !important;
   }
