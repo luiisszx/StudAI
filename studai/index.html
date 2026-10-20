@@ -20,24 +20,11 @@
   <div class="wrap">
     <header role="banner">
       <div>
-        <div>
-          <h1 class="logo">Stud<b>AI</b></h1>
-          <!-- Botão de Login / Perfil -->
-          <div id="auth-container" style="margin-top: 5px;">
-            <button id="btn-login"
-              style="background: var(--g); color: #000; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 12px;">Login
-              com Google</button>
-            <div id="user-info" style="display: none; align-items: center; gap: 8px;">
-              <span id="user-name" style="font-size: 12px; color: #aaa;"></span>
-              <button id="btn-logout"
-                style="background: transparent; color: #ef4444; border: 1px solid #ef4444; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 10px;">Sair</button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="lvl" aria-label="Progresso de nível e XP">
-        <div id="lvlTxt">Carregando nível...</div>
-        <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100"><i id="xpBar" style="width: 0%"></i>
+        <h1 class="logo">Stud<b>AI</b></h1>
+        <div id="user-info" style="display: none; align-items: center; gap: 8px; margin-top: 5px;">
+          <span id="user-name" style="font-size: 12px; color: #aaa;"></span>
+          <button id="btn-logout"
+            style="background: transparent; color: #ef4444; border: 1px solid #ef4444; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 10px;">Sair</button>
         </div>
       </div>
     </header>
@@ -47,6 +34,217 @@
 
   <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
   <script type="module" src="js/app.js"></script>
+  <!-- ESTILOS DA TELA DE LOGIN (Animações e Layout) -->
+  <style>
+    #login-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: #09090b;
+      /* Fundo super escuro */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 99999;
+      overflow: hidden;
+      font-family: sans-serif;
+    }
+
+    /* Bolhas de luz flutuantes no fundo */
+    .login-blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.4;
+      animation: float 10s infinite ease-in-out alternate;
+    }
+
+    .blob-1 {
+      width: 400px;
+      height: 400px;
+      background: var(--g, #2dff7a);
+      top: -100px;
+      left: -100px;
+    }
+
+    .blob-2 {
+      width: 300px;
+      height: 300px;
+      background: #3b82f6;
+      bottom: -50px;
+      right: -50px;
+      animation-delay: -5s;
+    }
+
+    @keyframes float {
+      0% {
+        transform: translateY(0) scale(1);
+      }
+
+      100% {
+        transform: translateY(30px) scale(1.1);
+      }
+    }
+
+    /* Layout Principal Dividido */
+    .login-container {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-wrap: wrap;
+      background: rgba(24, 24, 27, 0.6);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      max-width: 900px;
+      width: 90%;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+    }
+
+    /* Lado Esquerdo: Apresentação */
+    .login-info {
+      flex: 1 1 400px;
+      padding: 50px;
+      border-right: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .login-info h1 {
+      font-size: 42px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 15px;
+    }
+
+    .login-info h1 b {
+      color: var(--g, #2dff7a);
+    }
+
+    .login-info p {
+      color: #a1a1aa;
+      font-size: 16px;
+      line-height: 1.5;
+      margin-bottom: 30px;
+    }
+
+    .feature-list {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 12px 16px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.02);
+      color: #e4e4e7;
+      font-size: 14px;
+      transition: transform 0.2s, background 0.2s;
+    }
+
+    .feature-item:hover {
+      transform: translateX(5px);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    /* Lado Direito: Ação de Login */
+    .login-action {
+      flex: 1 1 350px;
+      padding: 50px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+
+    .login-action h2 {
+      color: #fff;
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+
+    .login-action p {
+      color: #71717a;
+      font-size: 14px;
+      margin-bottom: 30px;
+    }
+
+    #btn-login-overlay {
+      width: 100%;
+      max-width: 300px;
+      background: var(--g, #2dff7a);
+      color: #000;
+      border: none;
+      padding: 14px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 15px rgba(45, 255, 122, 0.2);
+    }
+
+    #btn-login-overlay:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(45, 255, 122, 0.4);
+    }
+
+    #btn-login-overlay:active {
+      transform: translateY(1px);
+    }
+  </style>
+
+  <!-- TELA EXCLUSIVA DE LOGIN -->
+  <div id="login-overlay">
+    <!-- Efeitos de Fundo -->
+    <div class="login-blob blob-1"></div>
+    <div class="login-blob blob-2"></div>
+
+    <!-- Card Principal -->
+    <div class="login-container">
+
+      <!-- Lado Esquerdo -->
+      <div class="login-info">
+        <h1>Stud<b>AI</b></h1>
+        <p>O seu ecossistema inteligente de estudos. Sincronizado na nuvem e desenhado para maximizar a sua
+          produtividade.</p>
+
+        <div class="feature-list">
+          <div class="feature-item"><span>🚀</span> Ganha XP e sobe de nível a cada sessão</div>
+          <div class="feature-item"><span>⏱️</span> Timer Pomodoro e Cronômetro integrados</div>
+          <div class="feature-item"><span>📝</span> Cria e salva anotações automaticamente</div>
+        </div>
+      </div>
+
+      <!-- Lado Direito -->
+      <div class="login-action">
+        <h2>Bem-vindo de volta</h2>
+        <p>Acesse sua conta para continuar a sua visão sobre seus estudos.</p>
+
+        <button id="btn-login-overlay">
+          <svg width="20" height="20" viewBox="0 0 24 24">
+            <path fill="#000"
+              d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C6.721,2,2,6.721,2,12.545s4.721,10.545,10.545,10.545c6.191,0,10.25-4.354,10.25-10.435c0-0.702-0.075-1.385-0.198-2.052H12.545z" />
+          </svg>
+          Entrar com o Google
+        </button>
+      </div>
+
+    </div>
+  </div>
+  </div>
 </body>
 
 </html>
