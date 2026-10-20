@@ -231,8 +231,26 @@
       <!-- Lado Direito -->
       <div class="login-action">
         <h2>Bem-vindo de volta</h2>
-        <p>Acesse sua conta para continuar a sua visão sobre seus estudos.</p>
+        <p>Acede à tua conta para continuar a tua jornada.</p>
 
+        <!-- Novo Login por E-mail -->
+        <div style="width: 100%; max-width: 300px; margin-bottom: 15px;">
+          <input type="email" id="email-input" placeholder="O teu e-mail"
+            style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: #fff; margin-bottom: 10px; box-sizing: border-box; outline: none; font-size: 14px;">
+          <button id="btn-login-email"
+            style="width: 100%; background: #3b82f6; color: #fff; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; transition: all 0.2s;">
+            Receber Link de Acesso
+          </button>
+        </div>
+
+        <!-- Divisor -->
+        <div style="display: flex; align-items: center; gap: 10px; width: 100%; max-width: 300px; margin-bottom: 15px;">
+          <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.1);"></div>
+          <span style="color: #71717a; font-size: 12px;">OU</span>
+          <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.1);"></div>
+        </div>
+
+        <!-- Botão do Google Original -->
         <button id="btn-login-overlay">
           <svg width="20" height="20" viewBox="0 0 24 24">
             <path fill="#000"
@@ -241,7 +259,6 @@
           Entrar com o Google
         </button>
       </div>
-
     </div>
   </div>
   </div>
