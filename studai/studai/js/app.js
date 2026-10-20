@@ -28,7 +28,14 @@ import {
 import {
   renderQuiz,
   activeQuizGame,
-  setActiveQuizGame
+  setActiveQuizGame,
+  quizBankFilter,
+  quizHistoryFilter,
+  setQuizBankFilter,
+  resetQuizBankFilters,
+  setQuizHistoryFilter,
+  getFilteredQuizList,
+  renderQuizBankItems
 } from "./views/quizView.js";
 import {
   renderCalendar,
@@ -144,6 +151,8 @@ class Application {
       default:
         mainEl.innerHTML = renderDashboard();
     }
+
+    this.updateFloatingTimerDock();
   }
 
   // --- Actions Dispatcher (Exposed to Global window.studai) ---
@@ -452,6 +461,70 @@ class Application {
 
   togglePip() {
     timer.togglePictureInPicture();
+    this.render();
+  }
+
+  toggleAutoPip(enabled) {
+    timer.setAutoPip(enabled);
+  }
+
+  toggleTimerFromDock() {
+    if (timer.mode === "prog") {
+      timer.toggleStopwatch();
+    } else {
+      timer.togglePomodoro();
+    }
+    this.updateFloatingTimerDock();
+  }
+
+  updateFloatingTimerDock() {
+    let dockEl = document.getElementById("floating-timer-dock");
+    const isRunning = timer.isAnyRunning();
+
+    if (!isRunning || this.currentTab === "tempo") {
+      if (dockEl) dockEl.style.display = "none";
+      return;
+    }
+
+    if (!dockEl) {
+      dockEl = document.createElement("div");
+      dockEl.id = "floating-timer-dock";
+      dockEl.className = "floating-timer-dock";
+      dockEl.onclick = () => this.switchTab("tempo");
+      document.body.appendChild(dockEl);
+    }
+
+    dockEl.style.display = "flex";
+
+    let timeText = "00:00";
+    let icon = "⏱️";
+    if (timer.mode === "prog") {
+      const totalSec = Math.floor(timer.getStopwatchElapsedMinutes() * 60);
+      const mm = String(Math.floor((totalSec % 3600) / 60)).padStart(2, "0");
+      const ss = String(totalSec % 60).padStart(2, "0");
+      timeText = `${mm}:${ss}`;
+      icon = "⏱️";
+    } else {
+      const mm = String(Math.floor(timer.pomodoro.secondsLeft / 60)).padStart(2, "0");
+      const ss = String(timer.pomodoro.secondsLeft % 60).padStart(2, "0");
+      timeText = `${mm}:${ss}`;
+      icon = timer.pomodoro.phase === "foco" ? "🍅" : "☕";
+    }
+
+    const cat = timer.form.category || "Estudo";
+
+    dockEl.innerHTML = `
+      <span class="color-dot" style="background:var(--g);box-shadow:0 0 8px var(--g);"></span>
+      <span style="font-size:12.5px; font-weight:700; color:var(--g); font-family:var(--font-mono);">${timeText}</span>
+      <span style="font-size:12px;">${icon}</span>
+      <span class="tag" style="margin:0; padding:2px 8px; font-size:11px;">${escapeHtml(cat)}</span>
+      <button class="btn o" style="padding:3px 8px; font-size:11px; margin-left:2px;" title="${isRunning ? "Pausar" : "Iniciar"}" onclick="event.stopPropagation(); window.studai.toggleTimerFromDock();">
+        ${isRunning ? "⏸" : "▶"}
+      </button>
+      <button class="btn o" style="padding:3px 8px; font-size:11px;" title="Abrir pop-up flutuante no topo de outros apps" onclick="event.stopPropagation(); window.studai.togglePip();">
+        🗗
+      </button>
+    `;
   }
 
   toggleBlurMode() {
@@ -811,6 +884,74 @@ class Application {
       sounds.playPop();
       store.save();
       showToast("Pergunta removida.");
+    });
+  }
+
+  onQuizBankSearch(query) {
+    setQuizBankFilter("search", query);
+    this.refreshQuizBankList();
+  }
+
+  onQuizBankCategory(cat) {
+    setQuizBankFilter("category", cat);
+    this.refreshQuizBankList();
+  }
+
+  onQuizBankStatus(status) {
+    setQuizBankFilter("status", status);
+    this.refreshQuizBankList();
+  }
+
+  resetQuizBankFilters() {
+    resetQuizBankFilters();
+    sounds.playPop();
+    const searchInput = document.getElementById("qb-search");
+    const catSelect = document.getElementById("qb-cat");
+    const statusSelect = document.getElementById("qb-status");
+    if (searchInput) searchInput.value = "";
+    if (catSelect) catSelect.value = "";
+    if (statusSelect) statusSelect.value = "all";
+    this.refreshQuizBankList();
+  }
+
+  refreshQuizBankList() {
+    const container = document.getElementById("qb-items-container");
+    const countEl = document.getElementById("qb-count");
+    if (!container) {
+      this.render();
+      return;
+    }
+
+    const today = getTodayIso();
+    const allQuizList = store.state.quiz || [];
+    const filteredQuizList = getFilteredQuizList();
+
+    container.innerHTML = renderQuizBankItems(filteredQuizList, today);
+
+    if (countEl) {
+      countEl.textContent = filteredQuizList.length === allQuizList.length
+        ? `${allQuizList.length} ${allQuizList.length === 1 ? "pergunta salva" : "perguntas salvas"}`
+        : `Exibindo ${filteredQuizList.length} de ${allQuizList.length} perguntas`;
+    }
+
+    const clearBtnContainer = document.getElementById("qb-clear-container");
+    if (clearBtnContainer) {
+      const hasActive = Boolean(quizBankFilter.search || quizBankFilter.category || quizBankFilter.status !== "all");
+      clearBtnContainer.style.display = hasActive ? "block" : "none";
+    }
+  }
+
+  setQuizHistoryCategory(cat) {
+    setQuizHistoryFilter("category", cat);
+    this.render();
+  }
+
+  clearQuizHistory() {
+    showConfirm("Deseja apagar todo o histórico de testes realizados?", () => {
+      store.state.results = [];
+      sounds.playPop();
+      store.save();
+      showToast("Histórico de testes apagado com sucesso.");
     });
   }
 

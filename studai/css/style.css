@@ -1080,9 +1080,53 @@ main>* {
 }
 
 /* --------------------------------------------------------------------------
+   16. In-App Floating Timer Dock
+   -------------------------------------------------------------------------- */
+.floating-timer-dock {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 950;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(7, 13, 8, 0.88);
+  border: 1px solid var(--g);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6), 0 0 16px rgba(45, 255, 122, 0.3);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  padding: 8px 14px;
+  border-radius: var(--radius-full);
+  animation: floatDockIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  user-select: none;
+}
+
+.floating-timer-dock:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7), 0 0 24px rgba(45, 255, 122, 0.45);
+}
+
+@keyframes floatDockIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* --------------------------------------------------------------------------
    17. Responsive Design (Mobile Dock)
    -------------------------------------------------------------------------- */
 @media (max-width: 640px) {
+  .floating-timer-dock {
+    bottom: 80px;
+    right: 14px;
+  }
   .wrap {
     padding: 14px 12px 110px;
   }

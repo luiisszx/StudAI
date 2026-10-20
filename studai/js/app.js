@@ -151,6 +151,8 @@ class Application {
       default:
         mainEl.innerHTML = renderDashboard();
     }
+
+    this.updateFloatingTimerDock();
   }
 
   // --- Actions Dispatcher (Exposed to Global window.studai) ---
@@ -459,6 +461,70 @@ class Application {
 
   togglePip() {
     timer.togglePictureInPicture();
+    this.render();
+  }
+
+  toggleAutoPip(enabled) {
+    timer.setAutoPip(enabled);
+  }
+
+  toggleTimerFromDock() {
+    if (timer.mode === "prog") {
+      timer.toggleStopwatch();
+    } else {
+      timer.togglePomodoro();
+    }
+    this.updateFloatingTimerDock();
+  }
+
+  updateFloatingTimerDock() {
+    let dockEl = document.getElementById("floating-timer-dock");
+    const isRunning = timer.isAnyRunning();
+
+    if (!isRunning || this.currentTab === "tempo") {
+      if (dockEl) dockEl.style.display = "none";
+      return;
+    }
+
+    if (!dockEl) {
+      dockEl = document.createElement("div");
+      dockEl.id = "floating-timer-dock";
+      dockEl.className = "floating-timer-dock";
+      dockEl.onclick = () => this.switchTab("tempo");
+      document.body.appendChild(dockEl);
+    }
+
+    dockEl.style.display = "flex";
+
+    let timeText = "00:00";
+    let icon = "⏱️";
+    if (timer.mode === "prog") {
+      const totalSec = Math.floor(timer.getStopwatchElapsedMinutes() * 60);
+      const mm = String(Math.floor((totalSec % 3600) / 60)).padStart(2, "0");
+      const ss = String(totalSec % 60).padStart(2, "0");
+      timeText = `${mm}:${ss}`;
+      icon = "⏱️";
+    } else {
+      const mm = String(Math.floor(timer.pomodoro.secondsLeft / 60)).padStart(2, "0");
+      const ss = String(timer.pomodoro.secondsLeft % 60).padStart(2, "0");
+      timeText = `${mm}:${ss}`;
+      icon = timer.pomodoro.phase === "foco" ? "🍅" : "☕";
+    }
+
+    const cat = timer.form.category || "Estudo";
+
+    dockEl.innerHTML = `
+      <span class="color-dot" style="background:var(--g);box-shadow:0 0 8px var(--g);"></span>
+      <span style="font-size:12.5px; font-weight:700; color:var(--g); font-family:var(--font-mono);">${timeText}</span>
+      <span style="font-size:12px;">${icon}</span>
+      <span class="tag" style="margin:0; padding:2px 8px; font-size:11px;">${escapeHtml(cat)}</span>
+      <button class="btn o" style="padding:3px 8px; font-size:11px; margin-left:2px;" title="${isRunning ? "Pausar" : "Iniciar"}" onclick="event.stopPropagation(); window.studai.toggleTimerFromDock();">
+        ${isRunning ? "⏸" : "▶"}
+      </button>
+      <button class="btn o" style="padding:3px 8px; font-size:11px;" title="Abrir pop-up flutuante no topo de outros apps" onclick="event.stopPropagation(); window.studai.togglePip();">
+        🗗
+      </button>
+    `;
   }
 
   toggleBlurMode() {

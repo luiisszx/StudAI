@@ -357,9 +357,31 @@ export function renderTimer() {
 
   const activeTimerUi = timer.mode === "prog" ? renderStopwatchUI() : renderPomodoroUI();
 
+  const smartPipBarHtml = `
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:16px; background:rgba(45,255,122,0.05); border:1px solid rgba(45,255,122,0.2); border-radius:var(--radius-md); padding:10px 14px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:20px;">⚡</span>
+        <div>
+          <b style="font-size:13px; color:var(--tx);">Pop-up Flutuante Inteligente (PiP HUD)</b>
+          <div class="sub" style="font-size:11.5px;">Abre uma mini-janela no topo de outros aplicativos e abas enquanto você estuda.</div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;" title="Abrir pop-up automaticamente ao alternar abas ou aplicativos">
+          <input type="checkbox" ${timer.autoPipEnabled ? "checked" : ""} onchange="window.studai.toggleAutoPip(this.checked)" style="width:16px; height:16px; accent-color:var(--g); cursor:pointer;">
+          <span class="sub" style="font-size:12px; font-weight:600; color:var(--tx);">Auto ao sair</span>
+        </label>
+        <button class="btn o" style="font-size:12px; padding:6px 14px;" onclick="window.studai.togglePip()">
+          ${timer.pipWindow ? "✖ Fechar HUD" : "🗗 Abrir Pop-up"}
+        </button>
+      </div>
+    </div>
+  `;
+
   const activeTimerCardHtml = `
     <div class="card">
       ${modeSwitcherHtml}
+      ${smartPipBarHtml}
       ${datalistHtml}
       ${activeTimerUi}
       <hr style="border:0; border-top:1px solid var(--line); margin: 20px 0;">
@@ -385,7 +407,6 @@ export function renderTimer() {
       </div>
       <div class="row">
         <button class="btn" onclick="window.studai.addManualSession()">Registrar sessão</button>
-        <button class="btn o" onclick="window.studai.togglePip()">${timer.pipWindow ? "✖ Fechar pop-up" : "🗗 Pop-up flutuante"}</button>
       </div>
       <textarea id="mw" rows="2" placeholder="O que você estudou desse tópico? *" oninput="window.studai.setManualFormField('notes', this.value)" style="margin-bottom:8px">${escapeHtml(timer.manualForm.notes)}</textarea>
     </div>
