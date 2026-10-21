@@ -5,6 +5,7 @@ import { store } from "../store.js";
 import { formatDuration, formatDateIso, getTodayIso, escapeHtml, sortAlpha } from "../utils.js";
 import { calculateStreak, getDailyMissions } from "../gamification.js";
 import { sounds } from "../audio.js";
+import { animarGanhoXP } from '../gamification.js';
 
 export function renderDashboard() {
   const today = getTodayIso();
@@ -27,9 +28,7 @@ export function renderDashboard() {
     if (m.isClaimed) {
       buttonHtml = `<span class="tag" style="background:rgba(255,255,255,0.06);color:var(--mu);border:none;">✨ Concluída</span>`;
     } else if (m.isDone) {
-      buttonHtml = `<button class="btn" style="padding:6px 14px; font-size:12px;" onclick="window.studai.claimMission('${m.id}')">Resgatar +25 XP</button>`;
-    } else {
-      buttonHtml = `<span class="sub" style="font-size:11px; text-transform:uppercase; letter-spacing:1px">Pendente</span>`;
+buttonHtml = `<button class="btn btn-resgatar" style="padding:6px 14px; font-size:12px;" onclick="window.studai.claimMission('${m.id}')">Resgatar +25 XP</button>`;      buttonHtml = `<span class="sub" style="font-size:11px; text-transform:uppercase; letter-spacing:1px">Pendente</span>`;
     }
 
     return `
@@ -315,3 +314,13 @@ export function renderDashboard() {
     </div>
   `;
 }
+
+document.addEventListener('click', (evento) => {
+  const elementoClicado = evento.target;
+
+  // Verifica se o elemento clicado (ou o pai dele) tem a classe btn-resgatar
+  if (elementoClicado.closest('.btn-resgatar')) {
+    // Dispara a animação de +25 XP na posição exata do rato
+    animarGanhoXP(25, evento.clientX, evento.clientY);
+  }
+});

@@ -1024,3 +1024,40 @@ if (document.readyState === "loading") {
 } else {
   app.init();
 }
+// --- Lógica Global do Dropdown ---
+document.addEventListener('click', (e) => {
+  const dropdown = e.target.closest('.custom-dropdown');
+  
+  // Se clicou fora, fecha todas as listas abertas
+  if (!dropdown) {
+    document.querySelectorAll('.custom-dropdown.open').forEach(d => d.classList.remove('open'));
+    return;
+  }
+
+  // Abre ou fecha ao clicar na barra principal
+  if (e.target.closest('.dropdown-selected')) {
+    dropdown.classList.toggle('open');
+  } 
+  // Seleciona a opção
+  else if (e.target.closest('.option')) {
+    const clickedOption = e.target.closest('.option');
+    const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+    const selectedText = dropdown.querySelector('.selected-text');
+    
+    // 1. Muda o texto visível e a cor
+    if (selectedText) {
+      selectedText.textContent = clickedOption.textContent;
+      selectedText.style.opacity = "1"; 
+    }
+    
+    // 2. O TRUQUE: Atualiza o input invisível e avisa o sistema do StudAI
+    if (hiddenInput) {
+      hiddenInput.value = clickedOption.dataset.value;
+      // Estas duas linhas são o segredo para o Timer e Metas gravarem o valor!
+      hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
+      hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    
+    dropdown.classList.remove('open');
+  }
+});

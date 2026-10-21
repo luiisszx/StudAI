@@ -72,11 +72,11 @@ function renderGoalForm(goal = null) {
       </div>
       <div class="gform-actions">
         ${goal
-          ? `<button class="btn" onclick="window.studai.saveGoal('${goal.id}')">Salvar alterações</button>
+      ? `<button class="btn" onclick="window.studai.saveGoal('${goal.id}')">Salvar alterações</button>
              <button class="btn o" onclick="window.studai.cancelGoalEdit()">Cancelar</button>`
-          : `<button class="btn" onclick="window.studai.addGoal()">Criar meta</button>
+      : `<button class="btn" onclick="window.studai.addGoal()">Criar meta</button>
              <button class="btn o" onclick="window.studai.toggleGoalForm(false)">Cancelar</button>`
-        }
+    }
       </div>
     </div>
   `;
@@ -191,8 +191,17 @@ export function renderGoals() {
       ${datalistHtml}
       <div class="row" style="margin-top:14px;">
         <input id="kb-txt" placeholder="Nova tarefa (ex: Ler capítulo 4, Fazer exercícios)">
-        <input id="kb-cat" list="cats" placeholder="Matéria (opcional)">
-      </div>
+  <div class="custom-dropdown" id="kb-cat-dropdown" style="flex: 1; min-width: 140px;">
+    <div class="dropdown-selected"><span class="selected-text">Matéria (opcional)</span> <span class="arrow">▼</span></div>
+    <div class="dropdown-options">
+      <div class="option" data-value="">Nenhuma (Geral)</div>
+      ${subjects.map(s => `<div class="option" data-value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</div>`).join("")}
+    </div>
+    <!-- Input oculto para o sistema continuar a guardar corretamente a tarefa -->
+    <input type="hidden" id="kb-cat" value="">
+  </div>
+</div>     
+ </div>
       <button class="btn" onclick="window.studai.addTask()">+ Adicionar Tarefa</button>
       <div style="display:flex; gap:16px; margin-top:20px; overflow-x:auto; padding-bottom:8px; scrollbar-width:thin;">
         ${kanbanColsHtml}

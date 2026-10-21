@@ -195,7 +195,7 @@ function renderHistorySection() {
           <div class="item" style="padding:12px; border:1px solid rgba(255,255,255,0.05); border-radius:8px; background:rgba(0,0,0,0.2); margin-bottom:8px;">
             <div class="t">
               <div class="row">
-                <input id="eh-c" list="cats" value="${escapeHtml(entry.cat)}" placeholder="Matéria">
+${renderSubjectDropdown('eh-c', 'Matéria', entry.cat, store.getSubjects())}
                 ${entry.sess ? `<input id="eh-m" type="number" step="any" value="${entry.sess.min}" placeholder="Minutos">` : ""}
                 <input id="eh-d" type="date" value="${entry.date}">
               </div>

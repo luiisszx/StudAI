@@ -167,3 +167,29 @@ export function showConfirm(message, onConfirm) {
     if (e.target === overlay) close();
   };
 }
+/**
+ * Renderiza o dropdown customizado de matérias
+ */
+export function renderSubjectDropdown(id, placeholder, currentValue, subjects, extraOnInput = "") {
+  const optionsHtml = subjects.map(s => 
+    `<div class="option" data-value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</div>`
+  ).join("");
+
+  const displayValue = currentValue ? currentValue : placeholder;
+  const opacity = currentValue ? '1' : '0.9';
+
+  return `
+    <div class="custom-dropdown" id="${id}-dropdown" style="flex: 1; min-width: 140px;">
+      <div class="dropdown-selected">
+        <span class="selected-text" style="opacity: ${opacity};">${escapeHtml(displayValue)}</span>
+        <span class="arrow" style="font-size: 10px; color: var(--mu);">▼</span>
+      </div>
+      <div class="dropdown-options">
+        <div class="option" data-value="">Geral (Nenhuma)</div>
+        ${optionsHtml}
+      </div>
+      <!-- O Input invisível que comunica com o StudAI -->
+      <input type="hidden" id="${id}" value="${escapeHtml(currentValue || "")}" oninput="${extraOnInput}">
+    </div>
+  `;
+}

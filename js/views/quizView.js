@@ -3,7 +3,7 @@
  */
 import { store } from "../store.js";
 import { aiConfig, getApiKey, getModelName, saveApiKey, generateQuizQuestions } from "../ai.js";
-import { escapeHtml, getTodayIso, formatDateBr, sortAlpha } from "../utils.js";
+import { escapeHtml, getTodayIso, formatDateBr, sortAlpha, renderSubjectDropdown } from "../utils.js";
 import { sounds } from "../audio.js";
 
 export let activeQuizGame = null;
@@ -294,8 +294,7 @@ export function renderQuiz() {
           <option value="logs" ${aiConfig.sourceType === "logs" ? "selected" : ""}>A partir dos meus tópicos de estudo</option>
           <option value="text" ${aiConfig.sourceType === "text" ? "selected" : ""}>A partir de um texto personalizado</option>
         </select>
-        <input list="cats" placeholder="Matéria (filtro)" value="${escapeHtml(aiConfig.category)}" onchange="window.studai.setAiCategory(this.value)">
-        <input type="number" min="1" max="15" value="${aiConfig.questionCount}" title="Quantidade de perguntas" oninput="window.studai.setAiQuestionCount(this.value)" style="max-width:90px">
+${renderSubjectDropdown('ai-cat', 'Matéria (filtro)', aiConfig.category, subjects, "window.studai.setAiCategory(this.value)")}        <input type="number" min="1" max="15" value="${aiConfig.questionCount}" title="Quantidade de perguntas" oninput="window.studai.setAiQuestionCount(this.value)" style="max-width:90px">
       </div>
       ${aiConfig.sourceType === "text"
       ? `<textarea rows="4" placeholder="Cole aqui seu resumo, artigo ou anotação..." oninput="window.studai.setAiCustomText(this.value)" style="margin-bottom:8px">${escapeHtml(aiConfig.customText)}</textarea>`
@@ -342,7 +341,7 @@ export function renderQuiz() {
       <h3>Nova Pergunta Manual</h3>
       <div class="row">
         <input id="qq" placeholder="Enunciado da pergunta">
-        <input id="qc" list="cats" placeholder="Matéria">
+${renderSubjectDropdown('qc', 'Matéria', '', subjects)}
       </div>
       ${[0, 1, 2, 3].map(i => `
         <div class="row" style="flex-wrap:nowrap;align-items:center">

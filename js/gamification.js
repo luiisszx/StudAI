@@ -87,6 +87,7 @@ export function calculateLevelData(totalXp) {
       if (typeof sounds !== 'undefined' && sounds.playLevelUp) {
         sounds.playLevelUp();
       }
+      animarSubidaNivel(level);
     }
     lastKnownLevel = level;
 
@@ -162,4 +163,45 @@ export function getDailyMissions(state) {
       isClaimed: claimedMissions.includes(`${today}_m3`)
     }
   ];
+  
+}
+/**
+ * Exibe o texto de XP flutuante na posição em que o usuário clicou/interagiu.
+ * Se não passar x e y, ele aparece no centro inferior da tela.
+ */
+export function animarGanhoXP(quantidade, x = window.innerWidth / 2, y = window.innerHeight - 100) {
+  const xpEl = document.createElement('div');
+  xpEl.classList.add('xp-float');
+  xpEl.innerText = `+${quantidade} XP`;
+
+  // Posiciona o elemento
+  xpEl.style.left = `${x}px`;
+  xpEl.style.top = `${y}px`;
+
+  document.body.appendChild(xpEl);
+
+  // Remove do DOM após 1.5 segundos (tempo da animação CSS)
+  setTimeout(() => {
+    xpEl.remove();
+  }, 1500);
+}
+
+/**
+ * Exibe um banner central de comemoração de subida de nível.
+ */
+export function animarSubidaNivel(novoNivel) {
+  const lvlEl = document.createElement('div');
+  lvlEl.classList.add('level-up-overlay');
+
+  lvlEl.innerHTML = `
+      <h2>🎉 Level Up! 🎉</h2>
+      <p>Você alcançou o Nível ${novoNivel}</p>
+  `;
+
+  document.body.appendChild(lvlEl);
+
+  // Remove do DOM após 2.5 segundos
+  setTimeout(() => {
+    lvlEl.remove();
+  }, 2500);
 }

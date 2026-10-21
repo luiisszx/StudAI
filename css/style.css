@@ -1113,6 +1113,7 @@ main>* {
     opacity: 0;
     transform: translateY(20px) scale(0.9);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -1127,6 +1128,7 @@ main>* {
     bottom: 80px;
     right: 14px;
   }
+
   .wrap {
     padding: 14px 12px 110px;
   }
@@ -1172,4 +1174,176 @@ main>* {
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* --- Animação de Ganho de XP --- */
+.xp-float {
+  position: absolute;
+  color: #4CAF50;
+  /* Verde destacando ganho */
+  font-weight: 900;
+  font-size: 1.5rem;
+  pointer-events: none;
+  z-index: 1000;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+  animation: floatUp 1.5s ease-out forwards;
+}
+
+@keyframes floatUp {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    transform: translateY(-30px) scale(1.2);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-60px) scale(1);
+  }
+}
+
+/* --- Animação de Subida de Nível (Level Up) --- */
+.level-up-overlay {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: #fff;
+  padding: 30px 60px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(255, 215, 0, 0.6);
+  text-align: center;
+  z-index: 9999;
+  font-family: sans-serif;
+  animation: levelUpPop 2.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.level-up-overlay h2 {
+  margin: 0;
+  font-size: 2.5rem;
+  text-transform: uppercase;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.level-up-overlay p {
+  margin: 10px 0 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+@keyframes levelUpPop {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+  }
+
+  15% {
+    transform: translate(-50%, -50%) scale(1.1);
+    opacity: 1;
+  }
+
+  30% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+
+  80% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+  }
+}
+
+/* --- Dropdown Customizado --- */
+.custom-dropdown {
+  position: relative;
+  width: 100%;
+  font-family: var(--font);
+}
+
+.custom-dropdown.open {
+  z-index: 9999;
+  /* Garante que o dropdown aberto fique acima de outros elementos */
+}
+
+.dropdown-selected {
+  background: rgba(14, 24, 16, 1);
+  /* Fundo igual aos inputs originais */
+  border: 1px solid var(--line);
+  color: var(--tx);
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: var(--transition);
+  height: 100%;
+  min-height: 42px;
+}
+
+.dropdown-selected:hover {
+  border-color: rgba(45, 255, 122, 0.3);
+}
+
+.dropdown-options {
+  position: absolute;
+  top: 105%;
+  left: 0;
+  width: 100%;
+  background: #080808 !important;
+  border: 1px solid var(--g);
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 1) !important;
+  opacity: 0;
+  transform: translateY(-10px);
+  pointer-events: none;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 9999;
+  /* Garante que fica por cima de TUDO */
+}
+
+.custom-dropdown.open .dropdown-options {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.dropdown-options .option {
+  padding: 12px 16px;
+  cursor: pointer;
+  color: var(--tx);
+  font-size: 13.5px;
+  transition: background 0.2s;
+}
+
+.dropdown-options .option:hover {
+  background-color: rgba(45, 255, 122, 0.212);
+  color: var(--g);
+}
+
+/* O card que contém um dropdown aberto sobe acima dos cards seguintes.
+   (Cada .card é um "stacking context" por causa do backdrop-filter e da animação,
+   então o z-index do dropdown só valia DENTRO do próprio card.) */
+.card:has(.custom-dropdown.open),
+main>*:has(.custom-dropdown.open) {
+  position: relative;
+  z-index: 60;
+}
+
+/* Lista do dropdown 100% opaca */
+.dropdown-options {
+  background-color: #080c09 !important;
+  backdrop-filter: none;
 }
