@@ -292,6 +292,21 @@ class Application {
       store.save();
     });
   }
+  editTask(id, newText) {
+    const task = store.state.tasks.find(t => t.id === id);
+    if (!task) return;
+
+    // Impede edição se a tarefa não estiver na coluna 'A Fazer' (segurança extra)
+    if (task.status !== "todo") return;
+
+    const cleanText = newText.trim();
+    if (!cleanText) return; // Ignora se o usuário apagar tudo
+
+    if (task.text !== cleanText) {
+      task.text = cleanText;
+      store.save();
+    }
+  }
 
   toggleGoal(id) {
     const goal = store.state.goals.find(g => g.id === id);
@@ -899,119 +914,119 @@ class Application {
     showToast("Pergunta adicionada ao banco!");
   }
 
-deleteQuizQuestion(id) {
-  showConfirm("Deseja apagar esta pergunta do banco?", () => {
-    store.state.quiz = store.state.quiz.filter(q => q.id !== id);
+  deleteQuizQuestion(id) {
+    showConfirm("Deseja apagar esta pergunta do banco?", () => {
+      store.state.quiz = store.state.quiz.filter(q => q.id !== id);
+      sounds.playPop();
+      store.save();
+      showToast("Pergunta removida.");
+    });
+  }
+
+  onQuizBankSearch(query) {
+    setQuizBankFilter("search", query);
+    this.refreshQuizBankList();
+  }
+
+  onQuizBankCategory(cat) {
+    setQuizBankFilter("category", cat);
+    this.refreshQuizBankList();
+  }
+
+  onQuizBankStatus(status) {
+    setQuizBankFilter("status", status);
+    this.refreshQuizBankList();
+  }
+
+  resetQuizBankFilters() {
+    resetQuizBankFilters();
     sounds.playPop();
-    store.save();
-    showToast("Pergunta removida.");
-  });
-}
+    const searchInput = document.getElementById("qb-search");
+    const catSelect = document.getElementById("qb-cat");
+    const statusSelect = document.getElementById("qb-status");
+    if (searchInput) searchInput.value = "";
+    if (catSelect) catSelect.value = "";
+    if (statusSelect) statusSelect.value = "all";
+    this.refreshQuizBankList();
+  }
 
-onQuizBankSearch(query) {
-  setQuizBankFilter("search", query);
-  this.refreshQuizBankList();
-}
+  refreshQuizBankList() {
+    const container = document.getElementById("qb-items-container");
+    const countEl = document.getElementById("qb-count");
+    if (!container) {
+      this.render();
+      return;
+    }
 
-onQuizBankCategory(cat) {
-  setQuizBankFilter("category", cat);
-  this.refreshQuizBankList();
-}
+    const today = getTodayIso();
+    const allQuizList = store.state.quiz || [];
+    const filteredQuizList = getFilteredQuizList();
 
-onQuizBankStatus(status) {
-  setQuizBankFilter("status", status);
-  this.refreshQuizBankList();
-}
+    container.innerHTML = renderQuizBankItems(filteredQuizList, today);
 
-resetQuizBankFilters() {
-  resetQuizBankFilters();
-  sounds.playPop();
-  const searchInput = document.getElementById("qb-search");
-  const catSelect = document.getElementById("qb-cat");
-  const statusSelect = document.getElementById("qb-status");
-  if (searchInput) searchInput.value = "";
-  if (catSelect) catSelect.value = "";
-  if (statusSelect) statusSelect.value = "all";
-  this.refreshQuizBankList();
-}
+    if (countEl) {
+      countEl.textContent = filteredQuizList.length === allQuizList.length
+        ? `${allQuizList.length} ${allQuizList.length === 1 ? "pergunta salva" : "perguntas salvas"}`
+        : `Exibindo ${filteredQuizList.length} de ${allQuizList.length} perguntas`;
+    }
 
-refreshQuizBankList() {
-  const container = document.getElementById("qb-items-container");
-  const countEl = document.getElementById("qb-count");
-  if (!container) {
+    const clearBtnContainer = document.getElementById("qb-clear-container");
+    if (clearBtnContainer) {
+      const hasActive = Boolean(quizBankFilter.search || quizBankFilter.category || quizBankFilter.status !== "all");
+      clearBtnContainer.style.display = hasActive ? "block" : "none";
+    }
+  }
+
+  setQuizHistoryCategory(cat) {
+    setQuizHistoryFilter("category", cat);
     this.render();
-    return;
   }
 
-  const today = getTodayIso();
-  const allQuizList = store.state.quiz || [];
-  const filteredQuizList = getFilteredQuizList();
-
-  container.innerHTML = renderQuizBankItems(filteredQuizList, today);
-
-  if (countEl) {
-    countEl.textContent = filteredQuizList.length === allQuizList.length
-      ? `${allQuizList.length} ${allQuizList.length === 1 ? "pergunta salva" : "perguntas salvas"}`
-      : `Exibindo ${filteredQuizList.length} de ${allQuizList.length} perguntas`;
+  clearQuizHistory() {
+    showConfirm("Deseja apagar todo o histórico de testes realizados?", () => {
+      store.state.results = [];
+      sounds.playPop();
+      store.save();
+      showToast("Histórico de testes apagado com sucesso.");
+    });
   }
 
-  const clearBtnContainer = document.getElementById("qb-clear-container");
-  if (clearBtnContainer) {
-    const hasActive = Boolean(quizBankFilter.search || quizBankFilter.category || quizBankFilter.status !== "all");
-    clearBtnContainer.style.display = hasActive ? "block" : "none";
-  }
-}
-
-setQuizHistoryCategory(cat) {
-  setQuizHistoryFilter("category", cat);
-  this.render();
-}
-
-clearQuizHistory() {
-  showConfirm("Deseja apagar todo o histórico de testes realizados?", () => {
-    store.state.results = [];
+  // Calendário
+  changeCalendarMonth(delta) {
+    setCalendarMonthOffset(calendarMonthOffset + delta);
+    setSelectedCalendarDate(null);
     sounds.playPop();
-    store.save();
-    showToast("Histórico de testes apagado com sucesso.");
-  });
-}
-
-// Calendário
-changeCalendarMonth(delta) {
-  setCalendarMonthOffset(calendarMonthOffset + delta);
-  setSelectedCalendarDate(null);
-  sounds.playPop();
-  this.render();
-}
-
-selectCalendarDate(dateKey) {
-  setSelectedCalendarDate(dateKey);
-  sounds.playPop();
-  this.render();
-}
-
-// Dados
-exportData(type) {
-  exportData(type);
-}
-
-importBackup(file) {
-  importBackupFile(file);
-}
-
-wipeAllData() {
-  if (!isWipePendingConfirmation) {
-    setWipePending(true);
-    showToast("Atenção: Clique novamente no botão para confirmar a exclusão de todos os dados.", "error");
     this.render();
-    return;
   }
 
-  setWipePending(false);
-  store.resetAll();
-  sounds.playPop();
-  showToast("Todos os dados foram apagados com sucesso.");
-}
+  selectCalendarDate(dateKey) {
+    setSelectedCalendarDate(dateKey);
+    sounds.playPop();
+    this.render();
+  }
+
+  // Dados
+  exportData(type) {
+    exportData(type);
+  }
+
+  importBackup(file) {
+    importBackupFile(file);
+  }
+
+  wipeAllData() {
+    if (!isWipePendingConfirmation) {
+      setWipePending(true);
+      showToast("Atenção: Clique novamente no botão para confirmar a exclusão de todos os dados.", "error");
+      this.render();
+      return;
+    }
+
+    setWipePending(false);
+    store.resetAll();
+    sounds.playPop();
+    showToast("Todos os dados foram apagados com sucesso.");
+  }
 }
 
 // Instantiate and expose globally
@@ -1027,7 +1042,7 @@ if (document.readyState === "loading") {
 // --- Lógica Global do Dropdown ---
 document.addEventListener('click', (e) => {
   const dropdown = e.target.closest('.custom-dropdown');
-  
+
   // Se clicou fora, fecha todas as listas abertas
   if (!dropdown) {
     document.querySelectorAll('.custom-dropdown.open').forEach(d => d.classList.remove('open'));
@@ -1037,19 +1052,19 @@ document.addEventListener('click', (e) => {
   // Abre ou fecha ao clicar na barra principal
   if (e.target.closest('.dropdown-selected')) {
     dropdown.classList.toggle('open');
-  } 
+  }
   // Seleciona a opção
   else if (e.target.closest('.option')) {
     const clickedOption = e.target.closest('.option');
     const hiddenInput = dropdown.querySelector('input[type="hidden"]');
     const selectedText = dropdown.querySelector('.selected-text');
-    
+
     // 1. Muda o texto visível e a cor
     if (selectedText) {
       selectedText.textContent = clickedOption.textContent;
-      selectedText.style.opacity = "1"; 
+      selectedText.style.opacity = "1";
     }
-    
+
     // 2. O TRUQUE: Atualiza o input invisível e avisa o sistema do StudAI
     if (hiddenInput) {
       hiddenInput.value = clickedOption.dataset.value;
@@ -1057,7 +1072,7 @@ document.addEventListener('click', (e) => {
       hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
       hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
     }
-    
+
     dropdown.classList.remove('open');
   }
 });

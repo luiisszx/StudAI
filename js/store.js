@@ -47,7 +47,6 @@ class AppStore {
   }
 
   // --- Autenticação ---
-  // --- Autenticação ---
   setupAuth() {
     // 1. Verifica se o utilizador está a entrar através de um link de e-mail (Magic Link)
     if (isSignInWithEmailLink(auth, window.location.href)) {
@@ -84,7 +83,7 @@ class AppStore {
 
       // Botão Google
       if (btnLoginOverlay) {
-        btnLoginOverlay.onclick = () => signInWithRedirect(auth, provider);
+        btnLoginOverlay.onclick = () => signInWithPopup(auth, provider);
       }
 
       // Botão E-mail (Magic Link)

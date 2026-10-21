@@ -3,7 +3,7 @@
  */
 import { store } from "../store.js";
 import { timer } from "../timer.js";
-import { escapeHtml, formatDuration, getTodayIso, formatDateBr, sortAlpha } from "../utils.js";
+import { escapeHtml, formatDuration, getTodayIso, formatDateBr, sortAlpha, renderSubjectDropdown } from "../utils.js";
 import { sounds } from "../audio.js";
 
 export let activeBlurMode = false;
@@ -413,8 +413,7 @@ export function renderTimer() {
       ${activeTimerUi}
       <hr style="border:0; border-top:1px solid var(--line); margin: 20px 0;">
       <div class="row">
-        <input id="sc" list="cats" placeholder="Matéria *" value="${escapeHtml(timer.form.category)}" oninput="window.studai.setTimerFormField('category', this.value)">
-        <input id="st" placeholder="Tópico aprendido *" value="${escapeHtml(timer.form.topic)}" oninput="window.studai.setTimerFormField('topic', this.value)">
+${renderSubjectDropdown('sc', 'Matéria *', timer.form.category, subjects, "window.studai.setTimerFormField('category', this.value)")}        <input id="st" placeholder="Tópico aprendido *" value="${escapeHtml(timer.form.topic)}" oninput="window.studai.setTimerFormField('topic', this.value)">
       </div>
       <textarea id="sw" rows="3" placeholder="O que você estudou nesse tópico? *" oninput="window.studai.setTimerFormField('notes', this.value)" style="margin-bottom:8px">${escapeHtml(timer.form.notes)}</textarea>
       <div class="sub">* Campos obrigatórios para salvar a sessão no histórico e pontuar XP.</div>
@@ -425,8 +424,7 @@ export function renderTimer() {
     <div class="card">
       <h3>Adicionar sessão manualmente</h3>
       <div class="row">
-        <input id="mc" list="cats" placeholder="Matéria *" value="${escapeHtml(timer.manualForm.category)}" oninput="window.studai.setManualFormField('category', this.value)">
-        <input id="mm" type="number" min="1" placeholder="Minutos *" value="${escapeHtml(timer.manualForm.minutes)}" oninput="window.studai.setManualFormField('minutes', this.value)">
+${renderSubjectDropdown('mc', 'Matéria *', timer.manualForm.category, subjects, "window.studai.setManualFormField('category', this.value)")}        <input id="mm" type="number" min="1" placeholder="Minutos *" value="${escapeHtml(timer.manualForm.minutes)}" oninput="window.studai.setManualFormField('minutes', this.value)">
         <input id="md" type="date" value="${timer.manualForm.date || getTodayIso()}" oninput="window.studai.setManualFormField('date', this.value)">
       </div>
       <div class="row">

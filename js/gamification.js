@@ -16,6 +16,7 @@ export const RANKS = [
 ];
 
 let lastKnownLevel = null;
+let lastKnownXP = null;
 
 /**
  * Calculates current XP points based on all activities.
@@ -83,14 +84,19 @@ export function calculateLevelData(totalXp) {
       if (level >= r.lvl) rankTitle = r.title;
     }
 
-    if (lastKnownLevel !== null && level > lastKnownLevel) {
+    if (lastKnownLevel !== null && lastKnownXP !== null) {
+      const xpGanhosAgora = safeXp - lastKnownXP;
+
+      if (level > lastKnownLevel && xpGanhosAgora > 0 && xpGanhosAgora < 300) {
       if (typeof sounds !== 'undefined' && sounds.playLevelUp) {
         sounds.playLevelUp();
       }
       animarSubidaNivel(level);
+      }
     }
     lastKnownLevel = level;
-
+    lastKnownXP = safeXp;
+    
     return { level, rankTitle, progressPct, currentLevelBaseXp: prevLevelBase, nextLevelBaseXp: nextLevelBase };
   } catch (err) {
     console.error("Erro fatal ao calcular Nível:", err);
@@ -200,8 +206,8 @@ export function animarSubidaNivel(novoNivel) {
 
   document.body.appendChild(lvlEl);
 
-  // Remove do DOM após 2.5 segundos
+  // Remove do DOM após 4 segundos
   setTimeout(() => {
     lvlEl.remove();
-  }, 2500);
+  }, 4000);
 }

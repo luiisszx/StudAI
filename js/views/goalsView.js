@@ -2,7 +2,7 @@
  * StudAI — Goals & Kanban View (Metas)
  */
 import { store } from "../store.js";
-import { escapeHtml, formatDuration, getTodayIso, getWeekStartIso, formatDateBr, sortAlpha } from "../utils.js";
+import { escapeHtml, formatDuration, getTodayIso, getWeekStartIso, formatDateBr, sortAlpha, renderSubjectDropdown } from "../utils.js";
 
 export let editingGoalId = null;
 export let isGoalFormOpen = false;
@@ -59,7 +59,7 @@ function renderGoalForm(goal = null) {
         </label>
         <label>
           <span class="sub">Matéria *</span>
-          <input id="${prefix}c" list="cats" value="${escapeHtml(goal ? goal.cat : "")}" placeholder="Escolha ou digite uma nova">
+${renderSubjectDropdown(`${prefix}c`, 'Matéria *', goal ? goal.cat : '', subjects)}
         </label>
         <label>
           <span class="sub">Horas semanais *</span>
@@ -149,12 +149,21 @@ export function renderGoals() {
       const prevStatus = key === "done" ? "doing" : (key === "doing" ? "todo" : null);
       const nextStatus = key === "todo" ? "doing" : (key === "doing" ? "done" : null);
 
+      // --- NOVO: Define se é editável ---
+      const isTodo = key === "todo";
+      const editableProps = isTodo
+        ? `contenteditable="true" onblur="window.studai.editTask('${t.id}', this.innerText)" onkeydown="if(event.key==='Enter'){event.preventDefault(); this.blur();}" title="Clique para editar"`
+        : "";
+
       return `
         <div style="background:rgba(255,255,255,0.035); border:1px solid var(--line); border-radius:10px; padding:12px; margin-bottom:10px; font-size:13px; box-shadow:0 4px 12px rgba(0,0,0,0.15);">
           <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
-            <div style="flex:1; word-break:break-word; font-weight:500; ${key === "done" ? "text-decoration:line-through; color:var(--mu);" : ""}">
+            
+            <!-- Texto da Tarefa (Editável apenas se isTodo for verdadeiro) -->
+            <div style="flex:1; word-break:break-word; font-weight:500; outline:none; transition:0.2s; ${key === "done" ? "text-decoration:line-through; color:var(--mu);" : ""} ${isTodo ? "cursor:text;" : ""}" ${editableProps}>
               ${escapeHtml(t.text)}
             </div>
+            
             <button class="btn x" style="padding:2px 8px; font-size:10px; margin-left:8px;" onclick="window.studai.deleteTask('${t.id}')">✕</button>
           </div>
           <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -192,7 +201,7 @@ export function renderGoals() {
       <div class="row" style="margin-top:14px;">
         <input id="kb-txt" placeholder="Nova tarefa (ex: Ler capítulo 4, Fazer exercícios)">
   <div class="custom-dropdown" id="kb-cat-dropdown" style="flex: 1; min-width: 140px;">
-    <div class="dropdown-selected"><span class="selected-text">Matéria (opcional)</span> <span class="arrow">▼</span></div>
+    <div class="dropdown-selected"><span class="selected-text">Matéria </span> <span class="arrow">▼</span></div>
     <div class="dropdown-options">
       <div class="option" data-value="">Nenhuma (Geral)</div>
       ${subjects.map(s => `<div class="option" data-value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</div>`).join("")}
