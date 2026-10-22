@@ -28,7 +28,9 @@ export function renderDashboard() {
     if (m.isClaimed) {
       buttonHtml = `<span class="tag" style="background:rgba(255,255,255,0.06);color:var(--mu);border:none;">✨ Concluída</span>`;
     } else if (m.isDone) {
-buttonHtml = `<button class="btn btn-resgatar" style="padding:6px 14px; font-size:12px;" onclick="window.studai.claimMission('${m.id}')">Resgatar +25 XP</button>`;      buttonHtml = `<span class="sub" style="font-size:11px; text-transform:uppercase; letter-spacing:1px">Pendente</span>`;
+      buttonHtml = `<button class="btn btn-resgatar" style="padding:6px 14px; font-size:12px;" onclick="window.studai.claimMission('${m.id}')">Resgatar +25 XP</button>`;
+    } else {
+      buttonHtml = `<span class="sub" style="font-size:11px; text-transform:uppercase; letter-spacing:1px">Pendente</span>`;
     }
 
     return `
@@ -102,7 +104,7 @@ buttonHtml = `<button class="btn btn-resgatar" style="padding:6px 14px; font-siz
     `;
   }).join("");
 
-  // 4. Current Month Time Breakdown
+  // 4. Current Month Time Breakdown (Usado para os dados do Radar)
   const currentMonthKey = today.slice(0, 7);
   const currentMonthName = new Date().toLocaleDateString("pt-BR", { month: "long" });
   const monthSessions = sessions.filter(s => (s.date || "").startsWith(currentMonthKey));
@@ -114,67 +116,151 @@ buttonHtml = `<button class="btn btn-resgatar" style="padding:6px 14px; font-siz
   });
   const maxMonthSubjectMin = Math.max(1, ...Object.values(monthByCat));
 
-  const dayOfWeekNames = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-  const byCatDay = {};
-  monthSessions.forEach(s => {
-    const c = s.cat || "Geral";
-    if (!byCatDay[c]) byCatDay[c] = [0, 0, 0, 0, 0, 0, 0];
-    const wd = new Date(s.date + "T12:00:00").getDay();
-    byCatDay[c][wd] += Number(s.min);
-  });
-
-  const monthSubjectsHtml = Object.entries(monthByCat)
+  // --- Radar de Domínio (Gráfico de Teia) ---
+  const topMonthSubjects = Object.entries(monthByCat)
     .filter(([, m]) => m > 0)
-    .sort((a, b) => sortAlpha(a[0], b[0]))
-    .map(([cat, mins]) => {
-      const color = store.getSubjectColor(cat);
-      const days = byCatDay[cat] || [];
-      const segments = days.map((dm, di) => {
-        if (dm <= 0) return "";
-        return `<span style="flex:${dm} 1 0;min-width:0;display:block;background:${color};color:#fff;font-size:10px;font-weight:700;line-height:20px;text-align:center;overflow:hidden;white-space:nowrap;border-radius:4px" title="${dayOfWeekNames[di]}: ${formatDuration(dm)}">${dayOfWeekNames[di]}</span>`;
-      }).join("");
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6); // Pega no máximo as 6 matérias mais estudadas para não poluir
 
-      const widthPct = Math.min(100, (mins / maxMonthSubjectMin) * 100);
+  let radarHtml = "";
 
-      return `
-        <div class="hb">
-          <span style="display:flex;align-items:center;gap:6px">
-            <i class="color-dot" style="background:${color}"></i>
-            ${escapeHtml(cat)}
-          </span>
-          <div>
-            <div style="display:flex;gap:2px;height:20px;width:${widthPct}%">
-              ${segments}
-            </div>
-          </div>
-          <span>${formatDuration(mins)}</span>
-        </div>
-      `;
-    }).join("") || `<div class="empty">Nenhuma sessão registrada neste mês</div>`;
+  if (topMonthSubjects.length >= 3) {
+    const N = topMonthSubjects.length;
+    const centerX = 150;
+    const centerY = 150;
+    const maxRadius = 100;
 
-  // 5. Quiz Performance Evolution Chart (SVG Polyline)
-  const recentResults = results.slice(-12);
-  const points = recentResults.map(r => ((r.score || 0) / (r.total || 1)) * 100);
-  let chartSvgHtml = `<div class="empty">Faça 2 ou mais testes para acompanhar sua evolução</div>`;
+    // 1. Fundo da Teia (3 níveis de anéis)
+    let webLines = "";
+    for (let level = 1; level <= 3; level++) {
+      const r = maxRadius * (level / 3);
+      let points = [];
+      for (let i = 0; i < N; i++) {
+        const angle = (Math.PI * 2 * i) / N - Math.PI / 2; // -PI/2 para o eixo iniciar no topo
+        points.push(`${centerX + r * Math.cos(angle)},${centerY + r * Math.sin(angle)}`);
+      }
+      webLines += `<polygon points="${points.join(" ")}" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>`;
+    }
 
-  if (points.length > 1) {
-    const svgPoints = points
-      .map((p, i) => `${(i * 300) / (points.length - 1)},${95 - (p * 0.9)}`)
-      .join(" ");
+    // 2. Eixos, Dados e Rótulos
+    let axesHtml = "";
+    let labelsHtml = "";
+    let dataPoints = [];
 
-    chartSvgHtml = `
-      <div style="padding:10px 0">
-        <svg viewBox="0 0 300 100" style="width:100%;height:auto;overflow:visible">
-          <polyline fill="none" stroke="#2dff7a" stroke-width="2.5" style="filter:drop-shadow(0 0 6px #2dff7a)" points="${svgPoints}"/>
+    topMonthSubjects.forEach(([cat, mins], i) => {
+      const angle = (Math.PI * 2 * i) / N - Math.PI / 2;
+      const xEdge = centerX + maxRadius * Math.cos(angle);
+      const yEdge = centerY + maxRadius * Math.sin(angle);
+
+      // Linha do eixo
+      axesHtml += `<line x1="${centerX}" y1="${centerY}" x2="${xEdge}" y2="${yEdge}" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>`;
+
+      // Ponto de dado
+      const dataRadius = maxRadius * (mins / maxMonthSubjectMin);
+      const dx = centerX + dataRadius * Math.cos(angle);
+      const dy = centerY + dataRadius * Math.sin(angle);
+      dataPoints.push(`${dx},${dy}`);
+
+      // Rótulo da matéria (ligeiramente fora do raio máximo)
+      const labelRadius = maxRadius + 22;
+      const lx = centerX + labelRadius * Math.cos(angle);
+      const ly = centerY + labelRadius * Math.sin(angle);
+      const shortCat = cat.length > 12 ? cat.substring(0, 10) + "..." : cat; // Trunca nomes gigantes
+
+      labelsHtml += `<text x="${lx}" y="${ly}" fill="var(--mu)" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="middle" style="text-shadow: 0 2px 4px rgba(0,0,0,0.8);">${escapeHtml(shortCat)}</text>`;
+    });
+
+    // Polígono de Dados com preenchimento translúcido e borda neon
+    const dataPolygon = `<polygon points="${dataPoints.join(" ")}" fill="rgba(45,255,122,0.12)" stroke="var(--g)" stroke-width="2" style="filter:drop-shadow(0 0 6px rgba(45,255,122,0.4))"/>`;
+
+    // Pontos (bolinhas) nos vértices
+    const dataDots = dataPoints.map(pt => {
+      const [px, py] = pt.split(",");
+      return `<circle cx="${px}" cy="${py}" r="3" fill="#131814" stroke="var(--g)" stroke-width="1.5"/>`;
+    }).join("");
+
+    radarHtml = `
+      <div style="display:flex; justify-content:center; align-items:center; height:100%; width:100%; padding:10px 0;">
+        <svg viewBox="0 0 300 300" style="width:100%; max-width:240px; height:auto; overflow:visible;">
+          ${webLines}
+          ${axesHtml}
+          ${dataPolygon}
+          ${dataDots}
+          ${labelsHtml}
         </svg>
+      </div>
+    `;
+  } else {
+    // Fallback elegante caso tenha menos de 3 matérias
+    radarHtml = `
+      <div class="empty" style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100%; opacity:0.7;">
+        <div style="font-size:24px; margin-bottom:12px; filter:grayscale(1); opacity:0.5;">🕸️</div>
+        <div style="font-size:12px; max-width:180px; line-height:1.5;">O Radar de Domínio requer estudo em pelo menos <b>3 matérias diferentes</b> neste mês para cruzar os dados.</div>
       </div>
     `;
   }
 
-  // --- NOVO: Lógica do StudAI Insights (Expansão Científica Diária) ---
+  // 5. Quiz Performance Evolution Chart (SVG Area Chart Premium)
+  const recentResults = results.slice(-12);
+  let points = recentResults.map(r => ((r.score || 0) / (r.total || 1)) * 100);
+
+  let isPlaceholder = false;
+  // Se não houver testes suficientes, geramos dados falsos de demonstração
+  if (points.length < 2) {
+    points = [30, 45, 40, 65, 55, 80, 75, 95];
+    isPlaceholder = true;
+  }
+
+  // Calcula as coordenadas do gráfico
+  const coords = points.map((p, i) => ({
+    x: (i * 300) / (points.length - 1),
+    y: 100 - (p * 0.9)
+  }));
+
+  const linePoints = coords.map(c => `${c.x},${c.y}`).join(" ");
+  // Pontos do polígono para fechar a área embaixo da linha
+  const polygonPoints = `${coords[0].x},100 ${linePoints} ${coords[coords.length - 1].x},100`;
+
+  // Bolinhas em cada ponto de dado
+  const circlesHtml = coords.map(c =>
+    `<circle cx="${c.x}" cy="${c.y}" r="3.5" fill="#131814" stroke="var(--g)" stroke-width="2" />`
+  ).join("");
+
+  const chartSvgHtml = `
+    <div style="padding:10px 0; width:100%; position:relative;">
+      
+      <!-- Overlay se for gráfico de exemplo -->
+      ${isPlaceholder ? `
+        <div style="position:absolute; top:0; left:0; right:0; bottom:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.4); backdrop-filter:blur(2px); z-index:10; border-radius:8px; flex-direction:column; gap:8px;">
+          <span style="font-size:12px; font-weight:700; color:var(--tx); text-transform:uppercase; letter-spacing:1px;">Gráfico de Demonstração</span>
+          <button class="btn o" style="font-size:11px; padding:6px 12px;" onclick="document.querySelector('button[onclick*=\\'quiz\\']').click()">Fazer Testes</button>
+        </div>
+      ` : ""}
+      
+      <!-- O Gráfico SVG -->
+      <svg viewBox="0 0 300 100" style="width:100%; height:auto; overflow:visible; ${isPlaceholder ? 'opacity:0.3;' : ''}">
+        <defs>
+          <linearGradient id="gradNeon" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--g)" stop-opacity="0.4" />
+            <stop offset="100%" stop-color="var(--g)" stop-opacity="0.0" />
+          </linearGradient>
+        </defs>
+        
+        <!-- Preenchimento Colorido (Área) -->
+        <polygon fill="url(#gradNeon)" points="${polygonPoints}" />
+        
+        <!-- Linha Verde -->
+        <polyline fill="none" stroke="var(--g)" stroke-width="2.5" style="filter:drop-shadow(0 0 4px rgba(45,255,122,0.4))" points="${linePoints}" />
+        
+        <!-- Bolinhas -->
+        ${circlesHtml}
+      </svg>
+    </div>
+  `;
+
+  // --- Lógica do StudAI Insights (Expansão Científica Diária) ---
   const weekTotalMins = last7Days.reduce((sum, d) => sum + d.totalMin, 0);
   let insightText = "O cérebro precisa de pausas para consolidar a memória. Quando quiser iniciar o ciclo de dopamina, abra o timer.";
-  let insightIcon = "🔋";
 
   if (weekTotalMins > 0) {
     const weekCats = {};
@@ -238,10 +324,9 @@ buttonHtml = `<button class="btn btn-resgatar" style="padding:6px 14px; font-siz
 
     // Escolhe dinamicamente: divide o dia pelas opções disponíveis
     const selection = insightOptions[daySeed % insightOptions.length];
-    insightIcon = selection.icon;
-
     insightText = `Você alcançou <b>${hours}h</b> de foco nos últimos 7 dias, destacando-se em <b style="color:var(--g)">${escapeHtml(topSubject[0])}</b>.<br><br>${selection.text}`;
   }
+
   return `
     <div class="card">
       <h3>Missões Diárias</h3>
@@ -268,7 +353,7 @@ buttonHtml = `<button class="btn btn-resgatar" style="padding:6px 14px; font-siz
       </div>
     </div>
 
-    <!-- NOVO: Últimos 7 Dias com StudAI Insights lado a lado -->
+    <!-- Últimos 7 Dias com StudAI Insights lado a lado -->
     <div class="card" style="padding: 24px;">
       <div style="display: flex; flex-wrap: wrap; gap: 30px; align-items: stretch;">
         <div style="flex: 2; min-width: 250px;">
@@ -291,25 +376,48 @@ buttonHtml = `<button class="btn btn-resgatar" style="padding:6px 14px; font-siz
       </div>
     </div>
 
-<div class="grid">
-      <div class="card">
-        <details>
-          <summary style="cursor:pointer; outline:none; font-size:18px; font-weight:700; color:#fff; list-style:none; display:flex; justify-content:space-between; align-items:center; transition:opacity 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
-            <span>Tempo por matéria · ${escapeHtml(currentMonthName)}</span>
-            <span style="font-size:12px; color:var(--g); font-weight:600; letter-spacing:0.5px; text-transform:uppercase;">Ver detalhes ▾</span>
-          </summary>
-          
-          <!-- Conteúdo Oculto -->
-          <div style="margin-top:20px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.05);">
-            ${monthSubjectsHtml}
-            <div class="sub" style="margin-top:10px; font-size:11px;">Cada bloco representa os dias da semana estudados no mês atual.</div>
-          </div>
-        </details>
+    <div class="grid" style="align-items: stretch;">
+      <!-- CARD 1: Radar de Domínio -->
+      <div class="card" style="display:flex; flex-direction:column; max-height:380px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-shrink:0;">
+          <h3 style="margin:0;">Radar de Domínio · ${escapeHtml(currentMonthName)}</h3>
+        </div>
+        
+        <!-- Área do Gráfico de Teia -->
+        <div style="flex:1; display:flex; align-items:center; justify-content:center; padding-bottom:12px;">
+          ${radarHtml}
+        </div>
       </div>
       
-      <div class="card">
-        <h3>Evolução nos testes (%)</h3>
-        ${chartSvgHtml}
+      <!-- CARD 2: Evolução nos Testes (Com Surpresas Visuais) -->
+      <div class="card" style="display:flex; flex-direction:column; justify-content:space-between; max-height:380px;">
+        
+        <div>
+          <!-- Cabeçalho com Selo Neon -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <h3 style="margin:0;">Evolução nos testes (%)</h3>
+            <span class="tag" style="background:rgba(45,255,122,0.08); color:var(--g); border:1px solid rgba(45,255,122,0.25); margin:0; font-weight:700;">
+              <i style="font-style:normal; font-size:10px; margin-right:4px;">🎯</i> Análise Ativa
+            </span>
+          </div>
+          
+          <!-- Gráfico -->
+          <div style="padding-bottom:8px;">
+            ${chartSvgHtml}
+          </div>
+        </div>
+        
+        <!-- A Surpresa: Caixa de Insight Inteligente -->
+        <div style="margin-top:auto; padding:14px; background:rgba(0,0,0,0.25); border:1px solid var(--line); border-left:3px solid var(--g); border-radius:10px; display:flex; gap:12px; align-items:center; box-shadow:0 4px 12px rgba(0,0,0,0.1);">
+          <div style="font-size:18px; background:rgba(45,255,122,0.1); border-radius:50%; display:flex; align-items:center; justify-content:center; min-width:36px; height:36px;">
+            💡
+          </div>
+          <div style="font-size:12px; color:var(--mu); line-height:1.5;">
+            <b style="color:var(--tx); font-size:13px; display:block; margin-bottom:2px;">Insight do StudAI</b>
+            A constância constrói a genialidade. Faça um quiz rápido logo após aprender um tópico novo para dobrar sua retenção!
+          </div>
+        </div>
+        
       </div>
     </div>
   `;

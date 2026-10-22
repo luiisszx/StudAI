@@ -1355,3 +1355,27 @@ main>*:has(.custom-dropdown.open) {
   background-color: #080c09 !important;
   backdrop-filter: none;
 }
+
+/* Scroll Minimalista para o Dashboard */
+.scroll-estiloso::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scroll-estiloso::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroll-estiloso::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+.scroll-estiloso::-webkit-scrollbar-thumb:hover {
+  background: rgba(45, 255, 122, 0.3);
+}
+
+/* Remove o brilho/borda das bolinhas de matéria */
+.color-dot {
+  box-shadow: none !important;
+  border: none !important;
+}

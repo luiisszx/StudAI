@@ -142,43 +142,89 @@ export function renderGoals() {
   ];
 
   const kanbanColsHtml = kanbanColumns.map(({ key, label }) => {
-    const list = (store.state.tasks || []).filter(t => t.status === key);
+    const list = (store.state.tasks || []).filter(t => {
+      if (t.status !== key) return false;
 
-    const taskCardsHtml = list.map(t => {
-      const color = store.getSubjectColor(t.cat);
-      const prevStatus = key === "done" ? "doing" : (key === "doing" ? "todo" : null);
-      const nextStatus = key === "todo" ? "doing" : (key === "doing" ? "done" : null);
+      // NOVO: Auto-limpeza de 3 dias para a coluna "Concluído"
+      if (key === "done") {
+        // Usa a data de conclusão ou a data de criação (se o ID for um timestamp)
+        const taskTime = t.completedAt || Number(t.id);
+        const tresDiasEmMs = 3 * 24 * 60 * 60 * 1000;
 
-      // --- NOVO: Define se é editável ---
-      const isTodo = key === "todo";
-      const editableProps = isTodo
-        ? `contenteditable="true" onblur="window.studai.editTask('${t.id}', this.innerText)" onkeydown="if(event.key==='Enter'){event.preventDefault(); this.blur();}" title="Clique para editar"`
-        : "";
+        if (taskTime && (Date.now() - taskTime > tresDiasEmMs)) {
+          return false; // Esconde a tarefa
+        }
+      }
+      return true;
+    });
 
+    // --- NOVO: Agrupar as tarefas por matéria ---
+    const tasksByCat = {};
+    list.forEach(t => {
+      const catName = t.cat || "Geral";
+      if (!tasksByCat[catName]) tasksByCat[catName] = [];
+      tasksByCat[catName].push(t);
+    });
+
+    // Agora iteramos sobre os grupos (matérias) em vez das tarefas individuais
+    const taskCardsHtml = Object.entries(tasksByCat).map(([cat, tasksInCat]) => {
+      const color = store.getSubjectColor(cat);
+      const catTag = `<span class="tag" style="border-color:${color};color:${color};margin:0;background:rgba(0,0,0,0.4)">${escapeHtml(cat)}</span>`;
+      const countBadge = `<span style="font-size:10px; color:var(--mu); background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:10px; margin-left:8px;">${tasksInCat.length}</span>`;
+
+      // Gera o HTML das tarefas individuais dentro desta matéria
+      const tasksHtml = tasksInCat.map((t, index) => {
+        const prevStatus = key === "done" ? "doing" : (key === "doing" ? "todo" : null);
+        const nextStatus = key === "todo" ? "doing" : (key === "doing" ? "done" : null);
+
+        const isTodo = key === "todo";
+        const editableProps = isTodo
+          ? `contenteditable="true" onblur="window.studai.editTask('${t.id}', this.innerText)" onkeydown="if(event.key==='Enter'){event.preventDefault(); this.blur();}" title="Clique para editar"`
+          : "";
+
+        // Adiciona uma linha divisória se não for a última tarefa do grupo
+        const borderBottom = index < tasksInCat.length - 1 ? "border-bottom:1px solid rgba(255,255,255,0.05);" : "";
+
+        return `
+          <div style="padding:14px 12px; ${borderBottom}">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px;">
+              <!-- Texto da Tarefa -->
+              <div style="flex:1; word-break:break-word; font-weight:500; line-height:1.5; outline:none; transition:0.2s; ${key === "done" ? "text-decoration:line-through; color:var(--mu);" : "color:var(--tx);"} ${isTodo ? "cursor:text;" : ""}" ${editableProps}>
+                ${escapeHtml(t.text)}
+              </div>
+              <!-- Botão Apagar -->
+              <button class="btn x" style="padding:2px 8px; font-size:10px; margin-left:8px;" onclick="window.studai.deleteTask('${t.id}')">✕</button>
+            </div>
+            
+            <!-- Setas de Movimentação do Kanban -->
+            <div style="display:flex; justify-content:flex-end; gap:6px;">
+              ${prevStatus ? `<button class="btn o" style="padding:4px 12px; font-size:12px; border-radius:6px;" onclick="window.studai.moveTask('${t.id}', '${prevStatus}')">← Mover</button>` : ""}
+              ${nextStatus ? `<button class="btn o" style="padding:4px 12px; font-size:12px; border-radius:6px;" onclick="window.studai.moveTask('${t.id}', '${nextStatus}')">${key === 'todo' ? 'Iniciar →' : 'Concluir ✓'}</button>` : ""}
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      // Retorna a "Sanfona" da Matéria com as tarefas dentro
       return `
-        <div style="background:rgba(255,255,255,0.035); border:1px solid var(--line); border-radius:10px; padding:12px; margin-bottom:10px; font-size:13px; box-shadow:0 4px 12px rgba(0,0,0,0.15);">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
-            
-            <!-- Texto da Tarefa (Editável apenas se isTodo for verdadeiro) -->
-            <div style="flex:1; word-break:break-word; font-weight:500; outline:none; transition:0.2s; ${key === "done" ? "text-decoration:line-through; color:var(--mu);" : ""} ${isTodo ? "cursor:text;" : ""}" ${editableProps}>
-              ${escapeHtml(t.text)}
+        <details style="background:rgba(0, 0, 0, 0.39); border:1px solid var(--line); border-left:4px solid ${color}; border-radius:10px; margin-bottom:10px; box-shadow:0 4px 12px rgba(0,0,0,0.15); overflow:hidden;">
+          <summary style="padding:12px; cursor:pointer; outline:none; display:flex; justify-content:space-between; align-items:center; list-style:none; background:transparent; transition:background 0.2s;" onmouseover="this.style.background='rgba(45,255,122,0.05)'" onmouseout="this.style.background='transparent'">
+            <div style="display:flex; align-items:center;">
+              ${catTag}
+              ${countBadge}
             </div>
-            
-            <button class="btn x" style="padding:2px 8px; font-size:10px; margin-left:8px;" onclick="window.studai.deleteTask('${t.id}')">✕</button>
+            <span style="font-size:10px; color:var(--mu);">▼</span>
+          </summary>
+          
+          <div style="padding:0; border-top:1px solid rgba(7, 4, 4, 0.31);">
+            ${tasksHtml}
           </div>
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            ${t.cat ? `<span class="tag" style="border-color:${color};color:${color};margin:0;background:rgba(0,0,0,0.4)">${escapeHtml(t.cat)}</span>` : "<span></span>"}
-            <div style="display:flex; gap:6px;">
-              ${prevStatus ? `<button class="btn o" style="padding:4px 10px; font-size:12px; border-radius:6px;" onclick="window.studai.moveTask('${t.id}', '${prevStatus}')">←</button>` : ""}
-              ${nextStatus ? `<button class="btn o" style="padding:4px 10px; font-size:12px; border-radius:6px;" onclick="window.studai.moveTask('${t.id}', '${nextStatus}')">→</button>` : ""}
-            </div>
-          </div>
-        </div>
+        </details>
       `;
     }).join("");
 
     return `
-      <div style="flex:1; min-width:240px; background:rgba(0,0,0,0.22); border-radius:14px; padding:14px; border:1px solid var(--line);">
+      <div class="card" style="flex:1; min-width:240px; padding:14px; margin:0; display:flex; flex-direction:column;">
         <h4 style="margin:0 0 14px; text-align:center; color:var(--mu); font-size:12px; text-transform:uppercase; letter-spacing:0.1em; display:flex; justify-content:space-between;">
           <span>${label}</span>
           <span class="tag" style="margin:0">${list.length}</span>
@@ -194,25 +240,35 @@ export function renderGoals() {
   const kanbanCardHtml = `
     <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-        <h3 style="margin:0">Kanban de Tarefas</h3>
-        <span class="tag" style="background:rgba(45,255,122,0.06); color:var(--g); border:1px dashed var(--g);">+5 XP por tarefa concluída</span>
+        <h3 style="margin:0;">Kanban de Tarefas</h3>
+        <span class="tag" style="background:rgba(45,255,122,0.06); color:var(--g); border:1px dashed var(--g); margin:0;">+5 XP por tarefa concluída</span>
       </div>
+      
       ${datalistHtml}
-      <div class="row" style="margin-top:14px;">
-        <input id="kb-txt" placeholder="Nova tarefa (ex: Ler capítulo 4, Fazer exercícios)">
-  <div class="custom-dropdown" id="kb-cat-dropdown" style="flex: 1; min-width: 140px;">
-    <div class="dropdown-selected"><span class="selected-text">Matéria </span> <span class="arrow">▼</span></div>
-    <div class="dropdown-options">
-      <div class="option" data-value="">Nenhuma (Geral)</div>
-      ${subjects.map(s => `<div class="option" data-value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</div>`).join("")}
-    </div>
-    <!-- Input oculto para o sistema continuar a guardar corretamente a tarefa -->
-    <input type="hidden" id="kb-cat" value="">
-  </div>
-</div>     
- </div>
-      <button class="btn" onclick="window.studai.addTask()">+ Adicionar Tarefa</button>
-      <div style="display:flex; gap:16px; margin-top:20px; overflow-x:auto; padding-bottom:8px; scrollbar-width:thin;">
+      
+      <!-- Formulário de Adição em Linha (Grid) -->
+      <div style="display:grid; grid-template-columns: 2fr 1fr auto; gap:12px; margin:20px 0; align-items:stretch;">
+        <input id="kb-txt" placeholder="Nova tarefa (ex: Ler capítulo 4, Fazer exercícios)" style="margin:0; height:100%;">
+        
+        <div class="custom-dropdown" id="kb-cat-dropdown" style="margin:0; height:100%;">
+          <div class="dropdown-selected" style="height:100%; display:flex; align-items:center; justify-content:space-between;">
+            <span class="selected-text">Matéria</span> 
+            <span class="arrow">▼</span>
+          </div>
+          <div class="dropdown-options">
+            <div class="option" data-value="">Nenhuma (Geral)</div>
+            ${subjects.map(s => `<div class="option" data-value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</div>`).join("")}
+          </div>
+          <input type="hidden" id="kb-cat" value="">
+        </div>
+        
+        <button class="btn" style="margin:0; height:100%; white-space:nowrap; padding:0 20px;" onclick="window.studai.addTask()">
+          + Adicionar
+        </button>
+      </div>
+      
+      <!-- Colunas do Kanban -->
+      <div style="display:flex; gap:16px; overflow-x:auto; padding-bottom:8px; scrollbar-width:thin; border-top:1px solid rgba(255,255,255,0.05); padding-top:20px;">
         ${kanbanColsHtml}
       </div>
     </div>

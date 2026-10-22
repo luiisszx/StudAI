@@ -93,7 +93,7 @@ export function renderQuizBankItems(questions, today) {
       const d = new Date(q.createdAt);
       const dateStr = d.toLocaleDateString("pt-BR");
       const timeStr = d.toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' });
-      key = `${dateStr} • ${timeStr}`;
+      key = `${dateStr} às ${timeStr}`;
       sortVal = d.getTime();
     }
 
@@ -106,85 +106,89 @@ export function renderQuizBankItems(questions, today) {
   // 2. Ordenar grupos (mais recentes primeiro)
   const sortedGroups = Object.values(groups).sort((a, b) => b.sortVal - a.sortVal);
 
-  // 3. Renderizar cada grupo
+  // 3. Renderizar cada lote como um <details> fechado
   return sortedGroups.map(group => {
-    // Cabeçalho do Grupo (Data e Hora)
-    const groupHeader = `
-      <div style="margin: 24px 0 12px 0; font-size: 11px; font-weight: 700; color: var(--g); text-transform: uppercase; letter-spacing: 1.5px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 6px; display:flex; align-items:center; gap:6px;">
-        <i style="font-style:normal; font-size:14px;">⏱️</i> Lote gerado em: ${group.title}
-      </div>
-    `;
-
-    // Itens minimalistas dentro do grupo
-    const itemsHtml = group.items.map(q => {
+    return `
+      <details style="margin-bottom: 16px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; overflow: hidden;">
+        <!-- Cabeçalho do Lote (Clicável) -->
+        <summary style="cursor: pointer; padding: 16px; font-size: 12px; font-weight: 800; color: var(--mu); text-transform: uppercase; letter-spacing: 1.5px; display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); list-style: none; outline: none; transition: background 0.2s;" onmouseover="this.style.background='rgba(45,255,122,0.05)'" onmouseout="this.style.background='rgba(0,0,0,0.3)'">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <i style="font-style:normal; font-size:16px;">📦</i>
+            <span>Lote gerado em: ${group.title} <span style="opacity:0.6; text-transform:none; font-weight:600; margin-left:8px;">(${group.items.length} perguntas)</span></span>
+          </div>
+          <span style="font-size:10px; color:var(--mu);">▼</span>
+        </summary>
+        
+        <!-- Conteúdo do Lote (Perguntas) -->
+        <div style="padding: 16px; display: flex; flex-direction: column; gap: 14px; background: transparent;">
+          ${group.items.map(q => {
       const color = store.getSubjectColor(q.cat);
       const isDue = !q.due || q.due <= today;
       const box = q.box || 0;
       const boxLabel = box === 0 ? "Novo" : `Caixa ${box} (${intervals[box - 1] || 1}d)`;
 
-      const statusIcon = isDue
-        ? `<span style="color:#f59e0b;">🟠 Pendente</span>`
-        : `<span style="color:var(--g);">🟢 Em dia</span>`;
+            const statusIcon = isDue
+              ? `<span style="color:#f59e0b; display:flex; align-items:center; gap:4px;">🟠 Revisão Pendente</span>`
+              : `<span style="color:var(--g); display:flex; align-items:center; gap:4px;">🟢 Em dia</span>`;
 
-      return `
-        <div class="item" id="q-item-${q.id}" style="border:1px solid rgba(255,255,255,0.03); background:rgba(255,255,255,0.01); border-radius:8px; padding:16px; margin-bottom:8px; display:flex; gap:16px; align-items:flex-start;">
-          <div style="flex:1; min-width:0;">
-            <div style="display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">
-              <span style="color:${color}; display:flex; align-items:center; gap:4px;">
-                <i style="width:6px; height:6px; border-radius:50%; background:${color};"></i>
-                ${escapeHtml(q.cat || "Geral")}
-              </span>
-              <span style="color:var(--mu);">·</span>
-              <span style="color:var(--mu);">${boxLabel}</span>
-              <span style="color:var(--mu);">·</span>
-              ${statusIcon}
-            </div>
-            
-            <b style="font-size:14.5px; color:#e4e4e7; line-height:1.5; display:block; margin-bottom:8px;">
-              ${escapeHtml(q.q)}
-            </b>
-            
-            <div style="font-size:13px; color:#a1a1aa; line-height:1.5;">
-              <span style="color:var(--g); font-weight:700; margin-right:4px;">R:</span>${escapeHtml(q.opts[q.ans])}
-            </div>
+            return `
+              <div class="item" id="q-item-${q.id}" style="background:rgba(0,0,0,0.25); border:1px solid var(--line); border-left:4px solid ${color}; border-radius:12px; padding:18px; position:relative; display:flex; flex-direction:column; align-items:stretch; gap:0; box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+                
+                <!-- Botão Apagar -->
+                <button class="btn x" title="Apagar pergunta" onclick="window.studai.deleteQuizQuestion('${q.id}')" style="position:absolute; top:12px; right:12px; padding:4px 8px; font-size:12px; background:transparent; border:none; color:var(--mu); transition:color 0.2s;" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--mu)'">✕</button>
 
-            ${q.opts && q.opts.length > 1 ? `
-              <details style="margin-top:10px; font-size:12px; color:#71717a;">
-                <summary style="cursor:pointer; outline:none; transition:color 0.2s;" onmouseover="this.style.color='#a1a1aa'" onmouseout="this.style.color='#71717a'">
-                  Ver as ${q.opts.length} alternativas
-                </summary>
-                <ul style="margin:8px 0 0 16px; padding:0; list-style-type:circle;">
-                  ${q.opts.map((opt, idx) => `
-                    <li style="margin-bottom:4px; color:${idx === q.ans ? "var(--g)" : "#71717a"}; opacity:${idx === q.ans ? "1" : "0.7"};">
-                      ${escapeHtml(opt)}
-                    </li>
-                  `).join("")}
-                </ul>
-              </details>
-            ` : ""}
-          </div>
-          <button class="btn x" title="Apagar pergunta" onclick="window.studai.deleteQuizQuestion('${q.id}')" style="background:transparent; border:none; color:#71717a; padding:4px 8px; font-size:14px; transition:color 0.2s;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#71717a'">✕</button>
+                <!-- Tags Metadados -->
+                <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; padding-right:30px;">
+                  <span class="tag" style="border-color:${color}; color:${color}; margin:0; background:rgba(0,0,0,0.4);">${escapeHtml(q.cat || "Geral")}</span>
+                  <span class="tag" style="border:none; color:var(--mu); margin:0; background:rgba(255,255,255,0.05);">${boxLabel}</span>
+                  <span class="tag" style="border:none; margin:0; background:rgba(255,255,255,0.05);">${statusIcon}</span>
+                </div>
+                
+                <!-- Enunciado da Pergunta -->
+                <b style="font-size:15.5px; color:#fff; line-height:1.5; display:block; margin-bottom:16px;">
+                  ${escapeHtml(q.q)}
+                </b>
+                
+                <!-- Respostas Aparentes e Organizadas (Sem botão de revelar) -->
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                  ${q.opts.map((opt, idx) => {
+                    const isCorrect = idx === q.ans;
+                    const optBg = isCorrect ? 'rgba(45, 255, 122, 0.12)' : 'rgba(0,0,0,0.3)';
+                    const optBorder = isCorrect ? 'var(--g)' : 'var(--line)';
+                    const optColor = isCorrect ? 'var(--g)' : 'var(--mu)';
+                    const icon = isCorrect ? '✓' : String.fromCharCode(65 + idx); // Letras A, B, C, D...
+                    
+                    return `
+                      <div style="background:${optBg}; border:1px solid ${optBorder}; color:${optColor}; padding:10px 14px; border-radius:8px; font-size:13.5px; display:flex; align-items:flex-start; gap:10px; font-weight:${isCorrect ? '700' : '500'};">
+                        <span style="min-width:18px; text-align:center; font-weight:800;">${icon}</span>
+                        <span>${escapeHtml(opt)}</span>
+                      </div>
+                    `;
+                  }).join("")}
+                </div>
+              </div>
+            `;
+          }).join("")}
         </div>
-      `;
+      </details>
+    `;
     }).join("");
+  }
 
-    return groupHeader + itemsHtml;
-  }).join("");
-}
 export function renderQuiz() {
-  // 1. If currently inside a quiz gameplay session:
-  if (activeQuizGame) {
-    if (activeQuizGame.isFinished) {
-      const score = activeQuizGame.score;
-      const total = activeQuizGame.questions.length;
-      const pct = total > 0 ? (score / total) : 0;
-      const feedback = pct === 1
-        ? "Desempenho perfeito! 🏆 +50 XP bônus!"
-        : pct >= 0.6
-          ? "Muito bom trabalho! Continue assim! 💪"
-          : "Continue praticando, você vai dominar esse conteúdo! 📈";
+    // 1. If currently inside a quiz gameplay session:
+    if (activeQuizGame) {
+      if (activeQuizGame.isFinished) {
+        const score = activeQuizGame.score;
+        const total = activeQuizGame.questions.length;
+        const pct = total > 0 ? (score / total) : 0;
+        const feedback = pct === 1
+          ? "Desempenho perfeito! 🏆 +50 XP bônus!"
+          : pct >= 0.6
+            ? "Muito bom trabalho! Continue assim! 💪"
+            : "Continue praticando, você vai dominar esse conteúdo! 📈";
 
-      return `
+        return `
         <div class="card" style="text-align:center; padding:32px 20px;">
           <h3>Resultado do Teste</h3>
           <div class="big" style="margin:16px 0">${score} / ${total}</div>
@@ -192,13 +196,13 @@ export function renderQuiz() {
           <button class="btn" onclick="window.studai.exitQuiz()">Voltar ao Quiz</button>
         </div>
       `;
-    }
+      }
 
-    const currentQuestion = activeQuizGame.questions[activeQuizGame.currentIndex];
-    const userSelectedAnswer = activeQuizGame.userAnswer;
-    const progressPct = ((activeQuizGame.currentIndex) / activeQuizGame.questions.length) * 100;
+      const currentQuestion = activeQuizGame.questions[activeQuizGame.currentIndex];
+      const userSelectedAnswer = activeQuizGame.userAnswer;
+      const progressPct = ((activeQuizGame.currentIndex) / activeQuizGame.questions.length) * 100;
 
-    return `
+      return `
       <div class="card">
         <h3>Pergunta ${activeQuizGame.currentIndex + 1} de ${activeQuizGame.questions.length}</h3>
         <div class="bar" style="margin-bottom:18px">
@@ -206,17 +210,17 @@ export function renderQuiz() {
         </div>
         <p style="font-size:18px; font-weight:700; margin-bottom:16px;">${escapeHtml(currentQuestion.q)}</p>
         ${currentQuestion.opts.map((optText, optIndex) => {
-      let optionClass = "";
-      if (userSelectedAnswer !== null) {
-        if (optIndex === currentQuestion.ans) optionClass = "ok";
-        else if (optIndex === userSelectedAnswer) optionClass = "bad";
-      }
-      return `
+        let optionClass = "";
+        if (userSelectedAnswer !== null) {
+          if (optIndex === currentQuestion.ans) optionClass = "ok";
+          else if (optIndex === userSelectedAnswer) optionClass = "bad";
+        }
+        return `
             <button class="opt ${optionClass}" ${userSelectedAnswer !== null ? "disabled" : ""} onclick="window.studai.answerQuizQuestion(${optIndex})">
               ${escapeHtml(optText)}
             </button>
           `;
-    }).join("")}
+      }).join("")}
         ${userSelectedAnswer !== null ? `
           <div style="display:flex; justify-content:flex-end; margin-top:16px;">
             <button class="btn" onclick="window.studai.nextQuizQuestion()">
@@ -226,18 +230,19 @@ export function renderQuiz() {
         ` : ""}
       </div>
     `;
-  }
+    }
 
-  // 2. AI Quiz Generator Card
-  const apiKey = getApiKey();
-  const currentModel = getModelName();
-  const subjects = store.getSubjects();
-  const datalistHtml = `<datalist id="cats">${subjects.map(s => `<option value="${escapeHtml(s.name)}">`).join("")}</datalist>`;
+    
+    // 2. AI Quiz Generator Card
+    const apiKey = getApiKey();
+    const currentModel = getModelName();
+    const subjects = store.getSubjects();
+    const datalistHtml = `<datalist id="cats">${subjects.map(s => `<option value="${escapeHtml(s.name)}">`).join("")}</datalist>`;
 
-  const availableLogsCount = (store.state.logs || [])
-    .filter(l => !aiConfig.category || (l.cat || "Geral") === aiConfig.category).length;
+    const availableLogsCount = (store.state.logs || [])
+      .filter(l => !aiConfig.category || (l.cat || "Geral") === aiConfig.category).length;
 
-  const aiKeyBoxHtml = `
+    const aiKeyBoxHtml = `
     <div class="row">
       <input id="ai-key" type="password" placeholder="Chave de API do Gemini (AIza...)" value="${apiKey ? "••••••••" : ""}" onfocus="if(this.value.startsWith('•'))this.value=''">
       <input id="ai-model" placeholder="Modelo Gemini" value="${escapeHtml(currentModel)}" title="Modelo do Gemini" style="max-width:180px">
@@ -248,7 +253,7 @@ export function renderQuiz() {
     </div>
   `;
 
-  const aiPreviewHtml = aiConfig.generatedItems ? `
+    const aiPreviewHtml = aiConfig.generatedItems ? `
     <div style="margin-top:18px; border-top:1px solid var(--line); padding-top:14px;">
       <h4 style="color:var(--g); margin-bottom:10px;">Perguntas geradas pela IA:</h4>
       ${aiConfig.generatedItems.map((item, qIdx) => `
@@ -257,16 +262,16 @@ export function renderQuiz() {
           <div class="t">
             <b>${escapeHtml(item.q)}</b>
             ${item.opts.map((optText, optIdx) => {
-    const isAnswered = item.userPick !== null;
-    const optionClass = isAnswered
-      ? (optIdx === item.ans ? "ok" : (optIdx === item.userPick ? "bad" : ""))
-      : "";
-    return `
+      const isAnswered = item.userPick !== null;
+      const optionClass = isAnswered
+        ? (optIdx === item.ans ? "ok" : (optIdx === item.userPick ? "bad" : ""))
+        : "";
+      return `
                 <button class="opt ${optionClass}" ${isAnswered ? "disabled" : ""} onclick="window.studai.previewAiAnswer(${qIdx}, ${optIdx})">
                   ${escapeHtml(optText)}
                 </button>
               `;
-  }).join("")}
+    }).join("")}
             ${item.userPick !== null ? `
               <div class="sub" style="margin-top:4px; color:${item.userPick === item.ans ? "var(--g)" : "var(--red)"}">
                 ${item.userPick === item.ans ? "✔ Correto!" : "✘ Incorreto — a resposta correta está destacada em verde."}
@@ -284,7 +289,7 @@ export function renderQuiz() {
     </div>
   ` : "";
 
-  const aiGeneratorCard = `
+    const aiGeneratorCard = `
     <div class="card">
       <h3>✨ Gerador de Quiz com Inteligência Artificial</h3>
       ${aiKeyBoxHtml}
@@ -297,9 +302,9 @@ export function renderQuiz() {
 ${renderSubjectDropdown('ai-cat', 'Matéria (filtro)', aiConfig.category, subjects, "window.studai.setAiCategory(this.value)")}        <input type="number" min="1" max="15" value="${aiConfig.questionCount}" title="Quantidade de perguntas" oninput="window.studai.setAiQuestionCount(this.value)" style="max-width:90px">
       </div>
       ${aiConfig.sourceType === "text"
-      ? `<textarea rows="4" placeholder="Cole aqui seu resumo, artigo ou anotação..." oninput="window.studai.setAiCustomText(this.value)" style="margin-bottom:8px">${escapeHtml(aiConfig.customText)}</textarea>`
-      : `<div class="sub" style="margin-bottom:10px">${availableLogsCount} ${availableLogsCount === 1 ? "registro disponível" : "registros disponíveis"}${aiConfig.category ? " em " + escapeHtml(aiConfig.category) : ""}. Usa os mais recentes.</div>`
-    }
+        ? `<textarea rows="4" placeholder="Cole aqui seu resumo, artigo ou anotação..." oninput="window.studai.setAiCustomText(this.value)" style="margin-bottom:8px">${escapeHtml(aiConfig.customText)}</textarea>`
+        : `<div class="sub" style="margin-bottom:10px">${availableLogsCount} ${availableLogsCount === 1 ? "registro disponível" : "registros disponíveis"}${aiConfig.category ? " em " + escapeHtml(aiConfig.category) : ""}. Usa os mais recentes.</div>`
+      }
       <button class="btn" onclick="window.studai.triggerAiGeneration()" ${aiConfig.isLoading ? "disabled" : ""}>
         ${aiConfig.isLoading ? "⏳ Gerando com IA..." : "✨ Gerar Perguntas"}
       </button>
@@ -308,12 +313,12 @@ ${renderSubjectDropdown('ai-cat', 'Matéria (filtro)', aiConfig.category, subjec
     </div>
   `;
 
-  // 3. Quiz Game Launcher (Normal or Spaced Repetition Due)
-  const today = getTodayIso();
-  const quizList = store.state.quiz || [];
-  const dueQuestions = quizList.filter(q => !q.due || q.due <= today);
+    // 3. Quiz Game Launcher (Normal or Spaced Repetition Due)
+    const today = getTodayIso();
+    const quizList = store.state.quiz || [];
+    const dueQuestions = quizList.filter(q => !q.due || q.due <= today);
 
-  const quizLauncherCard = `
+    const quizLauncherCard = `
     <div class="card">
       <h3>Praticar e Testar Conhecimento</h3>
       ${quizList.length ? `
@@ -335,8 +340,8 @@ ${renderSubjectDropdown('ai-cat', 'Matéria (filtro)', aiConfig.category, subjec
     </div>
   `;
 
-  // 4. Manual Question Creator
-  const manualCreatorCard = `
+    // 4. Manual Question Creator
+    const manualCreatorCard = `
     <div class="card">
       <h3>Nova Pergunta Manual</h3>
       <div class="row">
@@ -353,21 +358,21 @@ ${renderSubjectDropdown('qc', 'Matéria', '', subjects)}
     </div>
   `;
 
-  // 5. Question Bank List with Filter
-  const allQuizList = store.state.quiz || [];
-  const filteredQuizList = getFilteredQuizList();
-  const availableCategories = [...new Set([...allQuizList.map(q => q.cat || "Geral"), ...subjects.map(s => s.name)])].sort(sortAlpha);
-  const hasActiveBankFilters = Boolean(quizBankFilter.search || quizBankFilter.category || quizBankFilter.status !== "all");
+    // 5. Question Bank List with Filter
+    const allQuizList = store.state.quiz || [];
+    const filteredQuizList = getFilteredQuizList();
+    const availableCategories = [...new Set([...allQuizList.map(q => q.cat || "Geral"), ...subjects.map(s => s.name)])].sort(sortAlpha);
+    const hasActiveBankFilters = Boolean(quizBankFilter.search || quizBankFilter.category || quizBankFilter.status !== "all");
 
-  const questionBankCard = `
+    const questionBankCard = `
     <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
         <h3 style="margin:0;">Banco de Perguntas & Respostas (${allQuizList.length})</h3>
         <span class="sub" id="qb-count">
           ${filteredQuizList.length === allQuizList.length
-      ? `${allQuizList.length} ${allQuizList.length === 1 ? "pergunta salva" : "perguntas salvas"}`
-      : `Exibindo ${filteredQuizList.length} de ${allQuizList.length} perguntas`
-    }
+        ? `${allQuizList.length} ${allQuizList.length === 1 ? "pergunta salva" : "perguntas salvas"}`
+        : `Exibindo ${filteredQuizList.length} de ${allQuizList.length} perguntas`
+      }
         </span>
       </div>
 
@@ -416,17 +421,17 @@ ${renderSubjectDropdown('qc', 'Matéria', '', subjects)}
     </div>
   `;
 
-  // 6. Test History Card with Filter
-  const allResults = store.state.results || [];
-  const availableHistoryCats = [...new Set(allResults.map(r => r.cat || "Geral"))].sort(sortAlpha);
-  const filteredResults = allResults.filter(r => {
-    if (quizHistoryFilter.category && (r.cat || "Geral") !== quizHistoryFilter.category) {
-      return false;
-    }
-    return true;
-  }).slice().reverse();
+    // 6. Test History Card with Filter
+    const allResults = store.state.results || [];
+    const availableHistoryCats = [...new Set(allResults.map(r => r.cat || "Geral"))].sort(sortAlpha);
+    const filteredResults = allResults.filter(r => {
+      if (quizHistoryFilter.category && (r.cat || "Geral") !== quizHistoryFilter.category) {
+        return false;
+      }
+      return true;
+    }).slice().reverse();
 
-  const testHistoryCard = `
+    const testHistoryCard = `
     <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
         <h3 style="margin:0;">Histórico de Testes Realizados (${allResults.length})</h3>
@@ -456,13 +461,13 @@ ${renderSubjectDropdown('qc', 'Matéria', '', subjects)}
       ` : ""}
 
       ${filteredResults.length ? filteredResults.map(r => {
-    const color = store.getSubjectColor(r.cat);
-    const score = Number(r.score) || 0;
-    const total = Number(r.total) || 1;
-    const pct = Math.round((score / total) * 100);
-    const barColor = pct >= 70 ? "var(--g)" : pct >= 50 ? "var(--yellow)" : "var(--red)";
+      const color = store.getSubjectColor(r.cat);
+      const score = Number(r.score) || 0;
+      const total = Number(r.total) || 1;
+      const pct = Math.round((score / total) * 100);
+      const barColor = pct >= 70 ? "var(--g)" : pct >= 50 ? "var(--yellow)" : "var(--red)";
 
-    return `
+      return `
           <div class="item">
             <div class="t">
               <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
@@ -480,16 +485,16 @@ ${renderSubjectDropdown('qc', 'Matéria', '', subjects)}
             </div>
           </div>
         `;
-  }).join("") : `
+    }).join("") : `
         <div class="empty">
           ${allResults.length === 0
-      ? "Nenhum teste concluído ainda. Inicie um teste acima para registrar seus resultados!"
-      : "Nenhum resultado encontrado para esta matéria."
-    }
+        ? "Nenhum teste concluído ainda. Inicie um teste acima para registrar seus resultados!"
+        : "Nenhum resultado encontrado para esta matéria."
+      }
         </div>
       `}
     </div>
   `;
 
-  return aiGeneratorCard + quizLauncherCard + manualCreatorCard + questionBankCard + testHistoryCard;
-}
+    return aiGeneratorCard + quizLauncherCard + manualCreatorCard + questionBankCard + testHistoryCard;
+  }

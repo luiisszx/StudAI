@@ -270,17 +270,17 @@ class Application {
     showToast("Tarefa adicionada ao Kanban!");
   }
 
-  moveTask(id, targetStatus) {
+moveTask(id, newStatus) {
     const task = store.state.tasks.find(t => t.id === id);
     if (!task) return;
-
-    task.status = targetStatus;
-    if (targetStatus === "done") {
-      task.doneDate = getTodayIso();
-      sounds.playSuccess();
-      showToast("Tarefa concluída! +5 XP");
+    
+    task.status = newStatus;
+    
+    // NOVO: Anota a data se for concluída, ou apaga se voltar para trás
+    if (newStatus === "done") {
+      task.completedAt = Date.now();
     } else {
-      sounds.playPop();
+      delete task.completedAt;
     }
     store.save();
   }
