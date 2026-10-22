@@ -47,9 +47,10 @@ import {
   renderData,
   exportData,
   importBackupFile,
+  saveProfile,
   isWipePendingConfirmation,
   setWipePending
-} from "./views/dataView.js";
+} from "./views/profileData.js";
 
 const TABS = [
   ["painel", "📊 Painel"],
@@ -58,7 +59,7 @@ const TABS = [
   ["tempo", "⏱️ Tempo"],
   ["quiz", "🧠 Quiz"],
   ["calendario", "📅 Calendário"],
-  ["dados", "💾 Dados"]
+  ["perfil", "👤 Perfil"] // <-- ALTERADO DE "dados" PARA "perfil"
 ];
 
 class Application {
@@ -95,7 +96,7 @@ class Application {
       const totalXp = calculateXP(store.state) || 0;
       console.log("🛠️ DIAGNÓSTICO 1 - XP Calculado:", totalXp);
 
-      // 2. Calcula o Nível\\
+      // 2. Calcula o Nível\
       const nivelData = calculateLevelData(totalXp);
       console.log("🛠️ DIAGNÓSTICO 2 - Dados Nível:", nivelData);
 
@@ -121,7 +122,9 @@ class Application {
     } catch (err) {
       console.error("Erro ao desenhar o cabeçalho:", err);
     }
-  } updateNav() {
+  }
+
+  updateNav() {
     const navEl = document.getElementById("nav");
     if (!navEl) return;
 
@@ -158,7 +161,7 @@ class Application {
       case "calendario":
         mainEl.innerHTML = renderCalendar();
         break;
-      case "dados":
+      case "perfil": // <-- ALTERADO DE "dados" PARA "perfil"
         mainEl.innerHTML = renderData();
         break;
       default:
@@ -270,12 +273,12 @@ class Application {
     showToast("Tarefa adicionada ao Kanban!");
   }
 
-moveTask(id, newStatus) {
+  moveTask(id, newStatus) {
     const task = store.state.tasks.find(t => t.id === id);
     if (!task) return;
-    
+
     task.status = newStatus;
-    
+
     // NOVO: Anota a data se for concluída, ou apaga se voltar para trás
     if (newStatus === "done") {
       task.completedAt = Date.now();
@@ -717,7 +720,7 @@ moveTask(id, newStatus) {
     store.ensureSubject(cat);
 
     const selected = aiConfig.generatedItems.filter(x => x.selected);
-    const timeStamp = new Date().toISOString(); // <-- Cria o carimbo exato de hora para o Lote inteiro
+    const timeStamp = new Date().toISOString();
 
     selected.forEach(x => {
       store.state.quiz.push({
@@ -728,7 +731,7 @@ moveTask(id, newStatus) {
         ans: x.ans,
         box: 0,
         due: getTodayIso(),
-        createdAt: timeStamp // <-- Salva a hora exata
+        createdAt: timeStamp
       });
     });
 
@@ -835,14 +838,12 @@ moveTask(id, newStatus) {
       const nextDueDate = new Date();
       nextDueDate.setDate(nextDueDate.getDate() + (isCorrect ? intervals[originalQuizItem.box - 1] : 0));
 
-      // CORREÇÃO: Aplica a data futura em formato YYYY-MM-DD em vez de getTodayIso()
       originalQuizItem.due = nextDueDate.toISOString().split("T")[0];
 
       store.save();
     }
   }
   nextQuizQuestion() {
-    // 1. BLOQUEIO DE CLIQUE DUPLO: Aborta se o quiz já estiver finalizado
     if (!activeQuizGame || activeQuizGame.isFinished) return;
 
     if (activeQuizGame.currentIndex + 1 < activeQuizGame.questions.length) {
@@ -851,7 +852,6 @@ moveTask(id, newStatus) {
     } else {
       activeQuizGame.isFinished = true;
 
-      // 2. SALVAMENTO ESTRITO: Garante que os números não quebrem o XP
       store.state.results.push({
         id: generateId(),
         date: getTodayIso(),
@@ -906,7 +906,7 @@ moveTask(id, newStatus) {
       ans: cleanAnswerIndex,
       box: 0,
       due: getTodayIso(),
-      createdAt: new Date().toISOString() // <-- Carimbo para a pergunta manual
+      createdAt: new Date().toISOString()
     });
 
     sounds.playSuccess();
@@ -1075,4 +1075,12 @@ document.addEventListener('click', (e) => {
 
     dropdown.classList.remove('open');
   }
+});
+// Atualiza as coordenadas do mouse no CSS em tempo real (60 FPS otimizado)
+window.addEventListener("pointermove", (e) => {
+  const x = ((e.clientX / window.innerWidth) * 100).toFixed(2);
+  const y = ((e.clientY / window.innerHeight) * 100).toFixed(2);
+
+  document.body.style.setProperty("--mouse-x", `${x}%`);
+  document.body.style.setProperty("--mouse-y", `${y}%`);
 });

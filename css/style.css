@@ -1379,3 +1379,100 @@ main>*:has(.custom-dropdown.open) {
   box-shadow: none !important;
   border: none !important;
 }
+
+/* Fundo Dinâmico com Brilho Neon Fluido */
+body {
+  position: relative;
+  background-color: #0b0f0c;
+  /* Sua cor escura de fundo */
+  overflow-x: hidden;
+}
+
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.12;
+  /* Ajuste a intensidade do brilho aqui */
+  filter: blur(120px);
+  /* Cria o efeito de névoa suave */
+  animation: floatGlow 18s ease-in-out infinite alternate;
+}
+
+/* Esfera Verde Neon */
+body::before {
+  top: -100px;
+  left: -100px;
+  background: var(--g);
+}
+
+/* Esfera Azul/Cian Sci-Fi */
+body::after {
+  bottom: -100px;
+  right: -100px;
+  background: #00d2ff;
+  animation-delay: -9s;
+}
+
+@keyframes floatGlow {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate(120px, 80px) scale(1.15);
+  }
+
+  100% {
+    transform: translate(-80px, 150px) scale(0.9);
+  }
+}
+
+/* Textura de Grelha Cibernética Sutil */
+body::main,
+#app {
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 0);
+  background-size: 24px 24px;
+  background-position: -1px -1px;
+}
+
+/* Fundo Dinâmico Interativo */
+body {
+  position: relative;
+  background-color: #0b0f0c;
+  /* Cor de fundo escura padrão */
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* Camada 1: Grelha cibernética sutil */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(rgba(6, 155, 14, 0.532) 1px, transparent 0);
+  background-size: 28px 28px;
+  pointer-events: none;
+  z-index: -2;
+}
+
+/* Camada 2: Lanterna Neon guiada pelas variáveis CSS do mouse */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(650px circle at var(--mouse-x, 50%) var(--mouse-y, 30%),
+      rgba(45, 255, 122, 0.316),
+      rgba(0, 0, 0, 0.173) 40%,
+      transparent 60%);
+  pointer-events: none;
+  z-index: -1;
+  transition: background 0.15s ease-out;
+  /* Suaviza o movimento do cursor */
+}
