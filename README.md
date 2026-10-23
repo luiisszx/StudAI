@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🧠 StudAI — Cybernetic Study OS
+# 🧠 StudAI — Cyber Study OS
 
 **Um dashboard de estudos minimalista, elegante e de alta performance impulsionado por gamificação e insights científicos.**
 
