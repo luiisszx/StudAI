@@ -13,6 +13,8 @@ export function renderDashboard() {
   const logs = store.state.logs || [];
   const results = store.state.results || [];
   const subjects = store.getSubjects();
+  const profile = store.state.profile || {};
+  const dailyGoalMinutes = (Number(profile.dailyGoalHours) || 2) * 60;
 
   // 1. Today's statistics
   const todaySessions = sessions.filter(s => s.date === today);
@@ -338,6 +340,15 @@ export function renderDashboard() {
         <h3>Hoje</h3>
         <div class="big">${formatDuration(todayMinutes)}</div>
         <div class="sub">${todayCount} ${todayCount === 1 ? "sessão" : "sessões"} realizadas hoje</div>
+        ${dailyGoalMinutes > 0 ? `
+          <div class="daily-goal-progress" style="margin-top:10px;">
+            <span>${Math.min(100, Math.round((todayMinutes / dailyGoalMinutes) * 100))}% da meta</span>
+            <div class="bar" style="flex:1; height:5px;">
+              <i style="width:${Math.min(100, (todayMinutes / dailyGoalMinutes) * 100).toFixed(1)}%; background:${todayMinutes >= dailyGoalMinutes ? 'var(--g)' : 'var(--yellow)'}; box-shadow: 0 0 6px ${todayMinutes >= dailyGoalMinutes ? 'var(--g)' : 'var(--yellow)'}"></i>
+            </div>
+            <span>${todayMinutes >= dailyGoalMinutes ? '🎉' : formatDuration(Math.max(0, dailyGoalMinutes - todayMinutes)) + ' restam'}</span>
+          </div>
+        ` : ''}
       </div>
       <div class="card">
         <h3>Sequência</h3>

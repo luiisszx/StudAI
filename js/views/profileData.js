@@ -29,7 +29,6 @@ export function saveProfile(event) {
   store.state.profile.avatarUrl = formData.get("avatarUrl") || "";
 
   if (typeof store.save === 'function') store.save();
-  if (typeof store.saveData === 'function') store.saveData();
 
   showToast("Perfil atualizado com sucesso!");
   window.studai.render();

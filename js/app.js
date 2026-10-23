@@ -92,23 +92,12 @@ class Application {
 
   updateHeader() {
     try {
-      // 1. Calcula o XP
       const totalXp = calculateXP(store.state) || 0;
-      console.log("🛠️ DIAGNÓSTICO 1 - XP Calculado:", totalXp);
-
-      // 2. Calcula o Nível\
       const nivelData = calculateLevelData(totalXp);
-      console.log("🛠️ DIAGNÓSTICO 2 - Dados Nível:", nivelData);
 
-      // 3. Procura a barra no HTML (DOM)
       const lvlTxtEl = document.getElementById("lvlTxt");
       const xpBarEl = document.getElementById("xpBar");
-      console.log("🛠️ DIAGNÓSTICO 3 - Elementos HTML encontrados:", {
-        texto: !!lvlTxtEl,
-        barra: !!xpBarEl
-      });
 
-      // 4. Injeta os dados
       if (lvlTxtEl) {
         lvlTxtEl.innerHTML = `
           Nível ${nivelData.level} <span style="opacity:0.75; font-size:11.5px; margin-left:4px">${nivelData.rankTitle}</span>
@@ -545,7 +534,7 @@ class Application {
     const cat = timer.form.category || "Estudo";
 
     dockEl.innerHTML = `
-      <span class="color-dot" style="background:var(--g);box-shadow:0 0 8px var(--g);"></span>
+      <span class="pulse-dot"></span>
       <span style="font-size:12.5px; font-weight:700; color:var(--g); font-family:var(--font-mono);">${timeText}</span>
       <span style="font-size:12px;">${icon}</span>
       <span class="tag" style="margin:0; padding:2px 8px; font-size:11px;">${escapeHtml(cat)}</span>
@@ -939,7 +928,7 @@ class Application {
   }
 
   resetQuizBankFilters() {
-    resetQuizBankFilters();
+    resetQuizBankFilters(); // imported function from quizView.js
     sounds.playPop();
     const searchInput = document.getElementById("qb-search");
     const catSelect = document.getElementById("qb-cat");
@@ -999,6 +988,13 @@ class Application {
     this.render();
   }
 
+  goToToday() {
+    setCalendarMonthOffset(0);
+    setSelectedCalendarDate(null);
+    sounds.playPop();
+    this.render();
+  }
+
   selectCalendarDate(dateKey) {
     setSelectedCalendarDate(dateKey);
     sounds.playPop();
@@ -1033,11 +1029,59 @@ class Application {
 const app = new Application();
 window.studai = app;
 
+// Expose saveProfile from profileData module globally
+window.studai.saveProfile = saveProfile;
+
 // Bootstrap once DOM ready
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", () => app.init());
+  document.addEventListener("DOMContentLoaded", () => {
+    app.init();
+    setupKeyboardShortcuts(app);
+  });
 } else {
   app.init();
+  setupKeyboardShortcuts(app);
+}
+
+// --- Keyboard Shortcuts ---
+function setupKeyboardShortcuts(appInstance) {
+  const NAV_KEYS = {
+    '1': 'painel', '2': 'materias', '3': 'metas',
+    '4': 'tempo',  '5': 'quiz',    '6': 'calendario', '7': 'perfil'
+  };
+
+  document.addEventListener('keydown', (e) => {
+    // Ignore if typing in an input/textarea/contenteditable
+    const tag = e.target.tagName.toLowerCase();
+    const isEditing = tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable;
+    if (isEditing) return;
+
+    // Alt+1..7  → Switch tabs
+    if (e.altKey && NAV_KEYS[e.key]) {
+      e.preventDefault();
+      appInstance.switchTab(NAV_KEYS[e.key]);
+      return;
+    }
+
+    // Space → Toggle timer
+    if (e.key === ' ' && appInstance.currentTab === 'tempo') {
+      e.preventDefault();
+      appInstance.toggleTimerFromDock();
+      return;
+    }
+
+    // Arrow keys / J/K → Navigate flashcards
+    if (appInstance.currentTab === 'tempo') {
+      if (e.key === 'ArrowLeft' || e.key === 'j') appInstance.moveFlashcard(-1);
+      if (e.key === 'ArrowRight' || e.key === 'k') appInstance.moveFlashcard(1);
+      if (e.key === 'f') appInstance.flipFlashcard();
+    }
+
+    // Enter → next quiz question
+    if (appInstance.currentTab === 'quiz' && e.key === 'Enter') {
+      appInstance.nextQuizQuestion();
+    }
+  });
 }
 // --- Lógica Global do Dropdown ---
 document.addEventListener('click', (e) => {

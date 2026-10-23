@@ -141,7 +141,10 @@ export function getDailyMissions(state) {
     .filter(s => s.date === today)
     .reduce((sum, s) => sum + (Number(s.min) || 0), 0);
 
-  const taskDoneToday = (state.tasks || []).some(t => t.status === "done" && t.doneDate === today);
+  const taskDoneToday = (state.tasks || []).some(t => {
+    if (t.status !== "done" || !t.completedAt) return false;
+    return new Date(t.completedAt).toISOString().slice(0,10) === today;
+  });
   const quizDoneToday = (state.results || []).some(r => r.date === today);
 
   const claimedMissions = state.claimed_missions || [];

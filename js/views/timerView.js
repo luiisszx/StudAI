@@ -78,6 +78,9 @@ function renderStopwatchUI() {
         ✔ Finalizar e salvar
       </button>
     </div>
+    <div class="shortcuts-bar" style="margin-top:6px;">
+      <span><kbd class="kbd">Espaço</kbd> Pausar/Iniciar</span>
+    </div>
   `;
 }
 
@@ -363,6 +366,13 @@ function renderFlashcardsSection() {
         <button class="btn o" onclick="window.studai.shuffleFlashcards()">🔀 Embaralhar</button>
       </div>
       ${cardContentHtml}
+      ${currentCard ? `
+        <div class="shortcuts-bar" style="margin-top:10px;">
+          <span><kbd class="kbd">←</kbd> / <kbd class="kbd">J</kbd> Anterior</span>
+          <span><kbd class="kbd">→</kbd> / <kbd class="kbd">K</kbd> Próximo</span>
+          <span><kbd class="kbd">F</kbd> Virar</span>
+        </div>
+      ` : ''}
     </div>
   `;
 }

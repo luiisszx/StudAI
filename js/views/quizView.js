@@ -182,6 +182,8 @@ export function renderQuiz() {
         const score = activeQuizGame.score;
         const total = activeQuizGame.questions.length;
         const pct = total > 0 ? (score / total) : 0;
+        const pctRound = Math.round(pct * 100);
+        const scoreColor = pct === 1 ? "var(--g)" : pct >= 0.6 ? "var(--yellow)" : "var(--red)";
         const feedback = pct === 1
           ? "Desempenho perfeito! 🏆 +50 XP bônus!"
           : pct >= 0.6
@@ -191,8 +193,12 @@ export function renderQuiz() {
         return `
         <div class="card" style="text-align:center; padding:32px 20px;">
           <h3>Resultado do Teste</h3>
-          <div class="big" style="margin:16px 0">${score} / ${total}</div>
-          <p style="font-size:16px; margin-bottom:24px; color:var(--tx);">${feedback}</p>
+          <div style="font-size:64px; font-weight:900; color:${scoreColor}; text-shadow:0 0 30px ${scoreColor}; margin:12px 0; letter-spacing:-2px;">${pctRound}%</div>
+          <div style="font-size:18px; color:var(--mu); margin-bottom:8px;">${score} de ${total} corretas</div>
+          <div class="bar" style="max-width:300px; margin:0 auto 20px; height:10px;">
+            <i style="width:${pctRound}%; background:${scoreColor}; box-shadow:0 0 12px ${scoreColor};"></i>
+          </div>
+          <p style="font-size:15px; margin-bottom:24px; color:var(--tx);">${feedback}</p>
           <button class="btn" onclick="window.studai.exitQuiz()">Voltar ao Quiz</button>
         </div>
       `;
@@ -222,7 +228,10 @@ export function renderQuiz() {
           `;
       }).join("")}
         ${userSelectedAnswer !== null ? `
-          <div style="display:flex; justify-content:flex-end; margin-top:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; flex-wrap:wrap; gap:8px;">
+            <div class="shortcuts-bar" style="margin:0; padding:5px 12px;">
+              <span><kbd class="kbd">Enter</kbd> Próxima</span>
+            </div>
             <button class="btn" onclick="window.studai.nextQuizQuestion()">
               ${activeQuizGame.currentIndex + 1 < activeQuizGame.questions.length ? "Próxima Pergunta →" : "Ver Resultado"}
             </button>

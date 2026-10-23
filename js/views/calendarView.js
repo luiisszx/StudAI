@@ -214,6 +214,7 @@ export function renderCalendar() {
       <div class="row" style="align-items:center; flex-wrap:nowrap">
         <button class="btn o" onclick="window.studai.changeCalendarMonth(-1)">←</button>
         <h3 style="text-align:center; margin:0; flex:3; text-transform:capitalize;">${escapeHtml(monthNameYear)}</h3>
+        ${calendarMonthOffset !== 0 ? `<button class="btn o" style="font-size:11px; padding:6px 10px; white-space:nowrap;" onclick="window.studai.goToToday()">Hoje</button>` : '<div style="width:60px"></div>'}
         <button class="btn o" onclick="window.studai.changeCalendarMonth(1)">→</button>
       </div>
       <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-top:14px">
