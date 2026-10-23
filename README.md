@@ -65,7 +65,7 @@ studai/
 │   ├── utils.js           # Funções auxiliares (formatação de tempo, datas)
 │   ├── gamification.js    # Lógica de XP, Streaks e Missões
 │   ├── audio.js           # Efeitos sonoros do sistema
-│   ├── drawBg.js          # Lógica da Lousa/Canvas interativa do fundo
+│   ├── draw.js          # Lógica da Lousa/Canvas interativa do fundo
 │   └── views/
 │       ├── dashboardView.js # Painel principal (Radar, Evolução, Insights)
 │       └── goalsView.js     # Kanban de Tarefas e Metas Semanais
