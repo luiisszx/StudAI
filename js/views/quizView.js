@@ -315,7 +315,7 @@ ${renderSubjectDropdown('ai-cat', 'Matéria (filtro)', aiConfig.category, subjec
         : `<div class="sub" style="margin-bottom:10px">${availableLogsCount} ${availableLogsCount === 1 ? "registro disponível" : "registros disponíveis"}${aiConfig.category ? " em " + escapeHtml(aiConfig.category) : ""}. Usa os mais recentes.</div>`
       }
       <button class="btn" onclick="window.studai.triggerAiGeneration()" ${aiConfig.isLoading ? "disabled" : ""}>
-        ${aiConfig.isLoading ? "⏳ Gerando com IA..." : "✨ Gerar Perguntas"}
+        ${aiConfig.isLoading ? "⏳ Gerando com IA..." : "✨ Gerar Perguntas com IA"}
       </button>
       ${aiConfig.errorMessage ? `<div class="sub" style="color:var(--red);margin-top:8px">${escapeHtml(aiConfig.errorMessage)}</div>` : ""}
       ${aiPreviewHtml}

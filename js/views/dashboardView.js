@@ -235,7 +235,7 @@ export function renderDashboard() {
       ${isPlaceholder ? `
         <div style="position:absolute; top:0; left:0; right:0; bottom:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.4); backdrop-filter:blur(2px); z-index:10; border-radius:8px; flex-direction:column; gap:8px;">
           <span style="font-size:12px; font-weight:700; color:var(--tx); text-transform:uppercase; letter-spacing:1px;">Gráfico de Demonstração</span>
-          <button class="btn o" style="font-size:11px; padding:6px 12px;" onclick="document.querySelector('button[onclick*=\\'quiz\\']').click()">Fazer Testes</button>
+          <button class="btn o" style="font-size:11px; padding:6px 12px;" onclick="window.studai.switchTab('quiz')">Fazer Testes</button>
         </div>
       ` : ""}
       

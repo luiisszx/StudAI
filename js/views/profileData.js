@@ -20,17 +20,29 @@ export function saveProfile(event) {
   event.preventDefault();
   const formData = new FormData(event.target);
 
+  const email = (formData.get("email") || "").trim();
+  if (!email) {
+    showToast("O e-mail é obrigatório para manter seu perfil atualizado.", "error");
+    return;
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    showToast("Por favor, digite um e-mail válido.", "error");
+    return;
+  }
+
   if (!store.state.profile) store.state.profile = {};
 
-  store.state.profile.name = formData.get("name") || "Estudante";
-  store.state.profile.email = formData.get("email") || "";
-  store.state.profile.targetGoal = formData.get("targetGoal") || "";
+  store.state.profile.name = (formData.get("name") || "").trim() || "Estudante";
+  store.state.profile.email = email;
+  store.state.profile.targetGoal = (formData.get("targetGoal") || "").trim() || "Geral";
   store.state.profile.dailyGoalHours = Number(formData.get("dailyGoalHours")) || 2;
-  store.state.profile.avatarUrl = formData.get("avatarUrl") || "";
+  store.state.profile.avatarUrl = (formData.get("avatarUrl") || "").trim();
 
   if (typeof store.save === 'function') store.save();
 
-  showToast("Perfil atualizado com sucesso!");
+  showToast("Perfil e metas atualizados com sucesso!");
   window.studai.render();
 }
 
@@ -130,60 +142,65 @@ export function renderData() {
     </style>
 
     <!-- Cartão de Perfil Principal -->
-    <div class="card profile-header" style="display: flex; gap: 20px; align-items: center; background: rgba(255, 255, 255, 0.03);">
+    <div class="card profile-header" style="display: flex; gap: 20px; align-items: center; background: rgba(255, 255, 255, 0.03); flex-wrap: wrap;">
       <div class="avatar-container" style="text-align: center;">
         <img 
-          src="${escapeHtml(profile.avatarUrl) || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + encodeURIComponent(profile.name)}" 
+          src="${escapeHtml(profile.avatarUrl) || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + encodeURIComponent(profile.name || 'Estudante')}" 
           alt="Avatar" 
-          style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #6c5ce7;"
+          style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid var(--g, #2dff7a);"
         />
       </div>
-      <div style="flex: 1;">
-        <h2 style="margin: 0; display: flex; align-items: center; gap: 10px;">
-          ${escapeHtml(profile.name)}
-          <span style="font-size: 12px; background: #6c5ce7; color: white; padding: 3px 8px; border-radius: 12px; font-weight: normal;">
-            Nível ${levelData.level} ${levelData.rankTitle}
+      <div style="flex: 1; min-width: 220px;">
+        <h2 style="margin: 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          ${escapeHtml(profile.name || 'Estudante')}
+          <span style="font-size: 11.5px; background: rgba(45,255,122,0.12); color: var(--g, #2dff7a); border: 1px solid rgba(45,255,122,0.3); padding: 3px 10px; border-radius: 12px; font-weight: 700;">
+            Nível ${levelData.level} · ${levelData.rankTitle}
           </span>
         </h2>
-        <p style="font-size: 14px; font-weight: bold; color: #00e676; margin: 4px 0 8px 0;">
-          🌟 ${realXp} XP
-        </p>
-        <p class="sub" style="margin: 4px 0 8px 0;">🎯 <strong>Objetivo:</strong> ${escapeHtml(profile.targetGoal)}</p>
+        <div style="display: flex; gap: 16px; margin: 8px 0; font-size: 13px; flex-wrap: wrap;">
+          <span style="color: var(--g, #2dff7a); font-weight: 700;">🌟 ${realXp} XP</span>
+          <span style="color: #60a5fa; font-weight: 600;">⏱️ Meta: ${profile.dailyGoalHours || 2}h/dia</span>
+          ${profile.email ? `<span style="color: var(--mu);">✉️ ${escapeHtml(profile.email)}</span>` : ''}
+        </div>
+        <p class="sub" style="margin: 4px 0 0 0;">🎯 <strong>Objetivo Principal:</strong> ${escapeHtml(profile.targetGoal || 'Geral / Aprendizado Contínuo')}</p>
+        <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px;">
+          ${(store.getSubjects ? store.getSubjects() : []).map(s => `<span class="tag" style="border-color:${s.color}; color:${s.color}; margin:0; font-size:11px;">📚 ${escapeHtml(s.name)}</span>`).join('')}
+        </div>
       </div>
     </div>
 
     <!-- Editar Perfil -->
     <div class="card">
-      <h3>👤 Editar Meu Perfil</h3>
-      <form onsubmit="window.studai.saveProfile(event)" style="display: flex; flex-direction: column; gap: 12px; margin-top: 12px;">
+      <h3>👤 Editar Meu Perfil & Metas</h3>
+      <form onsubmit="window.studai.saveProfile(event)" style="display: flex; flex-direction: column; gap: 14px; margin-top: 14px;">
         <div class="row">
           <div style="flex: 1;">
-            <label style="font-size: 12px;">Nome / Apelido:</label>
-            <input type="text" name="name" value="${escapeHtml(profile.name)}" required style="width: 100%; margin-top: 4px;">
+            <label style="font-size: 12px; font-weight: 600;">Nome / Como quer ser chamado *:</label>
+            <input type="text" name="name" value="${escapeHtml(profile.name || '')}" required style="width: 100%; margin-top: 5px;">
           </div>
           <div style="flex: 1;">
-            <label style="font-size: 12px;">E-mail (opcional):</label>
-            <input type="email" name="email" value="${escapeHtml(profile.email)}" style="width: 100%; margin-top: 4px;">
+            <label style="font-size: 12px; font-weight: 600;">E-mail * (Obrigatório):</label>
+            <input type="email" name="email" value="${escapeHtml(profile.email || '')}" required placeholder="seu@email.com" style="width: 100%; margin-top: 5px;">
           </div>
         </div>
 
         <div class="row">
           <div style="flex: 2;">
-            <label style="font-size: 12px;">Curso / Concurso / Objetivo Principal:</label>
-            <input type="text" name="targetGoal" value="${escapeHtml(profile.targetGoal)}" placeholder="Ex: Enem / OAB / Concurso" style="width: 100%; margin-top: 4px;">
+            <label style="font-size: 12px; font-weight: 600;">Objetivo Principal de Estudo:</label>
+            <input type="text" name="targetGoal" value="${escapeHtml(profile.targetGoal || '')}" placeholder="Ex: Programação / ENEM / Concurso Público" style="width: 100%; margin-top: 5px;">
           </div>
           <div style="flex: 1;">
-            <label style="font-size: 12px;">Meta Diária (Horas):</label>
-            <input type="number" step="0.5" min="0.5" name="dailyGoalHours" value="${profile.dailyGoalHours}" style="width: 100%; margin-top: 4px;">
+            <label style="font-size: 12px; font-weight: 600;">Meta Diária (Horas de Estudo) *:</label>
+            <input type="number" step="0.5" min="0.5" max="24" name="dailyGoalHours" value="${profile.dailyGoalHours || 2}" required style="width: 100%; margin-top: 5px;">
           </div>
         </div>
 
         <div>
-          <label style="font-size: 12px;">URL da Foto / Avatar:</label>
-          <input type="url" name="avatarUrl" value="${escapeHtml(profile.avatarUrl)}" placeholder="https://..." style="width: 100%; margin-top: 4px;">
+          <label style="font-size: 12px; font-weight: 600;">URL da Foto / Avatar:</label>
+          <input type="url" name="avatarUrl" value="${escapeHtml(profile.avatarUrl || '')}" placeholder="https://..." style="width: 100%; margin-top: 5px;">
         </div>
 
-        <button type="submit" class="btn" style="align-self: flex-start; margin-top: 6px;">💾 Salvar Perfil</button>
+        <button type="submit" class="btn" style="align-self: flex-start; margin-top: 6px;">💾 Salvar Perfil & Metas</button>
       </form>
     </div>
 

@@ -301,18 +301,13 @@ ${renderSubjectDropdown('eh-c', 'Matéria', entry.cat, store.getSubjects())}
   `;
 }
 
-function getFlashcardsDeck() {
-  const currentMonthStart = getTodayIso().slice(0, 7) + "-01";
-  const deck = (store.state.logs || []).filter(l =>
-    l.date < currentMonthStart &&
-    l.topic &&
-    l.what &&
-    (!flashcardState.category || (l.cat || "Geral") === flashcardState.category)
-  );
+export function getFlashcardsDeck() {
+  const allLogs = (store.state.logs || []).filter(l => l && l.topic && l.what);
+  const deck = allLogs.filter(l => !flashcardState.category || (l.cat || "Geral") === flashcardState.category);
 
-  deck.sort((a, b) => sortAlpha(a.cat || "Geral", b.cat || "Geral") || b.date.localeCompare(a.date));
+  deck.sort((a, b) => sortAlpha(a.cat || "Geral", b.cat || "Geral") || (b.date || "").localeCompare(a.date || ""));
 
-  if (flashcardState.shuffledOrder) {
+  if (flashcardState.shuffledOrder && flashcardState.shuffledOrder.length > 0) {
     const orderMap = new Map(flashcardState.shuffledOrder.map((id, idx) => [id, idx]));
     deck.sort((a, b) => (orderMap.get(a.id) ?? 9999) - (orderMap.get(b.id) ?? 9999));
   }
@@ -321,35 +316,35 @@ function getFlashcardsDeck() {
 }
 
 function renderFlashcardsSection() {
-  const currentMonthStart = getTodayIso().slice(0, 7) + "-01";
-  const pastSubjects = [...new Set(
+  const subjectsWithNotes = [...new Set(
     (store.state.logs || [])
-      .filter(l => l.date < currentMonthStart && l.topic && l.what)
+      .filter(l => l && l.topic && l.what)
       .map(l => l.cat || "Geral")
   )].sort(sortAlpha);
 
   const deck = getFlashcardsDeck();
   if (flashcardState.index >= deck.length) flashcardState.index = 0;
+  if (flashcardState.index < 0) flashcardState.index = Math.max(0, deck.length - 1);
   const currentCard = deck[flashcardState.index];
 
-  let cardContentHtml = `<div class="empty">Ainda não há estudos de meses anteriores para virar flashcards.</div>`;
+  let cardContentHtml = `<div class="empty">Ainda não há tópicos com anotações para gerar flashcards. Estude pelo timer e preencha as anotações para criar seus cartões automaticamente!</div>`;
 
   if (currentCard) {
     const color = store.getSubjectColor(currentCard.cat || "Geral");
     cardContentHtml = `
       <div class="sub" style="text-align:center">
-        Cartão ${flashcardState.index + 1} de ${deck.length} · Estudado em ${formatDateBr(currentCard.date)}
+        Cartão ${flashcardState.index + 1} de ${deck.length} · Registrado em ${formatDateBr(currentCard.date)}
       </div>
-      <div class="fcard" onclick="window.studai.flipFlashcard()">
+      <div class="fcard ${flashcardState.isFlipped ? 'flipped' : ''}" onclick="window.studai.flipFlashcard()" style="cursor:pointer; transition:transform 0.25s, box-shadow 0.25s;">
         <span class="tag" style="border-color:${color};color:${color};margin:0">${escapeHtml(currentCard.cat || "Geral")}</span>
         ${flashcardState.isFlipped
-        ? `<div style="font-size:15px; line-height:1.6;">${escapeHtml(currentCard.what)}</div>`
-        : `<div style="font-size:20px; font-weight:700;">${escapeHtml(currentCard.topic)}</div><div class="sub">Toque para ver o que você aprendeu</div>`
+        ? `<div style="font-size:15px; line-height:1.6; color:#d7f5df;">${escapeHtml(currentCard.what)}</div>`
+        : `<div style="font-size:20px; font-weight:700; color:#fff;">${escapeHtml(currentCard.topic)}</div><div class="sub" style="margin-top:6px;">Toque para revelar o que você aprendeu 💡</div>`
       }
       </div>
-      <div class="row">
+      <div class="row" style="margin-top:12px;">
         <button class="btn o" onclick="window.studai.moveFlashcard(-1)">← Anterior</button>
-        <button class="btn" onclick="window.studai.flipFlashcard()">${flashcardState.isFlipped ? "Ver pergunta" : "Virar resposta"}</button>
+        <button class="btn" onclick="window.studai.flipFlashcard()">${flashcardState.isFlipped ? "Ver Pergunta" : "Virar Resposta"}</button>
         <button class="btn o" onclick="window.studai.moveFlashcard(1)">Próximo →</button>
       </div>
     `;
@@ -357,20 +352,25 @@ function renderFlashcardsSection() {
 
   return `
     <div class="card">
-      <h3>🃏 Flashcards de meses passados (Revisão Espaçada)</h3>
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
+        <h3 style="margin:0;">🃏 Flashcards de Revisão Ativa (${deck.length})</h3>
+        <span class="sub">${subjectsWithNotes.length} ${subjectsWithNotes.length === 1 ? 'matéria com cartões' : 'matérias com cartões'}</span>
+      </div>
       <div class="row">
-        <select onchange="window.studai.setFlashcardCategory(this.value)">
-          <option value="">Todas as matérias</option>
-          ${pastSubjects.map(c => `<option ${c === flashcardState.category ? "selected" : ""}>${escapeHtml(c)}</option>`).join("")}
+        <select onchange="window.studai.setFlashcardCategory(this.value)" style="flex:2;">
+          <option value="">Todas as matérias (${(store.state.logs || []).filter(l => l && l.topic && l.what).length} cartões)</option>
+          ${subjectsWithNotes.map(c => `<option value="${escapeHtml(c)}" ${c === flashcardState.category ? "selected" : ""}>${escapeHtml(c)}</option>`).join("")}
         </select>
-        <button class="btn o" onclick="window.studai.shuffleFlashcards()">🔀 Embaralhar</button>
+        <button class="btn o" onclick="window.studai.shuffleFlashcards()" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px;">
+          🔀 Embaralhar
+        </button>
       </div>
       ${cardContentHtml}
       ${currentCard ? `
-        <div class="shortcuts-bar" style="margin-top:10px;">
+        <div class="shortcuts-bar" style="margin-top:14px;">
           <span><kbd class="kbd">←</kbd> / <kbd class="kbd">J</kbd> Anterior</span>
           <span><kbd class="kbd">→</kbd> / <kbd class="kbd">K</kbd> Próximo</span>
-          <span><kbd class="kbd">F</kbd> Virar</span>
+          <span><kbd class="kbd">F</kbd> Virar Cartão</span>
         </div>
       ` : ''}
     </div>
@@ -440,10 +440,10 @@ ${renderSubjectDropdown('mc', 'Matéria *', timer.manualForm.category, subjects,
       <div class="row">
         <input id="mt" placeholder="Tópico aprendido *" value="${escapeHtml(timer.manualForm.topic)}" oninput="window.studai.setManualFormField('topic', this.value)">
       </div>
+      <textarea id="mw" rows="2" placeholder="O que você estudou desse tópico? *" oninput="window.studai.setManualFormField('notes', this.value)" style="margin-bottom:12px">${escapeHtml(timer.manualForm.notes)}</textarea>
       <div class="row">
         <button class="btn" onclick="window.studai.addManualSession()">Registrar sessão</button>
       </div>
-      <textarea id="mw" rows="2" placeholder="O que você estudou desse tópico? *" oninput="window.studai.setManualFormField('notes', this.value)" style="margin-bottom:8px">${escapeHtml(timer.manualForm.notes)}</textarea>
     </div>
   `;
 

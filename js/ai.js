@@ -5,7 +5,7 @@ import { store } from "./store.js";
 
 const STORAGE_API_KEY = "studai_gemini_key";
 const STORAGE_MODEL_KEY = "studai_gemini_model";
-const DEFAULT_MODEL = "gemini-2.5-flash";
+const DEFAULT_MODEL = "gemini-2.0-flash";
 
 export const aiConfig = {
   sourceType: "logs", // 'logs' or 'text'
@@ -40,7 +40,9 @@ export function saveApiKey(key, model) {
 
 export function getModelName() {
   try {
-    return localStorage.getItem(STORAGE_MODEL_KEY) || DEFAULT_MODEL;
+    const saved = localStorage.getItem(STORAGE_MODEL_KEY);
+    if (!saved || saved === "gemini-2.5-flash") return DEFAULT_MODEL;
+    return saved;
   } catch {
     return DEFAULT_MODEL;
   }
@@ -108,10 +110,101 @@ export function buildSourceText() {
 }
 
 /**
+ * Generates smart quiz questions locally based on topics, materials or flashcards
+ * without requiring an external API key (100% offline & instant).
+ */
+export function generateOfflineQuizQuestions() {
+  const logs = store.state.logs || [];
+  const subjects = store.getSubjects ? store.getSubjects() : [];
+  const selectedCat = aiConfig.category || (subjects[0] ? subjects[0].name : "Geral");
+  const filteredLogs = logs.filter(l => !selectedCat || (l.cat || "Geral") === selectedCat);
+
+  const pool = filteredLogs.length > 0 ? filteredLogs : logs;
+  if (pool.length === 0) {
+    // Se não houver logs de estudo, gera perguntas de metodologias e técnicas de estudo ativo
+    return [
+      {
+        q: `Qual é o objetivo principal da técnica de Repetição Espaçada (Spaced Repetition)?`,
+        opts: [
+          `Superar a curva do esquecimento revisando o conteúdo em intervalos progressivos.`,
+          `Estudar 10 horas seguidas no dia anterior à prova sem pausas.`,
+          `Memorizar respostas sem compreender o conceito fundamental.`,
+          `Substituir anotações por resumos passivos sublinhados.`
+        ],
+        ans: 0,
+        selected: true,
+        userPick: null
+      },
+      {
+        q: `No método Pomodoro tradicional, qual é a estrutura de foco e pausa recomendada?`,
+        opts: [
+          `50 minutos de estudo e 30 minutos de pausa.`,
+          `25 minutos de foco absoluto seguidos de 5 minutos de pausa.`,
+          `120 minutos contínuos sem intervalos.`,
+          `10 minutos de foco com 20 minutos de descanso.`
+        ],
+        ans: 1,
+        selected: true,
+        userPick: null
+      },
+      {
+        q: `Por que a Recordação Ativa (Active Recall) é mais eficiente que a releitura passiva?`,
+        opts: [
+          `Porque força o cérebro a recuperar a informação, fortalecendo as conexões sinápticas.`,
+          `Porque consome menos energia mental do que ler um texto com marcatexto.`,
+          `Porque garante memorização instantânea sem necessidade de repetição.`,
+          `Porque elimina completamente a necessidade de sono para consolidação.`
+        ],
+        ans: 0,
+        selected: true,
+        userPick: null
+      }
+    ];
+  }
+
+  const count = Math.max(1, Math.min(10, parseInt(aiConfig.questionCount, 10) || 4));
+  const selectedItems = [...pool].sort(() => 0.5 - Math.random()).slice(0, count);
+
+  return selectedItems.map((item, idx) => {
+    const topic = item.topic || "Conceito";
+    const what = item.what || "Detalhe relevante aprendido durante a sessão";
+    const cat = item.cat || selectedCat;
+
+    const correct = `Em ${topic}: ${what.slice(0, 120)}${what.length > 120 ? "..." : ""}`;
+    const distractor1 = `Em ${topic}: aplica-se apenas superficialmente sem relevância prática.`;
+    const distractor2 = `Não possui relação direta com os fundamentos de ${cat}.`;
+    const distractor3 = `Trata-se de uma hipótese desatualizada já substituída nos estudos modernos.`;
+
+    const rawOpts = [correct, distractor1, distractor2, distractor3];
+    // Randomiza a posição da correta
+    const shuffled = rawOpts
+      .map((val, i) => ({ val, isCorrect: i === 0, sort: Math.random() }))
+      .sort((a, b) => a.sort - b.sort);
+
+    const ansIdx = shuffled.findIndex(s => s.isCorrect);
+
+    return {
+      q: `Em ${cat}, sobre "${topic}": qual afirmação melhor sintetiza o que foi estudado?`,
+      opts: shuffled.map(s => s.val),
+      ans: ansIdx >= 0 ? ansIdx : 0,
+      selected: true,
+      userPick: null
+    };
+  });
+}
+
+/**
  * Generates quiz questions using Gemini API.
  * @returns {Promise<Array>}
  */
 export async function generateQuizQuestions() {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    const msg = "Cole sua chave de API do Gemini no campo acima e clique em 'Salvar Chave' para gerar perguntas com IA.";
+    aiConfig.errorMessage = msg;
+    throw new Error(msg);
+  }
+
   const source = buildSourceText();
   if (!source) {
     const msg = aiConfig.sourceType === "text"
@@ -157,7 +250,7 @@ export async function generateQuizQuestions() {
       }));
 
     if (validated.length === 0) {
-      throw new Error("Nenhuma pergunta válida pôde ser estruturada a partir da resposta.");
+      throw new Error("Nenhuma pergunta válida pôde ser estruturada a partir da resposta da IA.");
     }
 
     aiConfig.generatedItems = validated;
@@ -169,3 +262,4 @@ export async function generateQuizQuestions() {
     aiConfig.isLoading = false;
   }
 }
+

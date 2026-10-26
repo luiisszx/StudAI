@@ -34,13 +34,27 @@ O **StudAI** é uma plataforma web para gestão de estudos projetada com uma int
 * **Criação Rápida de Tarefas:** Formulário integrado em linha (grid) com seleção rápida de disciplina e ganho de **+5 XP** por tarefa concluída.
 * **Metas Semanais:** Acompanhamento dinâmico de horas alvo por disciplina com recalculo automático toda segunda-feira.
 
-### 🎨 Lousa Interativa no Fundo (Background Canvas)
-* **Desenho Interativo (Modo Lousa):** Camada de `<canvas>` transparente integrada ao fundo que permite rabiscar esquemas, contas ou ideias rapidamente durante os estudos.
-* **Visual Neon Minimalista:** Traço suave e ajustado por trás dos elementos da interface, sem interferir no uso normal dos cartões ou timers.
+### ⚡ Pop-up Flutuante Inteligente (Focus HUD v2.0)
+* **Always-On-Top Multitarefa:** Funciona flutuando sobre qualquer aplicativo (YouTube, PDFs, Word, VSCode) via Document Picture-in-Picture nativo ou janela pop-up universal.
+* **4 Abas Produtivas Integradas:**
+  * ⏱️ **Timer & Registro:** Cronômetro e Pomodoro com ajuste rápido (+/- 5min), seletor de matérias e salvamento direto com ganho de XP.
+  * ✅ **Checklist do Kanban:** Visualize suas tarefas pendentes e marque como concluídas direto pelo pop-up (+5 XP na hora). Adicione micro-tarefas rápidas sem sair do que está fazendo.
+  * 🎵 **Sons de Foco (Soundscapes):** Áudio sintético integrado (Chuva Suave, Ruído Branco e Ondas Alfa 40Hz) com controle de volume.
+  * 📝 **Bloco de Notas / Scratchpad:** Auto-salve anotações instantâneas, fórmulas ou dúvidas enquanto assiste à aula.
+* **Modo Mini:** Encolhe o HUD com um clique para economizar espaço de tela.
+
+### 🎧 Sons de Foco & Concentração (Web Audio API)
+* **Sintetizador 100% Offline:** Sem dependências ou downloads pesados de streaming.
+* **Modos Ambientes:** Chuva Suave para redução de estresse, Ruído Branco para isolamento acústico e Frequências Binaurais 40Hz (Ondas Alfa) para hiperfoco biológico.
+
+### 🧠 Quiz Inteligente & Repetição Espaçada
+* **Modo Híbrido:** Suporte aos modelos oficiais do Google Gemini (`gemini-2.0-flash` e `gemini-1.5-flash`) ou geração instantânea didática offline sem necessidade de chave de API.
+* **Sistema Leitner:** Perguntas memorizadas voltam em intervalos progressivos (1, 3, 7 e 16 dias).
 
 ### 🎮 Gamificação & Retenção
 * **Missões Diárias:** Objetivos diários dinâmicos com resgate de XP e animações interativas na tela.
 * **Gamificação Geral:** Sistema de níveis, streaks e efeitos sonoros focados na construção do hábito de estudo.
+* **Modo Convidado & Nuvem:** Acesso instantâneo sem login obrigatório e sincronização com Firebase quando desejar.
 
 ---
 

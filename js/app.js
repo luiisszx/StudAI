@@ -6,7 +6,7 @@ import { timer } from "./timer.js";
 import { sounds } from "./audio.js";
 import { calculateXP, calculateLevelData } from "./gamification.js";
 import { showToast, showConfirm, generateId, getTodayIso, escapeHtml } from "./utils.js";
-import { aiConfig, saveApiKey, generateQuizQuestions } from "./ai.js";
+import { aiConfig, saveApiKey, generateQuizQuestions, generateOfflineQuizQuestions } from "./ai.js";
 
 // Import Views
 import { renderDashboard } from "./views/dashboardView.js";
@@ -23,7 +23,8 @@ import {
   toggleActiveBlur,
   setEditingHistoryKey,
   editingHistoryKey,
-  flashcardState
+  flashcardState,
+  getFlashcardsDeck
 } from "./views/timerView.js";
 import {
   renderQuiz,
@@ -268,11 +269,13 @@ class Application {
 
     task.status = newStatus;
 
-    // NOVO: Anota a data se for concluída, ou apaga se voltar para trás
     if (newStatus === "done") {
       task.completedAt = Date.now();
+      sounds.playSuccess();
+      showToast("Tarefa concluída! +5 XP");
     } else {
       delete task.completedAt;
+      sounds.playPop();
     }
     store.save();
   }
@@ -484,6 +487,33 @@ class Application {
     this.render();
   }
 
+  toggleSoundscapes() {
+    const isPlaying = sounds.toggleAmbient("rain");
+    const iconEl = document.getElementById("quick-sound-icon");
+    const labelEl = document.getElementById("quick-sound-label");
+    const btnEl = document.getElementById("btn-quick-sound");
+
+    if (isPlaying) {
+      if (iconEl) iconEl.textContent = "🌧️";
+      if (labelEl) labelEl.textContent = "Chuva Ativa";
+      if (btnEl) {
+        btnEl.style.borderColor = "var(--g)";
+        btnEl.style.background = "rgba(45,255,122,0.12)";
+        btnEl.style.color = "var(--g)";
+      }
+      showToast("Sons de Foco ativados: Chuva Relaxante 🌧️");
+    } else {
+      if (iconEl) iconEl.textContent = "🎧";
+      if (labelEl) labelEl.textContent = "Sons de Foco";
+      if (btnEl) {
+        btnEl.style.borderColor = "var(--line)";
+        btnEl.style.background = "rgba(255,255,255,0.03)";
+        btnEl.style.color = "inherit";
+      }
+      showToast("Sons de Foco desativados.");
+    }
+  }
+
   toggleAutoPip(enabled) {
     timer.setAutoPip(enabled);
   }
@@ -623,7 +653,7 @@ class Application {
   }
 
   moveFlashcard(dir) {
-    const deck = (store.state.logs || []).filter(l => l.topic && l.what);
+    const deck = getFlashcardsDeck();
     if (!deck.length) return;
     flashcardState.index = (flashcardState.index + dir + deck.length) % deck.length;
     flashcardState.isFlipped = false;
@@ -632,12 +662,51 @@ class Application {
   }
 
   shuffleFlashcards() {
-    const deck = (store.state.logs || []).filter(l => l.topic && l.what);
-    flashcardState.shuffledOrder = deck.map(l => l.id).sort(() => Math.random() - 0.5);
+    const deck = getFlashcardsDeck();
+    if (!deck.length) {
+      showToast("Nenhum cartão para embaralhar nesta categoria.", "info");
+      return;
+    }
+
+    if (deck.length === 1) {
+      flashcardState.index = 0;
+      flashcardState.isFlipped = false;
+      sounds.playPop();
+      showToast("Apenas 1 cartão disponível nesta categoria. Registre novos tópicos no Timer para criar mais cartões!", "info");
+      this.render();
+      return;
+    }
+
+    // Fisher-Yates Shuffle real garantindo rotação visível do primeiro cartão
+    const ids = deck.map(l => l.id);
+    let attempts = 0;
+    do {
+      for (let i = ids.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [ids[i], ids[j]] = [ids[j], ids[i]];
+      }
+      attempts++;
+    } while (deck.length > 1 && ids[0] === deck[flashcardState.index]?.id && attempts < 5);
+
+    flashcardState.shuffledOrder = ids;
     flashcardState.index = 0;
     flashcardState.isFlipped = false;
-    sounds.playSuccess();
+    sounds.playPop();
+    showToast(`🔀 ${ids.length} cartões embaralhados aleatoriamente!`);
     this.render();
+
+    // Feedback visual tátil de embaralhamento
+    setTimeout(() => {
+      const cardEl = document.querySelector(".fcard");
+      if (cardEl) {
+        cardEl.style.transform = "scale(0.96) rotate(-2deg)";
+        cardEl.style.borderColor = "var(--g, #2dff7a)";
+        setTimeout(() => {
+          cardEl.style.transform = "";
+          cardEl.style.borderColor = "";
+        }, 220);
+      }
+    }, 40);
   }
 
   setFlashcardCategory(category) {
@@ -680,9 +749,22 @@ class Application {
       this.render();
       await generateQuizQuestions();
       sounds.playSuccess();
-      showToast("Perguntas geradas pela IA!");
+      showToast("Perguntas geradas com sucesso!");
     } catch (err) {
       showToast(err.message, "error");
+    }
+    this.render();
+  }
+
+  triggerOfflineGeneration() {
+    try {
+      const items = generateOfflineQuizQuestions();
+      aiConfig.generatedItems = items;
+      aiConfig.errorMessage = "";
+      sounds.playSuccess();
+      showToast("Perguntas geradas a partir do seu histórico de estudo!");
+    } catch (err) {
+      showToast("Erro ao gerar: " + err.message, "error");
     }
     this.render();
   }

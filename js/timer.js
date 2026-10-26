@@ -357,30 +357,153 @@ class TimerEngine {
   async togglePictureInPicture(isAuto = false) {
     if (this.pipWindow) {
       if (isAuto) return;
-      this.pipWindow.close();
+      try { this.pipWindow.close(); } catch {}
       this.pipWindow = null;
       return;
     }
 
-    if (!("documentPictureInPicture" in window)) {
+    // 1. Tenta Document Picture-in-Picture (Always-On-Top nativo do Chrome/Edge)
+    if ("documentPictureInPicture" in window) {
+      try {
+        this.pipWindow = await window.documentPictureInPicture.requestWindow({
+          width: 380,
+          height: 560
+        });
+      } catch (err) {
+        console.warn("PiP nativo não pôde abrir, tentando janela destacada:", err);
+      }
+    }
+
+    // 2. Fallback Universal: Janela Pop-up independente (Firefox, Safari, etc.)
+    if (!this.pipWindow) {
+      try {
+        const left = Math.max(10, (window.screen?.availWidth || 1200) - 410);
+        const top = 40;
+        this.pipWindow = window.open(
+          "about:blank",
+          "studai_focus_hud",
+          `width=380,height=560,left=${left},top=${top},resizable=yes,scrollbars=yes,status=no`
+        );
+      } catch (err) {
+        if (!isAuto) {
+          showToast("Não foi possível abrir o pop-up: " + err.message, "error");
+        }
+        return;
+      }
+    }
+
+    if (!this.pipWindow) {
       if (!isAuto) {
-        showToast("Seu navegador não suporta janela flutuante PiP. Use Chrome ou Edge no computador.", "info");
+        showToast("O navegador bloqueou a abertura do pop-up. Permita pop-ups para este site.", "error");
       }
       return;
     }
 
-    try {
-      this.pipWindow = await window.documentPictureInPicture.requestWindow({
-        width: 360,
-        height: 485
-      });
-    } catch (err) {
-      if (!isAuto) {
-        showToast("Não foi possível abrir o pop-up: " + err.message, "error");
-      }
-      return;
+    this.renderPipWindow();
+  }
+
+  adjustMinutes(delta) {
+    if (this.mode === "prog") {
+      const current = this.getStopwatchElapsedMinutes();
+      this.stopwatch.accumulatedMinutes = Math.max(0, current + delta);
+      if (this.stopwatch.isRunning) this.stopwatch.startTime = Date.now();
+    } else {
+      this.pomodoro.secondsLeft = Math.max(60, this.pomodoro.secondsLeft + delta * 60);
+    }
+    sounds.playPop();
+    this.updatePip();
+    if (window.studai && window.studai.render) window.studai.render();
+  }
+
+  pipToggleTask(taskId) {
+    const task = (store.state.tasks || []).find(t => t.id === taskId);
+    if (!task) return;
+    if (task.status === "done") {
+      task.status = "todo";
+      delete task.completedAt;
+      sounds.playPop();
+    } else {
+      task.status = "done";
+      task.completedAt = Date.now();
+      sounds.playSuccess();
+      showToast("Tarefa concluída no Pop-up! +5 XP");
+    }
+    store.save();
+    this.updatePipTasks();
+    if (window.studai && window.studai.render) window.studai.render();
+  }
+
+  pipAddTask(text) {
+    if (!text || !text.trim()) return;
+    const trimmed = text.trim();
+    const category = this.form.category || "Geral";
+    store.ensureSubject(category);
+    store.state.tasks.push({
+      id: generateId(),
+      text: trimmed,
+      cat: category,
+      status: "todo",
+      date: getTodayIso()
+    });
+    store.save();
+    sounds.playSuccess();
+    this.updatePipTasks();
+    if (window.studai && window.studai.render) window.studai.render();
+  }
+
+  renderPipTasksHtml() {
+    const tasks = store.state.tasks || [];
+    const pendingTasks = tasks.filter(t => t.status !== "done");
+    const selectedCat = this.form.category;
+    const filtered = selectedCat
+      ? pendingTasks.filter(t => (t.cat || "Geral") === selectedCat)
+      : pendingTasks;
+    const displayList = filtered.length > 0 ? filtered : pendingTasks;
+
+    if (displayList.length === 0) {
+      return `<div style="text-align:center; padding:20px; color:var(--mu); font-size:12px;">🎉 Nenhuma tarefa pendente! Adicione uma abaixo.</div>`;
     }
 
+    return displayList.slice(0, 15).map(t => {
+      const color = store.getSubjectColor(t.cat || "Geral");
+      return `
+        <div class="pip-task-item" style="display:flex; align-items:center; gap:8px; padding:7px 10px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-left:3px solid ${color}; border-radius:6px; margin-bottom:5px;">
+          <input type="checkbox" class="pip-task-chk" data-id="${t.id}" style="width:15px; height:15px; accent-color:var(--g); cursor:pointer;">
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:12px; color:var(--tx); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(t.text)}</div>
+            <span style="font-size:10px; color:${color}; opacity:0.85;">${escapeHtml(t.cat || "Geral")}</span>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  updatePipTasks() {
+    if (!this.pipWindow) return;
+    const container = this.pipWindow.document.getElementById("pip-tasks-list");
+    if (container) {
+      container.innerHTML = this.renderPipTasksHtml();
+      this.bindPipTasksEvents();
+    }
+    const badge = this.pipWindow.document.getElementById("pip-tasks-count");
+    if (badge) {
+      const count = (store.state.tasks || []).filter(t => t.status !== "done").length;
+      badge.textContent = count > 0 ? count : "";
+    }
+  }
+
+  bindPipTasksEvents() {
+    if (!this.pipWindow) return;
+    const doc = this.pipWindow.document;
+    doc.querySelectorAll(".pip-task-chk").forEach(chk => {
+      chk.onchange = () => {
+        const id = chk.getAttribute("data-id");
+        this.pipToggleTask(id);
+      };
+    });
+  }
+
+  renderPipWindow() {
     const doc = this.pipWindow.document;
     const subjects = store.getSubjects();
     const pillsHtml = subjects.length
@@ -391,9 +514,12 @@ class TimerEngine {
         `).join("")
       : `<button class="spill active" data-cat="Geral">Geral</button>`;
 
+    const savedNotes = localStorage.getItem("studai_hud_scratchpad") || "";
+    const pendingTasksCount = (store.state.tasks || []).filter(t => t.status !== "done").length;
+
     doc.head.innerHTML = `
       <meta charset="utf-8">
-      <title>StudAI Focus HUD</title>
+      <title>StudAI Focus HUD v2.0</title>
       <style>
         :root {
           --bg: #050805;
@@ -403,7 +529,7 @@ class TimerEngine {
           --amber: #f59e0b;
           --tx: #d7f5df;
           --mu: #7f9a86;
-          --font: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+          --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -412,7 +538,7 @@ class TimerEngine {
                       var(--bg);
           color: var(--tx);
           font-family: var(--font);
-          padding: 12px;
+          padding: 10px 12px;
           font-size: 13px;
           min-height: 100vh;
           display: flex;
@@ -420,7 +546,7 @@ class TimerEngine {
           overflow-x: hidden;
           user-select: none;
         }
-        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-thumb { background: rgba(45, 255, 122, 0.25); border-radius: 99px; }
 
         .hud-top {
@@ -473,11 +599,62 @@ class TimerEngine {
           color: #fff;
         }
 
+        /* Abas no HUD */
+        .hud-tabs {
+          display: flex;
+          gap: 4px;
+          background: rgba(0,0,0,0.4);
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          padding: 3px;
+          margin-bottom: 10px;
+        }
+        .hud-tab {
+          flex: 1;
+          background: transparent;
+          border: none;
+          color: var(--mu);
+          font-size: 11px;
+          font-weight: 600;
+          padding: 5px 2px;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+        }
+        .hud-tab:hover {
+          color: var(--tx);
+        }
+        .hud-tab.active {
+          background: rgba(45, 255, 122, 0.15);
+          color: var(--g);
+          font-weight: 700;
+          border: 1px solid rgba(45, 255, 122, 0.3);
+        }
+        .tab-badge {
+          background: rgba(45,255,122,0.25);
+          color: var(--g);
+          font-size: 9px;
+          padding: 1px 5px;
+          border-radius: 99px;
+        }
+
+        .tab-content {
+          display: none;
+        }
+        .tab-content.active {
+          display: block;
+        }
+
+        /* Anel do Timer */
         .ring-wrap {
           position: relative;
-          width: 148px;
-          height: 148px;
-          margin: 4px auto 10px;
+          width: 140px;
+          height: 140px;
+          margin: 0 auto 8px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -525,7 +702,7 @@ class TimerEngine {
         .mode-tag.break { color: var(--amber); }
         .digits {
           font-family: "Courier New", monospace;
-          font-size: 28px;
+          font-size: 26px;
           font-weight: 800;
           letter-spacing: -0.02em;
           color: var(--g);
@@ -545,11 +722,33 @@ class TimerEngine {
           margin-top: 2px;
         }
 
+        .adjust-row {
+          display: flex;
+          justify-content: center;
+          gap: 6px;
+          margin-bottom: 8px;
+        }
+        .btn-adjust {
+          background: rgba(255,255,255,0.04);
+          border: 1px solid var(--line);
+          color: var(--mu);
+          font-size: 10.5px;
+          padding: 3px 8px;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .btn-adjust:hover {
+          color: var(--g);
+          border-color: var(--g);
+          background: rgba(45,255,122,0.1);
+        }
+
         .ctrl-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 7px;
-          margin-bottom: 10px;
+          margin-bottom: 8px;
         }
         .btn {
           background: linear-gradient(135deg, #5dffa3, var(--g2));
@@ -557,7 +756,7 @@ class TimerEngine {
           border: 0;
           padding: 8px 12px;
           border-radius: 8px;
-          font-size: 12.5px;
+          font-size: 12px;
           font-weight: 700;
           cursor: pointer;
           transition: transform 0.15s, box-shadow 0.2s;
@@ -580,40 +779,26 @@ class TimerEngine {
           background: rgba(45, 255, 122, 0.18);
         }
 
-        .ai-hud {
-          background: rgba(45, 255, 122, 0.05);
-          border: 1px solid rgba(45, 255, 122, 0.18);
-          border-radius: 8px;
-          padding: 8px 10px;
-          margin-bottom: 10px;
-          display: flex;
-          gap: 8px;
-          align-items: center;
-        }
-        .ai-hud .icon { font-size: 16px; flex-shrink: 0; }
-        .ai-hud .msg { font-size: 11px; line-height: 1.35; color: var(--tx); }
-        .ai-hud .msg b { color: var(--g); }
-
         .pills-title {
-          font-size: 10.5px;
+          font-size: 10px;
           font-weight: 700;
           color: var(--mu);
           text-transform: uppercase;
           letter-spacing: 0.05em;
-          margin-bottom: 5px;
+          margin-bottom: 4px;
         }
         .pills-row {
           display: flex;
           gap: 5px;
           overflow-x: auto;
           padding-bottom: 4px;
-          margin-bottom: 10px;
+          margin-bottom: 8px;
         }
         .spill {
           flex: 0 0 auto;
-          font-size: 11px;
+          font-size: 10.5px;
           font-weight: 600;
-          padding: 3px 9px;
+          padding: 2px 8px;
           border-radius: 99px;
           border: 1px solid var(--line);
           background: rgba(0, 0, 0, 0.4);
@@ -650,19 +835,37 @@ class TimerEngine {
           background: rgba(0, 0, 0, 0.65);
         }
 
-        .compact-hidden {
-          display: block;
+        .sound-card {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 9px 12px;
+          border: 1px solid var(--line);
+          background: rgba(255,255,255,0.02);
+          border-radius: 8px;
+          margin-bottom: 8px;
+          cursor: pointer;
+          transition: all 0.2s;
         }
+        .sound-card:hover {
+          border-color: var(--g);
+          background: rgba(45,255,122,0.06);
+        }
+        .sound-card.playing {
+          border-color: var(--g);
+          background: rgba(45,255,122,0.12);
+        }
+
         body.is-compact .compact-hidden {
           display: none !important;
         }
         body.is-compact .ring-wrap {
-          width: 120px;
-          height: 120px;
-          margin: 2px auto 8px;
+          width: 110px;
+          height: 110px;
+          margin: 0 auto 6px;
         }
         body.is-compact .digits {
-          font-size: 22px;
+          font-size: 20px;
         }
       </style>
     `;
@@ -679,57 +882,155 @@ class TimerEngine {
         </div>
       </div>
 
-      <div class="ring-wrap">
-        <svg class="ring-svg" viewBox="0 0 140 140">
-          <circle class="ring-bg" cx="70" cy="70" r="61" />
-          <circle class="ring-val" id="pip-ring" cx="70" cy="70" r="61" />
-        </svg>
-        <div class="ring-center">
-          <span class="mode-tag" id="pip-mode-label">Foco</span>
-          <span class="digits" id="pip-timer">00:00:00</span>
-          <span class="xp-chip" id="pip-xp">+0 XP</span>
+      <!-- Abas de Navegação -->
+      <div class="hud-tabs compact-hidden">
+        <button class="hud-tab active" data-tab="timer">⏱️ Foco</button>
+        <button class="hud-tab" data-tab="tasks">✅ Tarefas <span class="tab-badge" id="pip-tasks-count">${pendingTasksCount > 0 ? pendingTasksCount : ""}</span></button>
+        <button class="hud-tab" data-tab="sounds">🎵 Sons</button>
+        <button class="hud-tab" data-tab="notes">📝 Notas</button>
+      </div>
+
+      <!-- ABA 1: FOCO & TIMER -->
+      <div id="tab-timer" class="tab-content active">
+        <div class="ring-wrap">
+          <svg class="ring-svg" viewBox="0 0 140 140">
+            <circle class="ring-bg" cx="70" cy="70" r="61" />
+            <circle class="ring-val" id="pip-ring" cx="70" cy="70" r="61" />
+          </svg>
+          <div class="ring-center">
+            <span class="mode-tag" id="pip-mode-label">Foco</span>
+            <span class="digits" id="pip-timer">00:00:00</span>
+            <span class="xp-chip" id="pip-xp">+0 XP</span>
+          </div>
+        </div>
+
+        <div class="adjust-row compact-hidden">
+          <button class="btn-adjust" id="pip-minus-5">-5 min</button>
+          <button class="btn-adjust" id="pip-plus-5">+5 min</button>
+          <button class="btn-adjust" id="pip-reset-timer">↺ Resetar</button>
+        </div>
+
+        <div class="ctrl-grid">
+          <button class="btn" id="pip-toggle">▶ Iniciar</button>
+          <button class="btn o" id="pip-secondary">✔ Salvar</button>
+        </div>
+
+        <div class="compact-hidden">
+          <div class="pills-title">Matéria Atual</div>
+          <div class="pills-row" id="pip-pills">${pillsHtml}</div>
+          <input id="pip-topic" placeholder="Tópico *" value="${escapeHtml(this.form.topic)}">
+          <textarea id="pip-notes" rows="2" placeholder="O que estudou? *">${escapeHtml(this.form.notes)}</textarea>
         </div>
       </div>
 
-      <div class="ctrl-grid">
-        <button class="btn" id="pip-toggle">▶ Iniciar</button>
-        <button class="btn o" id="pip-secondary">✔ Salvar</button>
+      <!-- ABA 2: TAREFAS KANBAN -->
+      <div id="tab-tasks" class="tab-content compact-hidden">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <b style="font-size:12px; color:var(--tx);">Checklist de Estudos</b>
+          <span style="font-size:10.5px; color:var(--g);">+5 XP por conclusão</span>
+        </div>
+
+        <!-- Adicionar Tarefa Rápida -->
+        <div style="display:flex; gap:6px; margin-bottom:10px;">
+          <input id="pip-new-task-input" placeholder="Nova micro-tarefa..." style="margin-bottom:0; flex:1;">
+          <button class="btn" id="pip-btn-add-task" style="padding:6px 12px; font-size:12px;">+ Add</button>
+        </div>
+
+        <div id="pip-tasks-list" style="max-height:300px; overflow-y:auto; padding-right:2px;">
+          ${this.renderPipTasksHtml()}
+        </div>
       </div>
 
-      <div class="ai-hud compact-hidden" id="pip-ai-card">
-        <span class="icon" id="pip-ai-icon">🧠</span>
-        <div class="msg"><b id="pip-ai-title">Focus Coach:</b> <span id="pip-ai-text">Mantenha a mente no presente e elimine distrações.</span></div>
+      <!-- ABA 3: SONS DE FOCO -->
+      <div id="tab-sounds" class="tab-content compact-hidden">
+        <div style="font-size:12px; margin-bottom:10px; color:var(--mu);">
+          Sons binaurais e ambientes para eliminar distrações externas:
+        </div>
+
+        <div class="sound-card ${sounds.isAmbientPlaying && sounds.currentAmbientType === 'rain' ? 'playing' : ''}" data-sound="rain">
+          <div>
+            <b>🌧️ Chuva Suave</b>
+            <div style="font-size:10.5px; color:var(--mu);">Ruído relaxante contra estresse</div>
+          </div>
+          <span class="mini-btn sound-btn-state">${sounds.isAmbientPlaying && sounds.currentAmbientType === 'rain' ? '⏸ Parar' : '▶ Tocar'}</span>
+        </div>
+
+        <div class="sound-card ${sounds.isAmbientPlaying && sounds.currentAmbientType === 'white' ? 'playing' : ''}" data-sound="white">
+          <div>
+            <b>💨 Ruído Branco Puro</b>
+            <div style="font-size:10.5px; color:var(--mu);">Bloqueia conversas e barulhos</div>
+          </div>
+          <span class="mini-btn sound-btn-state">${sounds.isAmbientPlaying && sounds.currentAmbientType === 'white' ? '⏸ Parar' : '▶ Tocar'}</span>
+        </div>
+
+        <div class="sound-card ${sounds.isAmbientPlaying && sounds.currentAmbientType === 'binaural' ? 'playing' : ''}" data-sound="binaural">
+          <div>
+            <b>🌊 Ondas Alfa 40Hz</b>
+            <div style="font-size:10.5px; color:var(--mu);">Frequência neural de hiperfoco</div>
+          </div>
+          <span class="mini-btn sound-btn-state">${sounds.isAmbientPlaying && sounds.currentAmbientType === 'binaural' ? '⏸ Parar' : '▶ Tocar'}</span>
+        </div>
+
+        <div style="margin-top:14px; background:rgba(0,0,0,0.3); padding:8px 12px; border-radius:8px; border:1px solid var(--line);">
+          <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:6px;">
+            <span>Volume do Som</span>
+            <span id="pip-vol-label">30%</span>
+          </div>
+          <input type="range" id="pip-vol-slider" min="0" max="1" step="0.05" value="0.3" style="width:100%; accent-color:var(--g); cursor:pointer;">
+        </div>
       </div>
 
-      <div class="compact-hidden">
-        <div class="pills-title">Matéria da Sessão</div>
-        <div class="pills-row" id="pip-pills">${pillsHtml}</div>
-      </div>
-
-      <div class="compact-hidden">
-        <input id="pip-cat" placeholder="Matéria *" value="${escapeHtml(this.form.category)}">
-        <input id="pip-topic" placeholder="Tópico *" value="${escapeHtml(this.form.topic)}">
-        <textarea id="pip-notes" rows="2" placeholder="O que estudou? *">${escapeHtml(this.form.notes)}</textarea>
+      <!-- ABA 4: SCRATCHPAD / NOTAS RÁPIDAS -->
+      <div id="tab-notes" class="tab-content compact-hidden">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <b style="font-size:12px; color:var(--tx);">Bloco de Notas Rápido</b>
+          <span id="pip-scratch-stats" style="font-size:10.5px; color:var(--mu);">Auto-salvo</span>
+        </div>
+        <textarea id="pip-scratchpad" rows="10" placeholder="Anote fórmulas, dúvidas da aula ou ideias rápidas aqui..." style="font-family:inherit; resize:vertical; min-height:180px;">${escapeHtml(savedNotes)}</textarea>
+        <div style="display:flex; justify-content:flex-end; gap:6px; margin-top:4px;">
+          <button class="btn o" id="pip-copy-notes" style="font-size:11px; padding:4px 10px;">📋 Copiar</button>
+          <button class="btn o" id="pip-clear-notes" style="font-size:11px; padding:4px 10px; color:var(--red);">🗑️ Limpar</button>
+        </div>
       </div>
     `;
 
-    // Bind subject pills
+    // 1. Bind Tabs Switcher
+    doc.querySelectorAll(".hud-tab").forEach(tabBtn => {
+      tabBtn.onclick = () => {
+        const tab = tabBtn.getAttribute("data-tab");
+        doc.querySelectorAll(".hud-tab").forEach(b => b.classList.remove("active"));
+        doc.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+        tabBtn.classList.add("active");
+        const activeTabEl = doc.getElementById(`tab-${tab}`);
+        if (activeTabEl) activeTabEl.classList.add("active");
+        sounds.playPop();
+      };
+    });
+
+    // 2. Bind Subject Pills
     doc.querySelectorAll(".spill").forEach(btn => {
       btn.onclick = () => {
         const cat = btn.getAttribute("data-cat");
         this.form.category = cat;
-        const catInput = doc.getElementById("pip-cat");
-        if (catInput) catInput.value = cat;
         doc.querySelectorAll(".spill").forEach(b => b.classList.toggle("active", b.getAttribute("data-cat") === cat));
         const mainCat = document.getElementById("sc");
         if (mainCat) mainCat.value = cat;
+        this.updatePipTasks();
       };
     });
 
-    doc.getElementById("pip-switch-mode").onclick = () => {
-      this.switchMode();
+    // 3. Bind Adjust Buttons
+    doc.getElementById("pip-minus-5").onclick = () => this.adjustMinutes(-5);
+    doc.getElementById("pip-plus-5").onclick = () => this.adjustMinutes(5);
+    doc.getElementById("pip-reset-timer").onclick = () => {
+      if (this.mode === "prog") this.resetStopwatch();
+      else this.resetPomodoro();
+      sounds.playPop();
+      this.updatePip();
     };
 
+    // 4. Bind Toggle & Secondary
+    doc.getElementById("pip-switch-mode").onclick = () => this.switchMode();
     doc.getElementById("pip-toggle-compact").onclick = () => {
       this.pipCompactMode = !this.pipCompactMode;
       doc.body.classList.toggle("is-compact", this.pipCompactMode);
@@ -748,7 +1049,7 @@ class TimerEngine {
 
     doc.getElementById("pip-secondary").onclick = () => {
       if (this.mode === "prog") {
-        const cat = doc.getElementById("pip-cat")?.value || this.form.category;
+        const cat = this.form.category || "Geral";
         const topic = doc.getElementById("pip-topic")?.value || this.form.topic;
         const notes = doc.getElementById("pip-notes")?.value || this.form.notes;
         const saved = this.saveStopwatchSession(cat, topic, notes);
@@ -762,21 +1063,103 @@ class TimerEngine {
       if (window.studai && window.studai.render) window.studai.render();
     };
 
-    doc.getElementById("pip-cat").oninput = (e) => {
-      this.form.category = e.target.value;
-      const mainCat = document.getElementById("sc");
-      if (mainCat) mainCat.value = e.target.value;
-    };
-    doc.getElementById("pip-topic").oninput = (e) => {
-      this.form.topic = e.target.value;
-      const mainTopic = document.getElementById("st");
-      if (mainTopic) mainTopic.value = e.target.value;
-    };
-    doc.getElementById("pip-notes").oninput = (e) => {
-      this.form.notes = e.target.value;
-      const mainNotes = document.getElementById("sw");
-      if (mainNotes) mainNotes.value = e.target.value;
-    };
+    // 5. Input Fields Bind
+    const topicInput = doc.getElementById("pip-topic");
+    if (topicInput) {
+      topicInput.oninput = (e) => {
+        this.form.topic = e.target.value;
+        const mainTopic = document.getElementById("st");
+        if (mainTopic) mainTopic.value = e.target.value;
+      };
+    }
+
+    const notesTextarea = doc.getElementById("pip-notes");
+    if (notesTextarea) {
+      notesTextarea.oninput = (e) => {
+        this.form.notes = e.target.value;
+        const mainNotes = document.getElementById("sw");
+        if (mainNotes) mainNotes.value = e.target.value;
+      };
+    }
+
+    // 6. Bind Tasks Tab
+    const addTaskInput = doc.getElementById("pip-new-task-input");
+    const addTaskBtn = doc.getElementById("pip-btn-add-task");
+    if (addTaskBtn && addTaskInput) {
+      const handleAddTask = () => {
+        const val = addTaskInput.value.trim();
+        if (val) {
+          this.pipAddTask(val);
+          addTaskInput.value = "";
+        }
+      };
+      addTaskBtn.onclick = handleAddTask;
+      addTaskInput.onkeydown = (e) => {
+        if (e.key === "Enter") handleAddTask();
+      };
+    }
+    this.bindPipTasksEvents();
+
+    // 7. Bind Soundscapes Tab
+    doc.querySelectorAll(".sound-card").forEach(card => {
+      card.onclick = () => {
+        const type = card.getAttribute("data-sound");
+        sounds.toggleAmbient(type);
+        // Atualiza estado visual de todos os cards
+        doc.querySelectorAll(".sound-card").forEach(c => {
+          const cType = c.getAttribute("data-sound");
+          const isPlaying = sounds.isAmbientPlaying && sounds.currentAmbientType === cType;
+          c.classList.toggle("playing", isPlaying);
+          const btn = c.querySelector(".sound-btn-state");
+          if (btn) btn.textContent = isPlaying ? "⏸ Parar" : "▶ Tocar";
+        });
+      };
+    });
+
+    const volSlider = doc.getElementById("pip-vol-slider");
+    const volLabel = doc.getElementById("pip-vol-label");
+    if (volSlider) {
+      volSlider.oninput = (e) => {
+        const val = parseFloat(e.target.value);
+        sounds.setAmbientVolume(val);
+        if (volLabel) volLabel.textContent = `${Math.round(val * 100)}%`;
+      };
+    }
+
+    // 8. Bind Scratchpad Tab
+    const scratchpad = doc.getElementById("pip-scratchpad");
+    const copyNotesBtn = doc.getElementById("pip-copy-notes");
+    const clearNotesBtn = doc.getElementById("pip-clear-notes");
+    if (scratchpad) {
+      scratchpad.oninput = (e) => {
+        try { localStorage.setItem("studai_hud_scratchpad", e.target.value); } catch {}
+      };
+    }
+    if (copyNotesBtn && scratchpad) {
+      copyNotesBtn.onclick = () => {
+        navigator.clipboard.writeText(scratchpad.value).then(() => {
+          copyNotesBtn.textContent = "✔ Copiado!";
+          setTimeout(() => { copyNotesBtn.textContent = "📋 Copiar"; }, 1500);
+        });
+      };
+    }
+    if (clearNotesBtn && scratchpad) {
+      clearNotesBtn.onclick = () => {
+        if (confirm("Limpar o bloco de notas rápido?")) {
+          scratchpad.value = "";
+          try { localStorage.removeItem("studai_hud_scratchpad"); } catch {}
+        }
+      };
+    }
+
+    // 9. Keyboard shortcuts inside HUD
+    doc.addEventListener("keydown", (e) => {
+      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+      if (e.key === " ") {
+        e.preventDefault();
+        doc.getElementById("pip-toggle")?.click();
+      }
+    });
 
     this.pipWindow.addEventListener("pagehide", () => {
       this.pipWindow = null;
@@ -797,8 +1180,6 @@ class TimerEngine {
     const ringEl = doc.getElementById("pip-ring");
     const modeLabelEl = doc.getElementById("pip-mode-label");
     const xpEl = doc.getElementById("pip-xp");
-    const aiTextEl = doc.getElementById("pip-ai-text");
-    const aiIconEl = doc.getElementById("pip-ai-icon");
 
     const circumference = 383; // 2 * Math.PI * 61
 
@@ -823,8 +1204,8 @@ class TimerEngine {
         ringEl.style.strokeDashoffset = String(circumference * (1 - breathingPct));
       }
       if (xpEl) {
-        const estimatedXp = Math.max(1, Math.floor(totalMinutes * 0.5));
-        xpEl.textContent = `✨ +${estimatedXp} XP`;
+        const estimatedXp = Math.max(1, Math.floor(totalMinutes * 2));
+        xpEl.textContent = `✨ +${estimatedXp} XP acumulando`;
       }
       if (toggleBtn) {
         toggleBtn.textContent = this.stopwatch.isRunning ? "⏸ Pausar" : "▶ Iniciar";
@@ -833,14 +1214,7 @@ class TimerEngine {
           : "linear-gradient(135deg, #5dffa3, var(--g2))";
       }
       if (secondaryBtn) {
-        secondaryBtn.textContent = "✔ Finalizar";
-      }
-
-      // Rotate coach quote based on elapsed minutes
-      if (aiTextEl && aiIconEl) {
-        const quoteIdx = Math.floor(totalMinutes / 5) % (this.aiQuotes.length - 1);
-        aiIconEl.textContent = this.aiQuotes[quoteIdx].icon;
-        aiTextEl.textContent = this.aiQuotes[quoteIdx].text;
+        secondaryBtn.textContent = "✔ Salvar Sessão";
       }
     } else {
       // Pomodoro
@@ -876,17 +1250,6 @@ class TimerEngine {
       }
       if (secondaryBtn) {
         secondaryBtn.textContent = isFocus ? "⏭ Pular Fase" : "▶ Voltar ao Foco";
-      }
-
-      if (aiTextEl && aiIconEl) {
-        if (!isFocus) {
-          aiIconEl.textContent = "☕";
-          aiTextEl.textContent = "Momento de descompressão! Respire fundo e alongue os ombros.";
-        } else {
-          const quoteIdx = (this.pomodoro.completedCycles) % (this.aiQuotes.length - 1);
-          aiIconEl.textContent = this.aiQuotes[quoteIdx].icon;
-          aiTextEl.textContent = this.aiQuotes[quoteIdx].text;
-        }
       }
     }
   }
