@@ -1,86 +1,87 @@
 <div align="center">
 
-# 🧠 StudAI — Cyber Study OS
+# 🧠 StudAI — Plataform Study OS
 
-**Um dashboard de estudos minimalista, elegante e de alta performance impulsionado por gamificação e insights científicos.**
+**Um ecossistema web minimalista e de alta performance para gestão de estudos, foco profundo e retenção ativa, desenhado sob a estética Sci-Fi / Cyberpunk.**
 
-![Licença](https://img.shields.io/badge/license-MIT-2dff7a?style=for-the-badge)
-![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-yellow?style=for-the-badge&logo=javascript)
-![HTML5](https://img.shields.io/badge/HTML5-Canvas-orange?style=for-the-badge&logo=html5)
-![CSS3](https://img.shields.io/badge/CSS3-Minimalist_Dark-blue?style=for-the-badge&logo=css3)
+![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
+![HTML5](https://img.shields.io/badge/HTML5-Canvas-E34F26?style=for-the-badge&logo=html5&logoColor=white)
+![CSS3](https://img.shields.io/badge/CSS3-Dark_Minimalist-1572B6?style=for-the-badge&logo=css3&logoColor=white)
+![Licença](https://img.shields.io/badge/License-MIT-2dff7a?style=for-the-badge)
 
-[Demonstração](#-funcionalidades) • [Instalação](#-como-executar) • [Estrutura](#-estrutura-do-projeto) • [Contribuição](#-licença)
+[Funcionalidades](#-módulos-e-funcionalidades) • [Arquitetura](#-estrutura-do-repositório) • [Como Rodar](#-como-executar-o-projeto) • [Licença](#-licença)
 
 </div>
 
 ---
 
-## ⚡ Sobre o Projeto
+## ⚡ Visão Geral
 
-O **StudAI** é uma plataforma web para gestão de estudos projetada com uma interface *Dark/Sci-Fi* de alta densidade e foco absoluto no minimalismo. Ele foi concebido para eliminação do ruído visual e maximização do estado de **Deep Work** (hiperfoco), combinando controle de tempo, organização de tarefas, acompanhamento de métricas analíticas e retenção ativa.
+O **StudAI** foi desenvolvido para resolver o problema da dispersão mental e do ruído visual durante os estudos. Operando em tema escuro de alto contraste com paleta neon (`var(--g)` verde cibernético, bordas translúcidas e iluminação de fundo reativa), o sistema unifica rastreamento de tempo, gestão de tarefas e memorização em uma única interface ultrarrápida que dispensa dependências externas pesadas.
 
 ---
 
-## 🚀 Funcionalidades Principais
+## 🚀 Módulos e Funcionalidades
 
-### 📊 Dashboard & Análise Ativa
-* **StudAI Insights:** Motor dinâmico que gera orientações neurocientíficas e comportamentais diárias com base no volume de estudo da semana.
-* **Radar de Domínio (Web Chart):** Gráfico poligonal cibernético em SVG que exibe visualmente o equilíbrio de dedicação entre as matérias no mês.
-* **Evolução nos Testes:** Gráfico de área suavizado com degradê neon para acompanhamento percentual de retenção nos simulados/quizzes.
-* **Métricas Diárias e Sequência (Streak):** Monitoramento de horas diárias, tópicos concluídos e dias seguidos de estudo com bônus de consistência.
+### 📊 1. Painel Analítico & Dashboard (`dashboardView.js`)
+* **Radar de Domínio (Gráfico de Teia):** Representação poligonal em SVG matemático que mapeia a distribuição de tempo entre as matérias no mês corrente, facilitando a identificação de lacunas no cronograma.
+* **Evolução nos Testes:** Gráfico de área suavizado em degradê neon acompanhando o índice percentual de acertos nos quizzes com suporte a dados de simulação.
+* **StudAI Insights:** Motor de neurociência comportamental que analisa o volume semanal em horas e entrega orientações personalizadas sobre plasticidade cerebral, recuperação e intervalos.
+* **Métricas Diárias & Streak:** Contador de sessões, minutos acumulados no dia e chamas de sequência (*streak*) para constância diária.
+* **Últimos 7 Dias:** Barras empilhadas com códigos de cor por disciplina.
 
-### 🎯 Metas & Kanban Unificado
-* **Kanban de Tarefas:** Organização em colunas (*A Fazer*, *Fazendo*, *Concluído*) com agrupamento inteligente por matéria (sanfonas) e limpeza automática de tarefas antigas.
-* **Criação Rápida de Tarefas:** Formulário integrado em linha (grid) com seleção rápida de disciplina e ganho de **+5 XP** por tarefa concluída.
-* **Metas Semanais:** Acompanhamento dinâmico de horas alvo por disciplina com recalculo automático toda segunda-feira.
+### 🎯 2. Metas & Kanban Unificado (`goalsView.js`)
+* **Formulário de Entrada em Linha:** Inputs de título e seletor estilizado de matéria alinhados diretamente ao botão de ação em grid responsivo.
+* **Colunas de Fluxo:** Organização clássica (*A Fazer*, *Fazendo*, *Concluído*) com agrupamento expansível (*accordion/sanfona*) separado por matéria.
+* **Auto-limpeza Inteligente:** Tarefas finalizadas há mais de 3 dias são automaticamente filtradas para manter o quadro limpo.
+* **Metas Semanais:** Acompanhamento de horas estipuladas vs. horas estudadas com recálculo automático toda segunda-feira.
 
-### ⚡ Pop-up Flutuante Inteligente (Focus HUD v2.0)
-* **Always-On-Top Multitarefa:** Funciona flutuando sobre qualquer aplicativo (YouTube, PDFs, Word, VSCode) via Document Picture-in-Picture nativo ou janela pop-up universal.
-* **4 Abas Produtivas Integradas:**
-  * ⏱️ **Timer & Registro:** Cronômetro e Pomodoro com ajuste rápido (+/- 5min), seletor de matérias e salvamento direto com ganho de XP.
-  * ✅ **Checklist do Kanban:** Visualize suas tarefas pendentes e marque como concluídas direto pelo pop-up (+5 XP na hora). Adicione micro-tarefas rápidas sem sair do que está fazendo.
-  * 🎵 **Sons de Foco (Soundscapes):** Áudio sintético integrado (Chuva Suave, Ruído Branco e Ondas Alfa 40Hz) com controle de volume.
-  * 📝 **Bloco de Notas / Scratchpad:** Auto-salve anotações instantâneas, fórmulas ou dúvidas enquanto assiste à aula.
-* **Modo Mini:** Encolhe o HUD com um clique para economizar espaço de tela.
+### ⏱️ 3. Timer & Sessões de Foco (`timer.js` / `timerView.js`)
+* Cronômetro de estudo e suporte a blocos de foco contínuo.
+* Registro automático de minutos dedicados atribuídos a disciplinas específicas.
 
-### 🎧 Sons de Foco & Concentração (Web Audio API)
-* **Sintetizador 100% Offline:** Sem dependências ou downloads pesados de streaming.
-* **Modos Ambientes:** Chuva Suave para redução de estresse, Ruído Branco para isolamento acústico e Frequências Binaurais 40Hz (Ondas Alfa) para hiperfoco biológico.
+### 📝 4. Testes, Quizzes & Calendário (`quizView.js` / `calendarView.js`)
+* Banco de perguntas e resolução de simulados para fixação ativa de conteúdo.
+* Visão de calendário com histórico visual das sessões distribuídas ao longo dos dias.
 
-### 🧠 Quiz Inteligente & Repetição Espaçada
-* **Modo Híbrido:** Suporte aos modelos oficiais do Google Gemini (`gemini-2.0-flash` e `gemini-1.5-flash`) ou geração instantânea didática offline sem necessidade de chave de API.
-* **Sistema Leitner:** Perguntas memorizadas voltam em intervalos progressivos (1, 3, 7 e 16 dias).
-
-### 🎮 Gamificação & Retenção
-* **Missões Diárias:** Objetivos diários dinâmicos com resgate de XP e animações interativas na tela.
-* **Gamificação Geral:** Sistema de níveis, streaks e efeitos sonoros focados na construção do hábito de estudo.
-* **Modo Convidado & Nuvem:** Acesso instantâneo sem login obrigatório e sincronização com Firebase quando desejar.
+### 🎨 5. Lousa Interativa em Segundo Plano
+* Camada de `<canvas>` transparente integrada ao fundo (`z-index: -1`).
+* Permite rabiscos rápidos de fórmulas, contas e anotações diretamente na tela com traço suave sem obstruir cartões e botões.
 
 ---
 
 ## 🛠️ Tecnologias Utilizadas
 
-* **HTML5:** Estruturação semântica e suporte a `<canvas>` interativo.
-* **CSS3:** Estilização responsiva em Dark Theme, variáveis CSS de alto contraste e componentes fluidos.
-* **JavaScript (ES6+ Modules):** Arquitetura modular focada em velocidade, reatividade simples e manipulação de SVG em tempo real.
-* **LocalStorage:** Persistência local instantânea de sessões, tarefas e configurações, sem necessidade de dependências pesadas de backend.
+* **HTML5:** Semântica estrita e manipulação de `<canvas>` 2D.
+* **CSS3 Moderno:** Flexbox, CSS Grid, filtros de desfoque (*backdrop-filter*) e variáveis nativas para temas e coordenadas do cursor.
+* **JavaScript Puro (ES6 Modules):** Arquitetura desacoplada em módulos (`import` / `export`), sem frameworks pesados, garantindo carregamento instantâneo.
+* **LocalStorage API:** Persistência de sessões, quizzes, metas e inventário de XP diretamente no navegador.
 
 ---
 
-## 📂 Estrutura do Projeto
+## 📂 Estrutura do Repositório
 
-```bash
-studai/
+```text
+StudAI/
+├── .vscode/
+│   └── settings.json          # Configuração de porta do Live Server
 ├── css/
-│   └── style.css          # Estilos globais, temas e animações
+│   └── style.css              # Variáveis globais (--g, --mu, --tx), componentes e temas
 ├── js/
-│   ├── app.js             # Ponto de entrada do sistema
-│   ├── store.js           # Gerenciador de estado local
-│   ├── utils.js           # Funções auxiliares (formatação de tempo, datas)
-│   ├── gamification.js    # Lógica de XP, Streaks e Missões
-│   ├── audio.js           # Efeitos sonoros do sistema
-│   ├── draw.js          # Lógica da Lousa/Canvas interativa do fundo
+│   ├── app.js                 # Ponto de entrada e orquestração de rotas
+│   ├── store.js               # Gerenciador de estado centralizado (LocalStorage)
+│   ├── timer.js               # Mecânica interna do temporizador
+│   ├── gamification.js        # Regras de XP, cálculo de streak e missões diárias
+│   ├── audio.js               # Efeitos sonoros de recompensas e cliques
+│   ├── ai.js                  # Integrações e lógica do assistente
+│   ├── utils.js               # Utilitários de data, duração e sanitização
 │   └── views/
-│       ├── dashboardView.js # Painel principal (Radar, Evolução, Insights)
-│       └── goalsView.js     # Kanban de Tarefas e Metas Semanais
-└── index.html             # Estrutura principal da aplicação
+│       ├── calendarView.js    # Interface do calendário mensal
+│       ├── dashboardView.js   # Painel com Radar de Domínio e Insights
+│       ├── goalsView.js       # Kanban unificado e metas da semana
+│       ├── profileData.js     # Estrutura de dados de perfil e estatísticas
+│       ├── quizView.js        # Execução de quizzes e simulados
+│       ├── subjectsView.js    # Gerenciamento de disciplinas e cores
+│       └── timerView.js       # Interface do temporizador de estudos
+├── index.html                 # Ponto de montagem da aplicação
+└── README.md                  # Documentação do projeto
