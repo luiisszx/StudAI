@@ -6,6 +6,11 @@ class SoundManager {
   constructor() {
     this.audioCtx = null;
     this.enabled = true;
+    this.ambientNode = null;
+    this.ambientGain = null;
+    this.isAmbientPlaying = false;
+    this.currentAmbientType = null;
+    this.stopTimeout = null;
   }
 
   getAudioContext() {
@@ -38,7 +43,7 @@ class SoundManager {
       osc.start(now);
       osc.stop(now + 0.08);
     } catch {
-      // Audio playback silently catches if context not permitted yet
+      // Audio playback silently catches
     }
   }
 
@@ -57,7 +62,7 @@ class SoundManager {
       osc.frequency.setValueAtTime(440, now);
       osc.frequency.setValueAtTime(660, now + 0.1);
       gain.gain.setValueAtTime(0.12, now);
-      gain.gain.linearRampToValueAtTime(0, now + 0.3);
+      gain.gain.linearRampToValueAtTime(0.001, now + 0.3);
 
       osc.start(now);
       osc.stop(now + 0.3);
@@ -83,7 +88,7 @@ class SoundManager {
       osc.frequency.setValueAtTime(554, now + 0.2);
       osc.frequency.setValueAtTime(659, now + 0.3);
       gain.gain.setValueAtTime(0.18, now);
-      gain.gain.linearRampToValueAtTime(0, now + 0.55);
+      gain.gain.linearRampToValueAtTime(0.001, now + 0.55);
 
       osc.start(now);
       osc.stop(now + 0.55);
@@ -92,27 +97,43 @@ class SoundManager {
     }
   }
 
-  // --- Ambient Focus Sound Generator (100% Synthetic Web Audio) ---
+  // --- Ambient Focus Sound Generator ---
   startAmbient(type = "rain", volume = 0.2) {
-    this.stopAmbient();
+    // Interrompe imediatamente qualquer transição de stop pendente
+    if (this.stopTimeout) {
+      clearTimeout(this.stopTimeout);
+      this.stopTimeout = null;
+    }
+
+    if (this.ambientNode) {
+      try { this.ambientNode.stop(); } catch {}
+      this.ambientNode = null;
+    }
+
     try {
       const ctx = this.getAudioContext();
       if (!ctx) return;
 
-      this.ambientGain = ctx.createGain();
-      this.ambientGain.gain.setValueAtTime(0.01, ctx.currentTime);
-      this.ambientGain.gain.linearRampToValueAtTime(Math.min(1, Math.max(0, volume)), ctx.currentTime + 1.2);
-      this.ambientGain.connect(ctx.destination);
+      if (!this.ambientGain) {
+        this.ambientGain = ctx.createGain();
+        this.ambientGain.connect(ctx.destination);
+      }
+
+      const now = ctx.currentTime;
+      const targetVol = Math.min(1, Math.max(0, volume));
+      
+      this.ambientGain.gain.cancelScheduledValues(now);
+      this.ambientGain.gain.setValueAtTime(this.ambientGain.gain.value || 0.01, now);
+      this.ambientGain.gain.linearRampToValueAtTime(targetVol, now + 0.8);
 
       if (type === "rain") {
-        // Rain is generated using band-passed and low-passed filtered noise with subtle modulation
         const bufferSize = ctx.sampleRate * 2;
         const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
         const data = buffer.getChannelData(0);
         let lastOut = 0.0;
         for (let i = 0; i < bufferSize; i++) {
           const white = Math.random() * 2 - 1;
-          data[i] = (lastOut + (0.02 * white)) / 1.02; // Pinkish filter
+          data[i] = (lastOut + (0.02 * white)) / 1.02;
           lastOut = data[i];
           data[i] *= 3.5;
         }
@@ -123,14 +144,14 @@ class SoundManager {
 
         const filter = ctx.createBiquadFilter();
         filter.type = "lowpass";
-        filter.frequency.setValueAtTime(1000, ctx.currentTime);
+        filter.frequency.setValueAtTime(1000, now);
 
         noise.connect(filter);
         filter.connect(this.ambientGain);
         noise.start();
         this.ambientNode = noise;
+
       } else if (type === "white") {
-        // Pure gentle white noise
         const bufferSize = ctx.sampleRate * 2;
         const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
         const data = buffer.getChannelData(0);
@@ -144,20 +165,20 @@ class SoundManager {
 
         const filter = ctx.createBiquadFilter();
         filter.type = "lowpass";
-        filter.frequency.setValueAtTime(3200, ctx.currentTime);
+        filter.frequency.setValueAtTime(3200, now);
 
         noise.connect(filter);
         filter.connect(this.ambientGain);
         noise.start();
         this.ambientNode = noise;
+
       } else if (type === "binaural") {
-        // 40Hz Gamma wave focus binaural beat on 216Hz base
         const oscL = ctx.createOscillator();
         const oscR = ctx.createOscillator();
         oscL.type = "sine";
         oscR.type = "sine";
-        oscL.frequency.setValueAtTime(216, ctx.currentTime);
-        oscR.frequency.setValueAtTime(256, ctx.currentTime); // 40 Hz difference
+        oscL.frequency.setValueAtTime(216, now);
+        oscR.frequency.setValueAtTime(256, now); // 40 Hz difference
 
         const merger = ctx.createChannelMerger(2);
         oscL.connect(merger, 0, 0);
@@ -183,26 +204,37 @@ class SoundManager {
   setAmbientVolume(volume) {
     if (this.ambientGain && this.audioCtx) {
       try {
+        const now = this.audioCtx.currentTime;
         const safe = Math.min(1, Math.max(0, volume));
-        this.ambientGain.gain.setValueAtTime(safe, this.audioCtx.currentTime);
+        this.ambientGain.gain.cancelScheduledValues(now);
+        this.ambientGain.gain.setValueAtTime(safe, now);
       } catch {}
     }
   }
 
   stopAmbient() {
+    if (this.stopTimeout) {
+      clearTimeout(this.stopTimeout);
+    }
+
     if (this.ambientGain && this.audioCtx) {
       try {
-        this.ambientGain.gain.linearRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.5);
+        const now = this.audioCtx.currentTime;
+        this.ambientGain.gain.cancelScheduledValues(now);
+        this.ambientGain.gain.setValueAtTime(this.ambientGain.gain.value, now);
+        this.ambientGain.gain.linearRampToValueAtTime(0.0001, now + 0.4);
       } catch {}
     }
-    setTimeout(() => {
+
+    this.stopTimeout = setTimeout(() => {
       if (this.ambientNode) {
         try { this.ambientNode.stop(); } catch {}
         this.ambientNode = null;
       }
       this.isAmbientPlaying = false;
       this.currentAmbientType = null;
-    }, 500);
+      this.stopTimeout = null;
+    }, 450);
   }
 
   toggleAmbient(type = "rain") {
