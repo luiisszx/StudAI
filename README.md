@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🧠 StudAI — Cybernetic Study OS
+# 🧠 StudAI — Plataform Study OS
 
 **Um ecossistema web minimalista e de alta performance para gestão de estudos, foco profundo e retenção ativa, desenhado sob a estética Sci-Fi / Cyberpunk.**
 
