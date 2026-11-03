@@ -174,27 +174,50 @@ class AppStore {
 
     // 3. Ligar os botões e abas do modal de Login / Cadastro
     setTimeout(() => {
-      const tabLogin = document.getElementById("tab-auth-login");
-      const tabRegister = document.getElementById("tab-auth-register");
-      const paneLogin = document.getElementById("pane-login");
-      const paneRegister = document.getElementById("pane-register");
+      const loginOverlay = document.getElementById("login-overlay");
+      const registerOverlay = document.getElementById("register-overlay");
 
-      // Alternar abas: Entrar vs Criar Conta
-      if (tabLogin && tabRegister && paneLogin && paneRegister) {
-        tabLogin.onclick = () => {
-          tabLogin.classList.add("active");
-          tabRegister.classList.remove("active");
-          paneLogin.classList.add("active");
-          paneRegister.classList.remove("active");
-        };
-
-        tabRegister.onclick = () => {
-          tabRegister.classList.add("active");
-          tabLogin.classList.remove("active");
-          paneRegister.classList.add("active");
-          paneLogin.classList.remove("active");
+      // ABRIR TELA DE CADASTRO
+      const btnOpenRegister = document.getElementById("btn-open-register-page");
+      if (btnOpenRegister) {
+        btnOpenRegister.onclick = () => {
+          if (loginOverlay) loginOverlay.style.display = "none";
+          if (registerOverlay) registerOverlay.style.display = "flex";
         };
       }
+
+      // FECHAR TELA DE CADASTRO (VOLTAR PARA LOGIN)
+      const btnCloseRegister = document.getElementById("btn-close-register");
+      if (btnCloseRegister) {
+        btnCloseRegister.onclick = () => {
+          if (registerOverlay) registerOverlay.style.display = "none";
+          if (loginOverlay) loginOverlay.style.display = "flex";
+        };
+      }
+
+      // NAVEGAÇÃO DOS PASSOS DE CADASTRO (1. Conta -> 2. Metas -> 3. Matérias)
+      document.querySelectorAll('.btn-next, .btn-prev').forEach(btn => {
+        btn.onclick = (e) => {
+          e.preventDefault();
+          const targetStep = btn.getAttribute('data-next') || btn.getAttribute('data-prev');
+
+          // Atualiza as Abas (Visual)
+          document.querySelectorAll('.reg-tab-btn').forEach(t => t.classList.remove('active'));
+          const targetTab = document.querySelector(`.reg-tab-btn[data-step="${targetStep}"]`);
+          if (targetTab) targetTab.classList.add('active');
+
+          // Atualiza o Conteúdo (Oculta todos, mostra o alvo)
+          document.querySelectorAll('.reg-step').forEach(s => {
+            s.classList.remove('active');
+            s.style.display = 'none';
+          });
+          const targetContent = document.getElementById(`reg-step-${targetStep}`);
+          if (targetContent) {
+            targetContent.classList.add('active');
+            targetContent.style.display = 'block';
+          }
+        };
+      });
 
       // Seletor de Horas da Meta Diária
       const hourBtns = document.querySelectorAll(".hour-btn");
@@ -372,6 +395,8 @@ class AppStore {
             const loginOverlay = document.getElementById("login-overlay");
             if (loginOverlay) loginOverlay.style.display = "none";
             if (window.studai && window.studai.render) window.studai.render();
+            const registerOverlay = document.getElementById("register-overlay");
+            if (registerOverlay) registerOverlay.style.display = "none";
           }
         };
       }
