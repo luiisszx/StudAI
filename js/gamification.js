@@ -53,7 +53,7 @@ export function calculateXP(state) {
     }, 0);
 
     const ofensivaXP = calculateStreak(sessions) * 15;
-    const tarefasXP = tasks.filter(t => t && t.status === "done").length * 5;
+    const tarefasXP = (tasks.filter(t => t && t.status === "done").length + (Number(state.purged_tasks_done) || 0)) * 5;
     const missoesXP = missions.length * 25;
 
     const total = Math.round(minXP + topicosXP + metasXP + testesXP + ofensivaXP + tarefasXP + missoesXP);
@@ -88,15 +88,15 @@ export function calculateLevelData(totalXp) {
       const xpGanhosAgora = safeXp - lastKnownXP;
 
       if (level > lastKnownLevel && xpGanhosAgora > 0 && xpGanhosAgora < 300) {
-      if (typeof sounds !== 'undefined' && sounds.playLevelUp) {
-        sounds.playLevelUp();
-      }
-      animarSubidaNivel(level);
+        if (typeof sounds !== 'undefined' && sounds.playLevelUp) {
+          sounds.playLevelUp();
+        }
+        animarSubidaNivel(level);
       }
     }
     lastKnownLevel = level;
     lastKnownXP = safeXp;
-    
+
     return { level, rankTitle, progressPct, currentLevelBaseXp: prevLevelBase, nextLevelBaseXp: nextLevelBase };
   } catch (err) {
     console.error("Erro fatal ao calcular Nível:", err);
@@ -143,7 +143,7 @@ export function getDailyMissions(state) {
 
   const taskDoneToday = (state.tasks || []).some(t => {
     if (t.status !== "done" || !t.completedAt) return false;
-    return new Date(t.completedAt).toISOString().slice(0,10) === today;
+    return new Date(t.completedAt).toISOString().slice(0, 10) === today;
   });
   const quizDoneToday = (state.results || []).some(r => r.date === today);
 
@@ -172,7 +172,7 @@ export function getDailyMissions(state) {
       isClaimed: claimedMissions.includes(`${today}_m3`)
     }
   ];
-  
+
 }
 /**
  * Exibe o texto de XP flutuante na posição em que o usuário clicou/interagiu.

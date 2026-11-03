@@ -3,15 +3,15 @@
  */
 import { generateId, sortAlpha, getTodayIso, showToast } from "./utils.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { 
-  getAuth, 
-  signInWithPopup, 
-  signInWithRedirect, 
-  GoogleAuthProvider, 
-  onAuthStateChanged, 
-  signOut, 
-  sendSignInLinkToEmail, 
-  isSignInWithEmailLink, 
+import {
+  getAuth,
+  signInWithPopup,
+  signInWithRedirect,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  signOut,
+  sendSignInLinkToEmail,
+  isSignInWithEmailLink,
   signInWithEmailLink,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -439,7 +439,7 @@ class AppStore {
 
       // Continuar como Convidado
       const continueGuest = () => {
-        try { localStorage.setItem("studai_guest_mode", "true"); } catch {}
+        try { localStorage.setItem("studai_guest_mode", "true"); } catch { }
         this.updateAuthUI(this.currentUser);
         const loginOverlay = document.getElementById("login-overlay");
         if (loginOverlay) loginOverlay.style.display = "none";
@@ -466,7 +466,7 @@ class AppStore {
       if (btnLogout) {
         btnLogout.onclick = () => {
           signOut(auth).then(() => {
-            try { localStorage.removeItem("studai_guest_mode"); } catch {}
+            try { localStorage.removeItem("studai_guest_mode"); } catch { }
             this.updateAuthUI(null);
             if (window.studai && window.studai.render) window.studai.render();
           });
@@ -558,6 +558,35 @@ class AppStore {
     if (!Array.isArray(this.state.tasks)) this.state.tasks = [];
     if (!Array.isArray(this.state.claimed_missions)) this.state.claimed_missions = [];
     if (!Array.isArray(this.state.logs)) this.state.logs = [];
+    this.purgeOldDoneTasks();
+  }
+
+  /**
+   * Remove tarefas concluídas há mais de 7 dias.
+   * O XP delas é preservado em state.purged_tasks_done.
+   */
+  purgeOldDoneTasks() {
+    const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    let removed = 0;
+
+    this.state.tasks = this.state.tasks.filter(t => {
+      if (!t || t.status !== "done") return true;
+      // Tarefas antigas concluídas sem data: começa a contar a partir de agora
+      if (!t.completedAt) {
+        t.completedAt = now;
+        return true;
+      }
+      if (now - t.completedAt > WEEK_MS) {
+        removed++;
+        return false;
+      }
+      return true;
+    });
+
+    if (removed > 0) {
+      this.state.purged_tasks_done = (Number(this.state.purged_tasks_done) || 0) + removed;
+    }
   }
 
   save() {
