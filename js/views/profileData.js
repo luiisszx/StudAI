@@ -1,5 +1,5 @@
 /**
- * StudAI — View de Perfil
+ * StudAI — View de Perfil do Estudante & Dados
  */
 import { store } from "../store.js";
 import { escapeHtml, formatDuration, getTodayIso, downloadFile, showToast } from "../utils.js";
@@ -93,7 +93,7 @@ export function exportData(type) {
 
     downloadFile(filename, mdContent, "text/markdown;charset=utf-8");
     setLastExported(mdContent);
-    showToast("Resumo Markdown gerado com sucesso!");
+    showToast("Relatório Markdown gerado com sucesso!");
   }
 
   window.studai.render();
@@ -123,9 +123,9 @@ export function importBackupFile(file) {
 
 export function renderData() {
   const profile = store.state.profile || {
-    name: "Digite seu nome",
+    name: "Estudante",
     email: "",
-    targetGoal: "Curso ou Concurso",
+    targetGoal: "Programação / Tech",
     dailyGoalHours: 2,
     avatarUrl: ""
   };
@@ -134,31 +134,24 @@ export function renderData() {
   const levelData = calculateLevelData(realXp);
 
   return `
-    <!-- Esconde a barra de nível global no cabeçalho -->
-    <style>
-      .user-level-container { 
-        display: none !important; 
-      }
-    </style>
-
     <!-- Cartão de Perfil Principal -->
-    <div class="card profile-header" style="display: flex; gap: 20px; align-items: center; background: rgba(255, 255, 255, 0.03); flex-wrap: wrap;">
+    <div class="card profile-header" style="display: flex; gap: 24px; align-items: center; background: rgba(255, 255, 255, 0.02); flex-wrap: wrap;">
       <div class="avatar-container" style="text-align: center;">
         <img 
           src="${escapeHtml(profile.avatarUrl) || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + encodeURIComponent(profile.name || 'Estudante')}" 
           alt="Avatar" 
-          style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid var(--g, #2dff7a);"
+          style="width: 84px; height: 84px; border-radius: 50%; object-fit: cover; border: 2px solid var(--g); background: rgba(0,0,0,0.5);"
         />
       </div>
-      <div style="flex: 1; min-width: 220px;">
+      <div style="flex: 1; min-width: 240px;">
         <h2 style="margin: 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
           ${escapeHtml(profile.name || 'Estudante')}
-          <span style="font-size: 11.5px; background: rgba(45,255,122,0.12); color: var(--g, #2dff7a); border: 1px solid rgba(45,255,122,0.3); padding: 3px 10px; border-radius: 12px; font-weight: 700;">
+          <span style="font-size: 11.5px; background: rgba(45,255,122,0.12); color: var(--g); border: 1px solid rgba(45,255,122,0.3); padding: 3px 10px; border-radius: 12px; font-weight: 700;">
             Nível ${levelData.level} · ${levelData.rankTitle}
           </span>
         </h2>
         <div style="display: flex; gap: 16px; margin: 8px 0; font-size: 13px; flex-wrap: wrap;">
-          <span style="color: var(--g, #2dff7a); font-weight: 700;">🌟 ${realXp} XP</span>
+          <span style="color: var(--g); font-weight: 700;">🌟 ${realXp} XP</span>
           <span style="color: #60a5fa; font-weight: 600;">⏱️ Meta: ${profile.dailyGoalHours || 2}h/dia</span>
           ${profile.email ? `<span style="color: var(--mu);">✉️ ${escapeHtml(profile.email)}</span>` : ''}
         </div>
@@ -175,39 +168,39 @@ export function renderData() {
       <form onsubmit="window.studai.saveProfile(event)" style="display: flex; flex-direction: column; gap: 14px; margin-top: 14px;">
         <div class="row">
           <div style="flex: 1;">
-            <label style="font-size: 12px; font-weight: 600;">Nome / Como quer ser chamado *:</label>
-            <input type="text" name="name" value="${escapeHtml(profile.name || '')}" required style="width: 100%; margin-top: 5px;">
+            <label style="font-size: 12px; font-weight: 600; display:block; margin-bottom:4px;">Nome / Como quer ser chamado *:</label>
+            <input type="text" name="name" value="${escapeHtml(profile.name || '')}" required style="width: 100%;">
           </div>
           <div style="flex: 1;">
-            <label style="font-size: 12px; font-weight: 600;">E-mail * (Obrigatório):</label>
-            <input type="email" name="email" value="${escapeHtml(profile.email || '')}" required placeholder="seu@email.com" style="width: 100%; margin-top: 5px;">
+            <label style="font-size: 12px; font-weight: 600; display:block; margin-bottom:4px;">E-mail * (Obrigatório):</label>
+            <input type="email" name="email" value="${escapeHtml(profile.email || '')}" required placeholder="seu@email.com" style="width: 100%;">
           </div>
         </div>
 
         <div class="row">
           <div style="flex: 2;">
-            <label style="font-size: 12px; font-weight: 600;">Objetivo Principal de Estudo:</label>
-            <input type="text" name="targetGoal" value="${escapeHtml(profile.targetGoal || '')}" placeholder="Ex: Programação / ENEM / Concurso Público" style="width: 100%; margin-top: 5px;">
+            <label style="font-size: 12px; font-weight: 600; display:block; margin-bottom:4px;">Objetivo Principal de Estudo:</label>
+            <input type="text" name="targetGoal" value="${escapeHtml(profile.targetGoal || '')}" placeholder="Ex: Programação / ENEM / Concurso Público" style="width: 100%;">
           </div>
           <div style="flex: 1;">
-            <label style="font-size: 12px; font-weight: 600;">Meta Diária (Horas de Estudo) *:</label>
-            <input type="number" step="0.5" min="0.5" max="24" name="dailyGoalHours" value="${profile.dailyGoalHours || 2}" required style="width: 100%; margin-top: 5px;">
+            <label style="font-size: 12px; font-weight: 600; display:block; margin-bottom:4px;">Meta Diária (Horas de Estudo) *:</label>
+            <input type="number" step="0.5" min="0.5" max="24" name="dailyGoalHours" value="${profile.dailyGoalHours || 2}" required style="width: 100%;">
           </div>
         </div>
 
         <div>
-          <label style="font-size: 12px; font-weight: 600;">URL da Foto / Avatar:</label>
-          <input type="url" name="avatarUrl" value="${escapeHtml(profile.avatarUrl || '')}" placeholder="https://..." style="width: 100%; margin-top: 5px;">
+          <label style="font-size: 12px; font-weight: 600; display:block; margin-bottom:4px;">URL da Foto / Avatar:</label>
+          <input type="url" name="avatarUrl" value="${escapeHtml(profile.avatarUrl || '')}" placeholder="https://..." style="width: 100%;">
         </div>
 
-        <button type="submit" class="btn" style="align-self: flex-start; margin-top: 6px;">💾 Salvar Perfil & Metas</button>
+        <button type="submit" class="btn" style="align-self: flex-start; margin-top: 4px;">💾 Salvar Perfil & Metas</button>
       </form>
     </div>
 
     <!-- Exportar Dados -->
     <div class="card">
       <h3>📦 Backup e Exportação</h3>
-      <p class="sub" style="margin-bottom:14px;">Baixe uma cópia do seu perfil e histórico de estudos para salvar na sua máquina.</p>
+      <p class="sub" style="margin-bottom:14px;">Baixe uma cópia do seu perfil e histórico de estudos para salvar no seu computador.</p>
       <div class="row">
         <button class="btn" onclick="window.studai.exportData('json')">⬇ Backup Completo (JSON)</button>
         <button class="btn o" onclick="window.studai.exportData('csv')">⬇ Histórico (CSV)</button>
@@ -225,7 +218,7 @@ export function renderData() {
 
     <!-- Importar Backup -->
     <div class="card">
-      <h3>📥 Restaurar Perfil (Importar)</h3>
+      <h3>📥 Restaurar Perfil (Importar Backup)</h3>
       <p class="sub" style="margin-bottom:12px;">Selecione um arquivo .json para restaurar seu perfil e dados de estudo:</p>
       <input type="file" accept=".json,application/json" onchange="window.studai.importBackup(this.files[0])">
       <div class="sub" id="impMsg" style="margin-top:8px">Nota: A importação substitui o perfil atual.</div>
@@ -233,7 +226,7 @@ export function renderData() {
 
     <!-- Zona de Perigo -->
     <div class="card">
-      <h3>🚨 Zona de Perigo</h3>
+      <h3 style="color:var(--red);">🚨 Zona de Perigo</h3>
       <p class="sub" style="margin-bottom:14px;">Esta ação remove permanentemente seu perfil e todo o histórico deste navegador.</p>
       <button class="btn x" onclick="window.studai.wipeAllData()">
         ${isWipePendingConfirmation ? "⚠️ Clique novamente para CONFIRMAR a exclusão" : "🗑️ Apagar Perfil e Dados"}

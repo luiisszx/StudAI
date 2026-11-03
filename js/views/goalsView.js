@@ -1,5 +1,5 @@
 /**
- * StudAI — Goals & Kanban View (Metas)
+ * StudAI — Goals & Kanban View (Metas & Fluxo de Estudo Moderno)
  */
 import { store } from "../store.js";
 import { escapeHtml, formatDuration, getTodayIso, getWeekStartIso, formatDateBr, sortAlpha, renderSubjectDropdown } from "../utils.js";
@@ -47,36 +47,34 @@ function getGoalDueStatus(goal) {
 function renderGoalForm(goal = null) {
   const prefix = goal ? "eg" : "g";
   const subjects = store.getSubjects();
-  const datalistHtml = `<datalist id="cats">${subjects.map(s => `<option value="${escapeHtml(s.name)}">`).join("")}</datalist>`;
 
   return `
-    <div class="gform">
-      ${datalistHtml}
-      <div class="gform-grid">
+    <div class="gform" style="background:rgba(0,0,0,0.3); padding:16px; border-radius:12px; border:1px solid var(--line); margin-bottom:16px;">
+      <div class="gform-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">
         <label>
-          <span class="sub">Meta semanal *</span>
-          <input id="${prefix}t" value="${escapeHtml(goal ? goal.text : "")}" placeholder="Ex: Estudar 8h de Python">
+          <span class="sub" style="font-weight:600; display:block; margin-bottom:4px;">Meta semanal *</span>
+          <input id="${prefix}t" value="${escapeHtml(goal ? goal.text : "")}" placeholder="Ex: Estudar 8h de Algoritmos">
         </label>
         <label>
-          <span class="sub">Matéria *</span>
-${renderSubjectDropdown(`${prefix}c`, 'Matéria *', goal ? goal.cat : '', subjects)}
+          <span class="sub" style="font-weight:600; display:block; margin-bottom:4px;">Matéria *</span>
+          ${renderSubjectDropdown(`${prefix}c`, 'Matéria *', goal ? goal.cat : '', subjects)}
         </label>
         <label>
-          <span class="sub">Horas semanais *</span>
+          <span class="sub" style="font-weight:600; display:block; margin-bottom:4px;">Horas semanais *</span>
           <input id="${prefix}h" type="number" min="0.5" step="0.5" value="${goal ? goal.hours : ""}" placeholder="8">
         </label>
         <label>
-          <span class="sub">Prazo final (opcional)</span>
+          <span class="sub" style="font-weight:600; display:block; margin-bottom:4px;">Prazo final (opcional)</span>
           <input id="${prefix}d" type="date" value="${goal ? escapeHtml(goal.due || "") : ""}">
         </label>
       </div>
-      <div class="gform-actions">
+      <div class="gform-actions" style="margin-top:14px; display:flex; gap:8px;">
         ${goal
-      ? `<button class="btn" onclick="window.studai.saveGoal('${goal.id}')">Salvar alterações</button>
+          ? `<button class="btn" onclick="window.studai.saveGoal('${goal.id}')">Salvar alterações</button>
              <button class="btn o" onclick="window.studai.cancelGoalEdit()">Cancelar</button>`
-      : `<button class="btn" onclick="window.studai.addGoal()">Criar meta</button>
+          : `<button class="btn" onclick="window.studai.addGoal()">Criar meta</button>
              <button class="btn o" onclick="window.studai.toggleGoalForm(false)">Cancelar</button>`
-    }
+        }
       </div>
     </div>
   `;
@@ -87,8 +85,8 @@ function renderGoalCard(goal) {
 
   if (goal.id === editingGoalId) {
     return `
-      <div class="gcard" style="--c:${color};grid-column:1/-1">
-        <div class="card h3" style="margin:0 0 10px">Editar meta</div>
+      <div class="gcard" style="--c:${color}; grid-column:1/-1;">
+        <div class="card h3" style="margin:0 0 10px;">Editar meta</div>
         ${renderGoalForm(goal)}
       </div>
     `;
@@ -117,16 +115,16 @@ function renderGoalCard(goal) {
         </div>
       </div>
       <div class="bar">
-        <i style="width:${progressPct}%;background:${color}"></i>
+        <i style="width:${progressPct}%; background:${color}; box-shadow:0 0 8px ${color}"></i>
       </div>
       <div class="gmeta">
         <span><b>${formatDuration(weekMinutes)}</b> de ${goal.hours}h</span>
-        <span>${isGoalHit ? "🎉 Meta da semana batida!" : `faltam ${formatDuration(minutesLeft)}`}</span>
+        <span>${isGoalHit ? "🎉 Meta batida!" : `restam ${formatDuration(minutesLeft)}`}</span>
       </div>
       <div class="gfoot">
-        <span class="gchip ${dueStatus ? dueStatus.className : ""}">${dueStatus ? dueStatus.text : "Sem prazo"}</span>
-        <button class="btn o gdone" onclick="window.studai.toggleGoal('${goal.id}')">
-          ${goal.done ? "↩ Reabrir" : "✔ Concluir"}
+        <span class="gchip ${dueStatus ? dueStatus.className : ""}">${dueStatus ? dueStatus.text : "Sem prazo definido"}</span>
+        <button class="btn o gdone" style="padding:4px 12px; font-size:12px;" onclick="window.studai.toggleGoal('${goal.id}')">
+          ${goal.done ? "↩ Reabrir" : "✔ Concluir (+50 XP)"}
         </button>
       </div>
     </div>
@@ -145,20 +143,18 @@ export function renderGoals() {
     const list = (store.state.tasks || []).filter(t => {
       if (t.status !== key) return false;
 
-      // NOVO: Auto-limpeza de 3 dias para a coluna "Concluído"
+      // Auto-limpeza de 3 dias para a coluna "Concluído"
       if (key === "done") {
-        // Usa a data de conclusão ou a data de criação (se o ID for um timestamp)
         const taskTime = t.completedAt || Number(t.id);
         const tresDiasEmMs = 3 * 24 * 60 * 60 * 1000;
-
         if (taskTime && (Date.now() - taskTime > tresDiasEmMs)) {
-          return false; // Esconde a tarefa
+          return false;
         }
       }
       return true;
     });
 
-    // --- NOVO: Agrupar as tarefas por matéria ---
+    // Agrupar as tarefas por matéria
     const tasksByCat = {};
     list.forEach(t => {
       const catName = t.cat || "Geral";
@@ -166,13 +162,11 @@ export function renderGoals() {
       tasksByCat[catName].push(t);
     });
 
-    // Agora iteramos sobre os grupos (matérias) em vez das tarefas individuais
     const taskCardsHtml = Object.entries(tasksByCat).map(([cat, tasksInCat]) => {
       const color = store.getSubjectColor(cat);
       const catTag = `<span class="tag" style="border-color:${color};color:${color};margin:0;background:rgba(0,0,0,0.4)">${escapeHtml(cat)}</span>`;
-      const countBadge = `<span style="font-size:10px; color:var(--mu); background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:10px; margin-left:8px;">${tasksInCat.length}</span>`;
+      const countBadge = `<span style="font-size:10px; color:var(--mu); background:rgba(255,255,255,0.08); padding:2px 6px; border-radius:10px; margin-left:6px;">${tasksInCat.length}</span>`;
 
-      // Gera o HTML das tarefas individuais dentro desta matéria
       const tasksHtml = tasksInCat.map((t, index) => {
         const prevStatus = key === "done" ? "doing" : (key === "doing" ? "todo" : null);
         const nextStatus = key === "todo" ? "doing" : (key === "doing" ? "done" : null);
@@ -182,41 +176,35 @@ export function renderGoals() {
           ? `contenteditable="true" onblur="window.studai.editTask('${t.id}', this.innerText)" onkeydown="if(event.key==='Enter'){event.preventDefault(); this.blur();}" title="Clique para editar"`
           : "";
 
-        // Adiciona uma linha divisória se não for a última tarefa do grupo
         const borderBottom = index < tasksInCat.length - 1 ? "border-bottom:1px solid rgba(255,255,255,0.05);" : "";
 
         return `
-          <div style="padding:14px 12px; ${borderBottom}">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px;">
-              <!-- Texto da Tarefa -->
-              <div style="flex:1; word-break:break-word; font-weight:500; line-height:1.5; outline:none; transition:0.2s; ${key === "done" ? "text-decoration:line-through; color:var(--mu);" : "color:var(--tx);"} ${isTodo ? "cursor:text;" : ""}" ${editableProps}>
+          <div style="padding:12px; ${borderBottom}">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+              <div style="flex:1; word-break:break-word; font-weight:500; line-height:1.45; outline:none; transition:0.2s; ${key === "done" ? "text-decoration:line-through; color:var(--mu);" : "color:var(--tx-bright);"} ${isTodo ? "cursor:text;" : ""}" ${editableProps}>
                 ${escapeHtml(t.text)}
               </div>
-              <!-- Botão Apagar -->
-              <button class="btn x" style="padding:2px 8px; font-size:10px; margin-left:8px;" onclick="window.studai.deleteTask('${t.id}')">✕</button>
+              <button class="btn x" style="padding:2px 7px; font-size:11px; margin-left:8px;" onclick="window.studai.deleteTask('${t.id}')">✕</button>
             </div>
             
-            <!-- Setas de Movimentação do Kanban -->
             <div style="display:flex; justify-content:flex-end; gap:6px;">
-              ${prevStatus ? `<button class="btn o" style="padding:4px 12px; font-size:12px; border-radius:6px;" onclick="window.studai.moveTask('${t.id}', '${prevStatus}')">← Mover</button>` : ""}
-              ${nextStatus ? `<button class="btn o" style="padding:4px 12px; font-size:12px; border-radius:6px;" onclick="window.studai.moveTask('${t.id}', '${nextStatus}')">${key === 'todo' ? 'Iniciar →' : 'Concluir ✓'}</button>` : ""}
+              ${prevStatus ? `<button class="btn o" style="padding:3px 10px; font-size:11.5px; border-radius:6px;" onclick="window.studai.moveTask('${t.id}', '${prevStatus}')">← Voltar</button>` : ""}
+              ${nextStatus ? `<button class="btn o" style="padding:3px 10px; font-size:11.5px; border-radius:6px;" onclick="window.studai.moveTask('${t.id}', '${nextStatus}')">${key === 'todo' ? 'Iniciar ⏳' : 'Concluir ✓ (+5 XP)'}</button>` : ""}
             </div>
           </div>
         `;
       }).join("");
 
-      // Retorna a "Sanfona" da Matéria com as tarefas dentro
       return `
-        <details style="background:rgba(0, 0, 0, 0.39); border:1px solid var(--line); border-left:4px solid ${color}; border-radius:10px; margin-bottom:10px; box-shadow:0 4px 12px rgba(0,0,0,0.15); overflow:hidden;">
-          <summary style="padding:12px; cursor:pointer; outline:none; display:flex; justify-content:space-between; align-items:center; list-style:none; background:transparent; transition:background 0.2s;" onmouseover="this.style.background='rgba(45,255,122,0.05)'" onmouseout="this.style.background='transparent'">
+        <details style="background:rgba(0,0,0,0.32); border:1px solid var(--line-light); border-left:4px solid ${color}; border-radius:10px; margin-bottom:10px; overflow:hidden;" open>
+          <summary style="padding:10px 12px; cursor:pointer; outline:none; display:flex; justify-content:space-between; align-items:center; background:transparent;">
             <div style="display:flex; align-items:center;">
               ${catTag}
               ${countBadge}
             </div>
             <span style="font-size:10px; color:var(--mu);">▼</span>
           </summary>
-          
-          <div style="padding:0; border-top:1px solid rgba(7, 4, 4, 0.31);">
+          <div style="padding:0; border-top:1px solid rgba(255,255,255,0.04);">
             ${tasksHtml}
           </div>
         </details>
@@ -224,36 +212,35 @@ export function renderGoals() {
     }).join("");
 
     return `
-      <div class="card" style="flex:1; min-width:240px; padding:14px; margin:0; display:flex; flex-direction:column;">
-        <h4 style="margin:0 0 14px; text-align:center; color:var(--mu); font-size:12px; text-transform:uppercase; letter-spacing:0.1em; display:flex; justify-content:space-between;">
+      <div class="card" style="flex:1; min-width:240px; padding:16px; margin:0; display:flex; flex-direction:column;">
+        <h4 style="margin:0 0 14px; text-align:center; color:var(--mu); font-size:12px; text-transform:uppercase; letter-spacing:0.08em; display:flex; justify-content:space-between; align-items:center;">
           <span>${label}</span>
           <span class="tag" style="margin:0">${list.length}</span>
         </h4>
-        ${taskCardsHtml || `<div class="empty" style="padding:12px; font-size:13px;">Nenhuma tarefa</div>`}
+        ${taskCardsHtml || `<div class="empty" style="padding:18px 10px; font-size:12.5px;">Nenhuma tarefa</div>`}
       </div>
     `;
   }).join("");
 
   const subjects = store.getSubjects();
-  const datalistHtml = `<datalist id="cats">${subjects.map(s => `<option value="${escapeHtml(s.name)}">`).join("")}</datalist>`;
 
   const kanbanCardHtml = `
     <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-        <h3 style="margin:0;">Kanban de Tarefas</h3>
-        <span class="tag" style="background:rgba(45,255,122,0.06); color:var(--g); border:1px dashed var(--g); margin:0;">+5 XP por tarefa concluída</span>
+        <h3 style="margin:0;">Kanban de Tarefas & Estudo</h3>
+        <span class="tag" style="background:rgba(45,255,122,0.08); color:var(--g); border-color:rgba(45,255,122,0.3); margin:0;">
+          +5 XP por tarefa concluída
+        </span>
       </div>
       
-      ${datalistHtml}
-      
-      <!-- Formulário de Adição em Linha (Grid) -->
-      <div style="display:grid; grid-template-columns: 2fr 1fr auto; gap:12px; margin:20px 0; align-items:stretch;">
-        <input id="kb-txt" placeholder="Nova tarefa (ex: Ler capítulo 4, Fazer exercícios)" style="margin:0; height:100%;">
+      <!-- Formulário de Adição Responsivo -->
+      <div style="display:flex; flex-wrap:wrap; gap:10px; margin:18px 0; align-items:stretch;">
+        <input id="kb-txt" placeholder="Nova tarefa (ex: Resolver 10 exercícios, Ler cap. 5)" style="flex:2; min-width:200px; margin:0;">
         
-        <div class="custom-dropdown" id="kb-cat-dropdown" style="margin:0; height:100%;">
+        <div class="custom-dropdown" id="kb-cat-dropdown" style="flex:1; min-width:140px; margin:0;">
           <div class="dropdown-selected" style="height:100%; display:flex; align-items:center; justify-content:space-between;">
             <span class="selected-text">Matéria</span> 
-            <span class="arrow">▼</span>
+            <span class="arrow" style="font-size:10px; color:var(--mu);">▼</span>
           </div>
           <div class="dropdown-options">
             <div class="option" data-value="">Nenhuma (Geral)</div>
@@ -262,19 +249,19 @@ export function renderGoals() {
           <input type="hidden" id="kb-cat" value="">
         </div>
         
-        <button class="btn" style="margin:0; height:100%; white-space:nowrap; padding:0 20px;" onclick="window.studai.addTask()">
+        <button class="btn" style="margin:0; white-space:nowrap; padding:0 20px;" onclick="window.studai.addTask()">
           + Adicionar
         </button>
       </div>
       
       <!-- Colunas do Kanban -->
-      <div style="display:flex; gap:16px; overflow-x:auto; padding-bottom:8px; scrollbar-width:thin; border-top:1px solid rgba(255,255,255,0.05); padding-top:20px;">
+      <div style="display:flex; gap:14px; overflow-x:auto; padding-bottom:8px; scrollbar-width:thin; border-top:1px solid rgba(255,255,255,0.05); padding-top:18px;">
         ${kanbanColsHtml}
       </div>
     </div>
   `;
 
-  // 2. Weekly Goals Section
+  // 2. Metas Semanais
   const allGoals = store.state.goals || [];
   const activeGoals = allGoals
     .filter(g => !g.done)
@@ -298,7 +285,7 @@ export function renderGoals() {
       </div>
       <div class="gstat">
         <b>${goalsHitCount}</b>
-        <span>batidas nesta semana</span>
+        <span>batidas esta semana</span>
       </div>
       <div class="gstat">
         <b>${formatDuration(totalWeekMinutesStudied)}</b>
@@ -307,17 +294,17 @@ export function renderGoals() {
     </div>
   `;
 
-  const emptyGoalsHtml = `<div class="empty">Nenhuma meta semanal cadastrada. Crie uma para monitorar seu ritmo de estudo!</div>`;
+  const emptyGoalsHtml = `<div class="empty">Nenhuma meta semanal cadastrada. Crie uma para monitorar seu ritmo e ganhar XP!</div>`;
 
   const goalsCardHtml = `
     <div class="card">
       <div class="ghead">
         <div>
-          <h3>Metas semanais</h3>
-          <div class="sub">O progresso é recalculado semanalmente (desde segunda-feira, ${weekStartFormatted})</div>
+          <h3 style="margin:0;">Metas Semanais de Foco</h3>
+          <div class="sub" style="margin-top:2px;">Recálculo automático toda segunda-feira (início: ${weekStartFormatted})</div>
         </div>
         <button class="btn ${isGoalFormOpen ? "o" : ""}" onclick="window.studai.toggleGoalForm(!${isGoalFormOpen})">
-          ${isGoalFormOpen ? "Fechar" : "+ Nova meta"}
+          ${isGoalFormOpen ? "Fechar" : "+ Nova Meta"}
         </button>
       </div>
       ${allGoals.length ? statsHtml : ""}
@@ -325,7 +312,7 @@ export function renderGoals() {
       ${activeGoals.length ? `<div class="ggrid">${activeGoals.map(renderGoalCard).join("")}</div>` : (isGoalFormOpen ? "" : emptyGoalsHtml)}
       ${finishedGoals.length ? `
         <details style="margin-top:20px;">
-          <summary class="sub" style="cursor:pointer; font-weight:700; color:var(--tx); margin-bottom:12px;">
+          <summary class="sub" style="cursor:pointer; font-weight:700; color:var(--tx-bright); margin-bottom:12px;">
             ✅ Metas Concluídas (${finishedGoals.length}) ▾
           </summary>
           <div class="ggrid">${finishedGoals.map(renderGoalCard).join("")}</div>

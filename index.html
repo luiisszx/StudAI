@@ -5,359 +5,96 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description"
-    content="StudAI - Plataforma moderna de gestão de estudos com Pomodoro, Kanban, Gamificação por XP e Quiz Inteligente com IA.">
-  <meta name="theme-color" content="#050805">
+    content="StudAI - Plataforma moderna e minimalista de gestão de estudos com Pomodoro, Kanban, Gamificação por XP e Quiz Inteligente com IA.">
+  <meta name="theme-color" content="#070b08">
   <title>StudAI · Gestão Inteligente de Estudos</title>
   <link rel="icon" type="image/svg+xml"
-    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23050805'/%3E%3Cpath d='M43 21C43 15 38 12 32 12 25.5 12 21 15.5 21 21 21 27.5 28 29.5 32 31.5 37 34 43 36 43 43 43 49 38.5 52 32 52 25.5 52 21 48.5 21 43' fill='none' stroke='%232dff7a' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M51 9l1.6 4.4L57 15l-4.4 1.6L51 21l-1.6-4.4L45 15l4.4-1.6z' fill='%23d7f5df'/%3E%3C/svg%3E">
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23070b08'/%3E%3Cpath d='M43 21C43 15 38 12 32 12 25.5 12 21 15.5 21 21 21 27.5 28 29.5 32 31.5 37 34 43 36 43 43 43 49 38.5 52 32 52 25.5 52 21 48.5 21 43' fill='none' stroke='%232dff7a' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M51 9l1.6 4.4L57 15l-4.4 1.6L51 21l-1.6-4.4L45 15l4.4-1.6z' fill='%23d7f5df'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
+  <!-- Botão flutuante para sair do modo Zen -->
+  <button id="btn-exit-zen" onclick="window.studai.toggleZenMode()" title="Sair do modo tela cheia (Atalho Z)">
+    ✕ Sair do Modo Foco Total
+  </button>
+
   <div class="wrap">
-    <header role="banner"
-      style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
-      <!-- Lado esquerdo: Logo e Info do Usuário -->
-      <div>
-        <h1 class="logo">Stud<b>AI</b></h1>
-        <div id="user-info" style="display: flex; align-items: center; gap: 8px; margin-top: 5px;">
-          <span id="user-name" style="font-size: 12px; color: #aaa;">Convidado (Offline)</span>
-          <button id="btn-login-header"
-            style="display: none; background: rgba(45,255,122,0.12); color: var(--g, #2dff7a); border: 1px solid rgba(45,255,122,0.3); padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 10.5px; font-weight: 600;">Sincronizar Nuvem</button>
-          <button id="btn-logout"
-            style="display: none; background: transparent; color: #ef4444; border: 1px solid #ef4444; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 10px;">Sair</button>
+    <!-- Cabeçalho Principal -->
+    <header role="banner">
+      <!-- Lado Esquerdo: Logo e Info do Usuário -->
+      <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+        <div class="logo-container">
+          <h1 class="logo" onclick="window.studai.switchTab('painel')" title="Ir ao Painel">Stud<b>AI</b></h1>
+          <span class="brand-badge">v2.5 OS</span>
+        </div>
+
+        <div id="user-info" class="user-status-pill">
+          <span id="user-name" class="user-name" title="Ver meu perfil">👤 Convidado</span>
+          <button id="btn-login-header" class="header-btn" style="display: none;" title="Conectar ao Firebase / Google">☁️ Sincronizar Nuvem</button>
+          <button id="btn-logout" class="header-btn danger" style="display: none;" title="Desconectar">Sair</button>
         </div>
       </div>
 
-      <!-- Lado direito: Nível e Barra de XP -->
-      <div class="user-level-container" style="flex: 1; max-width: 250px; min-width: 150px;">
-        <div id="lvlTxt" style="font-size: 14px; text-align: right;">Nível...</div>
-        <div class="bar"
-          style="margin-top: 6px; width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">
-          <i id="xpBar"
-            style="display: block; height: 100%; background: var(--g, #2dff7a); box-shadow: 0 0 8px var(--g, #2dff7a); width: 0%; transition: width 0.3s ease;"></i>
+      <!-- Centro & Ações Rápidas: Sons de Foco & Foco Total -->
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <button id="btn-quick-sound" class="header-btn" title="Alternar Sons de Foco para concentração" onclick="window.studai.toggleSoundscapes()">
+          <span id="quick-sound-icon">🎧</span>
+          <span id="quick-sound-label">Sons de Foco</span>
+        </button>
+
+        <button id="btn-zen-mode" class="header-btn" title="Entrar no Modo Foco Total sem distrações (Atalho Z)" onclick="window.studai.toggleZenMode()">
+          <span>🔲</span>
+          <span>Foco Total</span>
+        </button>
+      </div>
+
+      <!-- Lado Direito: Nível e Barra de XP -->
+      <div class="user-level-container">
+        <div id="lvlTxt">Carregando nível...</div>
+        <div class="bar">
+          <i id="xpBar" style="width: 0%;"></i>
         </div>
       </div>
     </header>
+
+    <!-- Barra de Navegação por Abas -->
     <nav id="nav" aria-label="Navegação principal"></nav>
+
+    <!-- Conteúdo Principal Dinâmico -->
     <main id="main" role="main"></main>
   </div>
 
+  <!-- Container de Notificações Toast -->
   <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
-  <script type="module" src="js/app.js"></script>
-  <!-- ESTILOS DA TELA DE LOGIN (Animações e Layout) -->
-  <style>
-    #login-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: #09090b;
-      /* Fundo super escuro */
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 99999;
-      overflow: hidden;
-      font-family: sans-serif;
-    }
 
-    /* Bolhas de luz flutuantes no fundo */
-    .login-blob {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(80px);
-      opacity: 0.4;
-      animation: float 10s infinite ease-in-out alternate;
-    }
-
-    .blob-1 {
-      width: 400px;
-      height: 400px;
-      background: var(--g, #2dff7a);
-      top: -100px;
-      left: -100px;
-    }
-
-    .blob-2 {
-      width: 300px;
-      height: 300px;
-      background: #3b82f6;
-      bottom: -50px;
-      right: -50px;
-      animation-delay: -5s;
-    }
-
-    @keyframes float {
-      0% {
-        transform: translateY(0) scale(1);
-      }
-
-      100% {
-        transform: translateY(30px) scale(1.1);
-      }
-    }
-
-    /* Layout Principal Dividido */
-    .login-container {
-      position: relative;
-      z-index: 2;
-      display: flex;
-      flex-wrap: wrap;
-      background: rgba(24, 24, 27, 0.6);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 20px;
-      max-width: 900px;
-      width: 90%;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-      overflow: hidden;
-    }
-
-    /* Lado Esquerdo: Apresentação */
-    .login-info {
-      flex: 1 1 400px;
-      padding: 50px;
-      border-right: 1px solid rgba(255, 255, 255, 0.05);
-    }
-
-    .login-info h1 {
-      font-size: 42px;
-      font-weight: 800;
-      color: #fff;
-      margin-bottom: 15px;
-    }
-
-    .login-info h1 b {
-      color: var(--g, #2dff7a);
-    }
-
-    .login-info p {
-      color: #a1a1aa;
-      font-size: 16px;
-      line-height: 1.5;
-      margin-bottom: 30px;
-    }
-
-    .feature-list {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
-
-    .feature-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      background: rgba(255, 255, 255, 0.03);
-      padding: 12px 16px;
-      border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.02);
-      color: #e4e4e7;
-      font-size: 14px;
-      transition: transform 0.2s, background 0.2s;
-    }
-
-    .feature-item:hover {
-      transform: translateX(5px);
-      background: rgba(255, 255, 255, 0.08);
-    }
-
-    /* Lado Direito: Ação de Login / Cadastro */
-    .login-action {
-      flex: 1 1 420px;
-      padding: 36px 40px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      text-align: left;
-      max-height: 85vh;
-      overflow-y: auto;
-    }
-
-    .auth-tabs {
-      display: flex;
-      background: rgba(0, 0, 0, 0.4);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 10px;
-      padding: 3px;
-      margin-bottom: 20px;
-    }
-
-    .auth-tab-btn {
-      flex: 1;
-      background: transparent;
-      border: none;
-      color: #a1a1aa;
-      font-weight: 700;
-      font-size: 13.5px;
-      padding: 9px 12px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .auth-tab-btn.active {
-      background: rgba(45, 255, 122, 0.15);
-      color: var(--g, #2dff7a);
-      border: 1px solid rgba(45, 255, 122, 0.3);
-      box-shadow: 0 0 12px rgba(45, 255, 122, 0.15);
-    }
-
-    .auth-pane {
-      display: none;
-    }
-
-    .auth-pane.active {
-      display: block;
-    }
-
-    .auth-field-label {
-      font-size: 11.5px;
-      font-weight: 700;
-      color: #a1a1aa;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 5px;
-      display: block;
-    }
-
-    .auth-input {
-      width: 100%;
-      padding: 10px 12px;
-      border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      background: rgba(0, 0, 0, 0.35);
-      color: #fff;
-      margin-bottom: 12px;
-      box-sizing: border-box;
-      outline: none;
-      font-size: 13.5px;
-      font-family: inherit;
-      transition: border-color 0.2s, background 0.2s;
-    }
-
-    .auth-input:focus {
-      border-color: var(--g, #2dff7a);
-      background: rgba(0, 0, 0, 0.6);
-    }
-
-    .hours-selector {
-      display: flex;
-      gap: 6px;
-      margin-bottom: 12px;
-    }
-
-    .hour-btn {
-      flex: 1;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #d4d4d8;
-      border-radius: 8px;
-      padding: 8px 4px;
-      font-size: 12.5px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s;
-      text-align: center;
-    }
-
-    .hour-btn:hover {
-      border-color: rgba(45, 255, 122, 0.4);
-      background: rgba(45, 255, 122, 0.08);
-    }
-
-    .hour-btn.active {
-      background: var(--g, #2dff7a);
-      color: #03140a;
-      border-color: var(--g, #2dff7a);
-    }
-
-    .chips-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 10px;
-    }
-
-    .chip-item {
-      font-size: 11px;
-      font-weight: 600;
-      padding: 4px 10px;
-      border-radius: 99px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      background: rgba(0, 0, 0, 0.3);
-      color: #d4d4d8;
-      cursor: pointer;
-      transition: all 0.2s;
-      user-select: none;
-    }
-
-    .chip-item:hover {
-      border-color: var(--g, #2dff7a);
-      background: rgba(45, 255, 122, 0.1);
-    }
-
-    .chip-item.active {
-      background: rgba(45, 255, 122, 0.2);
-      border-color: var(--g, #2dff7a);
-      color: var(--g, #2dff7a);
-      font-weight: 700;
-    }
-
-    #btn-login-overlay {
-      width: 100%;
-      background: var(--g, #2dff7a);
-      color: #000;
-      border: none;
-      padding: 12px;
-      border-radius: 8px;
-      font-weight: bold;
-      font-size: 14.5px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 4px 15px rgba(45, 255, 122, 0.2);
-    }
-
-    #btn-login-overlay:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(45, 255, 122, 0.4);
-    }
-  </style>
-
-  <!-- TELA EXCLUSIVA DE LOGIN & CADASTRO -->
+  <!-- Modal de Login & Cadastro Cloud -->
   <div id="login-overlay">
-    <!-- Efeitos de Fundo -->
+    <!-- Efeitos de Luz no Fundo -->
     <div class="login-blob blob-1"></div>
     <div class="login-blob blob-2"></div>
 
-    <!-- Card Principal -->
-    <div class="login-container" style="position: relative;">
-      <button id="btn-close-login" title="Explorar sem login"
-        style="position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; z-index: 10; transition: all 0.2s;">
+    <!-- Container do Card -->
+    <div class="login-container">
+      <button id="btn-close-login" title="Continuar sem login"
+        style="position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #fff; border-radius: 50%; width: 34px; height: 34px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; z-index: 10; transition: all 0.2s;">
         ✕
       </button>
 
-      <!-- Lado Esquerdo: Info -->
+      <!-- Lado Esquerdo: Apresentação -->
       <div class="login-info">
         <h1>Stud<b>AI</b></h1>
-        <p>O seu ecossistema inteligente de estudos. Sincronizado na nuvem e desenhado para maximizar a sua
-          produtividade.</p>
+        <p>O seu ecossistema inteligente de estudos de alta performance. Sincronizado na nuvem e desenhado para retenção ativa.</p>
 
         <div class="feature-list">
-          <div class="feature-item"><span>🚀</span> Ganhe XP e suba de nível a cada minuto estudado</div>
-          <div class="feature-item"><span>⏱️</span> Pop-up HUD Always-On-Top e Pomodoro avançado</div>
-          <div class="feature-item"><span>🎯</span> Metas de horas diárias com recálculo inteligente</div>
+          <div class="feature-item"><span>🚀</span> Ganhe XP e suba de nível a cada minuto focado</div>
+          <div class="feature-item"><span>⏱️</span> Pop-up Always-On-Top e Pomodoro avançado</div>
+          <div class="feature-item"><span>🎯</span> Metas de estudo semanais e Kanban ágil</div>
           <div class="feature-item"><span>🧠</span> Quiz inteligente com Repetição Espaçada</div>
+          <div class="feature-item"><span>🎧</span> Sons de foco sintetizados em tempo real</div>
         </div>
       </div>
 
@@ -368,10 +105,10 @@
           <button id="tab-auth-register" class="auth-tab-btn">📝 Criar Conta</button>
         </div>
 
-        <!-- ABA 1: ENTRAR / LOGIN -->
+        <!-- ABA 1: ENTRAR -->
         <div id="pane-login" class="auth-pane active">
-          <h2 style="font-size: 22px; color:#fff; margin-bottom: 4px;">Bem-vindo de volta</h2>
-          <p style="font-size: 13px; color:#a1a1aa; margin-bottom: 18px;">Acesse sua conta para continuar sua jornada.</p>
+          <h2 style="font-size: 20px; color:#fff; margin-bottom: 4px;">Bem-vindo de volta</h2>
+          <p style="font-size: 13px; color:var(--mu); margin-bottom: 16px;">Acesse sua conta para sincronizar suas sessões.</p>
 
           <label class="auth-field-label">E-mail *</label>
           <input type="email" id="login-email" class="auth-input" placeholder="seu@email.com" required>
@@ -379,15 +116,14 @@
           <label class="auth-field-label">Senha *</label>
           <input type="password" id="login-password" class="auth-input" placeholder="Sua senha secreta" required>
 
-          <button id="btn-login-submit"
-            style="width: 100%; background: var(--g, #2dff7a); color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 14.5px; cursor: pointer; margin-top: 4px; margin-bottom: 14px; transition: all 0.2s;">
+          <button id="btn-login-submit" class="btn" style="width: 100%; margin-top: 4px; margin-bottom: 14px;">
             Entrar no StudAI
           </button>
 
           <div style="display: flex; align-items: center; gap: 10px; width: 100%; margin-bottom: 14px;">
-            <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.1);"></div>
-            <span style="color: #71717a; font-size: 11px;">OU</span>
-            <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.1);"></div>
+            <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.08);"></div>
+            <span style="color: var(--mu); font-size: 11px;">OU</span>
+            <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.08);"></div>
           </div>
 
           <button id="btn-login-overlay">
@@ -398,16 +134,16 @@
             Entrar com o Google
           </button>
 
-          <button id="btn-login-guest"
-            style="width: 100%; background: rgba(255,255,255,0.04); color: #d7f5df; border: 1px dashed rgba(45,255,122,0.25); padding: 10px; border-radius: 8px; font-weight: 600; font-size: 12.5px; cursor: pointer; margin-top: 10px; transition: all 0.2s;">
+          <button id="btn-login-guest" class="btn o"
+            style="width: 100%; padding: 9px; font-size: 12.5px; margin-top: 10px;">
             Continuar como Convidado (Modo Offline)
           </button>
         </div>
 
-        <!-- ABA 2: CADASTRO / CRIAR CONTA -->
+        <!-- ABA 2: CRIAR CONTA -->
         <div id="pane-register" class="auth-pane">
-          <h2 style="font-size: 22px; color:#fff; margin-bottom: 4px;">Crie sua Conta</h2>
-          <p style="font-size: 13px; color:#a1a1aa; margin-bottom: 16px;">Configure seu perfil, meta diária e matérias.</p>
+          <h2 style="font-size: 20px; color:#fff; margin-bottom: 4px;">Crie sua Conta</h2>
+          <p style="font-size: 13px; color:var(--mu); margin-bottom: 16px;">Configure seu perfil, meta diária e matérias.</p>
 
           <label class="auth-field-label">Seu Nome / Como quer ser chamado *</label>
           <input type="text" id="reg-name" class="auth-input" placeholder="Ex: Lucas Silva" required>
@@ -420,7 +156,7 @@
 
           <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
             <label class="auth-field-label" style="margin-bottom:0">Meta Diária de Estudos *</label>
-            <span id="reg-hours-badge" style="font-size: 11px; color: var(--g, #2dff7a); font-weight: 700;">2 horas / dia (~14h/semana)</span>
+            <span id="reg-hours-badge" style="font-size: 11px; color: var(--g); font-weight: 700;">2 horas / dia (~14h/sem)</span>
           </div>
           <div class="hours-selector">
             <button type="button" class="hour-btn" data-hours="1">1h</button>
@@ -432,7 +168,7 @@
           <input type="hidden" id="reg-daily-hours" value="2">
 
           <label class="auth-field-label">Objetivo Principal de Estudo</label>
-          <input type="text" id="reg-goal" class="auth-input" placeholder="Ex: Concurso Público, Programação, Faculdade...">
+          <input type="text" id="reg-goal" class="auth-input" placeholder="Ex: Programação, Concursos, Faculdade...">
           <div class="chips-row" id="reg-goal-chips">
             <span class="chip-item" data-goal="Programação / Tech">💻 Tech</span>
             <span class="chip-item" data-goal="Concurso Público">💼 Concursos</span>
@@ -453,17 +189,19 @@
 
           <div style="display:flex; gap:6px; margin-bottom: 14px;">
             <input type="text" id="reg-custom-subject" placeholder="+ Adicionar outra matéria..." class="auth-input" style="margin-bottom:0; font-size:12px; padding:7px 10px; flex:1;">
-            <button type="button" id="btn-add-reg-subject" style="background:rgba(45,255,122,0.12); border:1px solid rgba(45,255,122,0.3); color:var(--g,#2dff7a); border-radius:8px; padding:0 12px; font-weight:700; font-size:12px; cursor:pointer;">+ Add</button>
+            <button type="button" id="btn-add-reg-subject" class="btn o" style="padding:0 12px; font-weight:700; font-size:12px;">+ Add</button>
           </div>
 
-          <button id="btn-register-submit"
-            style="width: 100%; background: var(--g, #2dff7a); color: #000; border: none; padding: 13px; border-radius: 8px; font-weight: 800; font-size: 15px; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 15px rgba(45,255,122,0.3);">
+          <button id="btn-register-submit" class="btn" style="width: 100%; padding: 12px;">
             🚀 Criar Conta & Começar
           </button>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- Script Principal Modular -->
+  <script type="module" src="js/app.js"></script>
 </body>
 
 </html>

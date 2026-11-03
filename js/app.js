@@ -4,7 +4,7 @@
 import { store } from "./store.js";
 import { timer } from "./timer.js";
 import { sounds } from "./audio.js";
-import { calculateXP, calculateLevelData } from "./gamification.js";
+import { calculateXP, calculateLevelData, animarGanhoXP } from "./gamification.js";
 import { showToast, showConfirm, generateId, getTodayIso, escapeHtml } from "./utils.js";
 import { aiConfig, saveApiKey, generateQuizQuestions, generateOfflineQuizQuestions } from "./ai.js";
 
@@ -24,7 +24,9 @@ import {
   setEditingHistoryKey,
   editingHistoryKey,
   flashcardState,
-  getFlashcardsDeck
+  getFlashcardsDeck,
+  toggleCreateFlashcard,
+  isCreatingFlashcard
 } from "./views/timerView.js";
 import {
   renderQuiz,
@@ -101,8 +103,8 @@ class Application {
 
       if (lvlTxtEl) {
         lvlTxtEl.innerHTML = `
-          Nível ${nivelData.level} <span style="opacity:0.75; font-size:11.5px; margin-left:4px">${nivelData.rankTitle}</span>
-          <div style="font-weight:800; color:var(--g); margin-top:2px">${totalXp} XP</div>
+          <span>Nível ${nivelData.level} <small style="opacity:0.75; font-size:11px; margin-left:3px">${nivelData.rankTitle}</small></span>
+          <span style="font-weight:800; color:var(--g);">${totalXp} XP</span>
         `;
       }
 
@@ -118,8 +120,8 @@ class Application {
     const navEl = document.getElementById("nav");
     if (!navEl) return;
 
-    navEl.innerHTML = TABS.map(([key, label]) => `
-      <button class="${key === this.currentTab ? "on" : ""}" onclick="window.studai.switchTab('${key}')">
+    navEl.innerHTML = TABS.map(([key, label], idx) => `
+      <button class="${key === this.currentTab ? "on" : ""}" onclick="window.studai.switchTab('${key}')" title="Atalho: Alt+${idx + 1}">
         ${label}
       </button>
     `).join("");
@@ -163,15 +165,66 @@ class Application {
 
   // --- Actions Dispatcher (Exposed to Global window.studai) ---
 
-  claimMission(missionId) {
+  claimMission(missionId, event = null) {
     sounds.playSuccess();
     const today = getTodayIso();
     const missionKey = `${today}_${missionId}`;
     if (!store.state.claimed_missions.includes(missionKey)) {
       store.state.claimed_missions.push(missionKey);
       store.save();
+      const x = event?.clientX ?? window.innerWidth / 2;
+      const y = event?.clientY ?? window.innerHeight / 2;
+      animarGanhoXP(25, x, y);
       showToast("Missão resgatada com sucesso! +25 XP adicionados.");
     }
+  }
+
+  toggleZenMode() {
+    const isZen = document.body.classList.toggle("zen-mode");
+    sounds.playPop();
+    showToast(isZen ? "🔲 Modo Foco Total ativado! (Atalho Z para sair)" : "Modo normal restaurado.");
+  }
+
+  saveScratchpad(text) {
+    try {
+      localStorage.setItem("studai_hud_scratchpad", text);
+    } catch {}
+  }
+
+  setSoundVolume(val) {
+    sounds.setAmbientVolume(val);
+  }
+
+  toggleCreateFlashcard(open) {
+    toggleCreateFlashcard(open);
+    this.render();
+  }
+
+  addQuickFlashcard() {
+    const cat = document.getElementById("qfc-cat")?.value.trim() || "Geral";
+    const topic = document.getElementById("qfc-topic")?.value.trim();
+    const what = document.getElementById("qfc-what")?.value.trim();
+
+    if (!topic || !what) {
+      showToast("Preencha a pergunta e a resposta do flashcard.", "error");
+      return;
+    }
+
+    store.ensureSubject(cat);
+    store.state.logs.push({
+      id: generateId(),
+      sid: generateId(),
+      cat,
+      topic,
+      what,
+      date: getTodayIso()
+    });
+
+    toggleCreateFlashcard(false);
+    sounds.playSuccess();
+    store.save();
+    showToast("Flashcard adicionado ao deck! +20 XP");
+    this.render();
   }
 
   // Matérias
@@ -1145,6 +1198,24 @@ function setupKeyboardShortcuts(appInstance) {
       return;
     }
 
+    // Z → Toggle Zen Mode
+    if ((e.key === 'z' || e.key === 'Z') && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      e.preventDefault();
+      appInstance.toggleZenMode();
+      return;
+    }
+
+    // Escape → Exit Zen or Close Modals
+    if (e.key === 'Escape') {
+      if (document.body.classList.contains("zen-mode")) {
+        appInstance.toggleZenMode();
+      }
+      const overlay = document.getElementById("login-overlay");
+      if (overlay && overlay.style.display !== "none") {
+        overlay.style.display = "none";
+      }
+    }
+
     // Space → Toggle timer
     if (e.key === ' ' && appInstance.currentTab === 'tempo') {
       e.preventDefault();
@@ -1202,11 +1273,15 @@ document.addEventListener('click', (e) => {
     dropdown.classList.remove('open');
   }
 });
-// Atualiza as coordenadas do mouse no CSS em tempo real (60 FPS otimizado)
+// Atualiza as coordenadas do mouse no CSS com requestAnimationFrame
+let mouseRaf = null;
 window.addEventListener("pointermove", (e) => {
-  const x = ((e.clientX / window.innerWidth) * 100).toFixed(2);
-  const y = ((e.clientY / window.innerHeight) * 100).toFixed(2);
-
-  document.body.style.setProperty("--mouse-x", `${x}%`);
-  document.body.style.setProperty("--mouse-y", `${y}%`);
-});
+  if (mouseRaf) return;
+  mouseRaf = requestAnimationFrame(() => {
+    const x = ((e.clientX / window.innerWidth) * 100).toFixed(2);
+    const y = ((e.clientY / window.innerHeight) * 100).toFixed(2);
+    document.body.style.setProperty("--mouse-x", `${x}%`);
+    document.body.style.setProperty("--mouse-y", `${y}%`);
+    mouseRaf = null;
+  });
+}, { passive: true });

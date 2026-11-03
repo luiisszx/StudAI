@@ -10,7 +10,16 @@ class SoundManager {
     this.ambientGain = null;
     this.isAmbientPlaying = false;
     this.currentAmbientType = null;
+    this.currentVolume = 0.3;
     this.stopTimeout = null;
+  }
+
+  getAmbientState() {
+    return {
+      isPlaying: this.isAmbientPlaying,
+      type: this.currentAmbientType,
+      volume: this.currentVolume
+    };
   }
 
   getAudioContext() {
@@ -98,7 +107,10 @@ class SoundManager {
   }
 
   // --- Ambient Focus Sound Generator ---
-  startAmbient(type = "rain", volume = 0.2) {
+  startAmbient(type = "rain", volume = null) {
+    if (volume !== null) {
+      this.currentVolume = Math.min(1, Math.max(0, volume));
+    }
     // Interrompe imediatamente qualquer transição de stop pendente
     if (this.stopTimeout) {
       clearTimeout(this.stopTimeout);
@@ -120,11 +132,11 @@ class SoundManager {
       }
 
       const now = ctx.currentTime;
-      const targetVol = Math.min(1, Math.max(0, volume));
+      const targetVol = this.currentVolume;
       
       this.ambientGain.gain.cancelScheduledValues(now);
       this.ambientGain.gain.setValueAtTime(this.ambientGain.gain.value || 0.01, now);
-      this.ambientGain.gain.linearRampToValueAtTime(targetVol, now + 0.8);
+      this.ambientGain.gain.linearRampToValueAtTime(targetVol, now + 0.5);
 
       if (type === "rain") {
         const bufferSize = ctx.sampleRate * 2;
@@ -202,10 +214,11 @@ class SoundManager {
   }
 
   setAmbientVolume(volume) {
+    const safe = Math.min(1, Math.max(0, Number(volume) || 0));
+    this.currentVolume = safe;
     if (this.ambientGain && this.audioCtx) {
       try {
         const now = this.audioCtx.currentTime;
-        const safe = Math.min(1, Math.max(0, volume));
         this.ambientGain.gain.cancelScheduledValues(now);
         this.ambientGain.gain.setValueAtTime(safe, now);
       } catch {}
@@ -222,7 +235,7 @@ class SoundManager {
         const now = this.audioCtx.currentTime;
         this.ambientGain.gain.cancelScheduledValues(now);
         this.ambientGain.gain.setValueAtTime(this.ambientGain.gain.value, now);
-        this.ambientGain.gain.linearRampToValueAtTime(0.0001, now + 0.4);
+        this.ambientGain.gain.linearRampToValueAtTime(0.0001, now + 0.3);
       } catch {}
     }
 
@@ -234,7 +247,7 @@ class SoundManager {
       this.isAmbientPlaying = false;
       this.currentAmbientType = null;
       this.stopTimeout = null;
-    }, 450);
+    }, 350);
   }
 
   toggleAmbient(type = "rain") {
@@ -242,7 +255,7 @@ class SoundManager {
       this.stopAmbient();
       return false;
     } else {
-      this.startAmbient(type, 0.25);
+      this.startAmbient(type, this.currentVolume);
       return true;
     }
   }

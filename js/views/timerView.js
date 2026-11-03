@@ -1,5 +1,5 @@
 /**
- * StudAI — Timer View (Tempo, Histórico e Flashcards)
+ * StudAI — Timer View (Tempo, Foco, Soundscapes, Histórico & Flashcards)
  */
 import { store } from "../store.js";
 import { timer } from "../timer.js";
@@ -8,6 +8,7 @@ import { sounds } from "../audio.js";
 
 export let activeBlurMode = false;
 export let editingHistoryKey = null;
+export let isCreatingFlashcard = false;
 export let flashcardState = {
   category: "",
   index: 0,
@@ -23,7 +24,11 @@ export function setEditingHistoryKey(key) {
   editingHistoryKey = key;
 }
 
-// Combine sessions and logs into paired history entries
+export function toggleCreateFlashcard(open = null) {
+  isCreatingFlashcard = open !== null ? open : !isCreatingFlashcard;
+}
+
+// Combina sessões e tópicos de histórico
 function getUnifiedHistoryEntries() {
   const usedSessionIds = new Set();
   const entries = [];
@@ -70,16 +75,17 @@ function getUnifiedHistoryEntries() {
 function renderStopwatchUI() {
   return `
     <div class="timer" id="tmr">00:00:00</div>
-    <div class="row">
-      <button class="btn" onclick="window.studai.toggleStopwatch()">
+    <div class="row" style="justify-content:center; gap:12px; margin-top:14px;">
+      <button class="btn" onclick="window.studai.toggleStopwatch()" style="min-width:140px;">
         ${timer.stopwatch.isRunning ? "⏸ Pausar" : "▶ Iniciar"}
       </button>
       <button class="btn o" onclick="window.studai.saveStopwatch()">
-        ✔ Finalizar e salvar
+        ✔ Finalizar e Salvar (+XP)
       </button>
     </div>
-    <div class="shortcuts-bar" style="margin-top:6px;">
+    <div class="shortcuts-bar">
       <span><kbd class="kbd">Espaço</kbd> Pausar/Iniciar</span>
+      <span><kbd class="kbd">Z</kbd> Modo Foco Total</span>
     </div>
   `;
 }
@@ -89,7 +95,7 @@ function renderPomodoroUI() {
   const isFocus = phase === "foco";
   const isLong = phase === "longa";
 
-  const phaseTitle = isFocus ? "🍅 Foco" : isLong ? "☕ Pausa Longa" : "☕ Pausa Curta";
+  const phaseTitle = isFocus ? "🍅 Bloco de Foco" : isLong ? "🛋️ Pausa Longa" : "☕ Pausa Curta";
   const phaseColor = isFocus ? "var(--red)" : "var(--g)";
 
   const mm = String(Math.floor(timer.pomodoro.secondsLeft / 60)).padStart(2, "0");
@@ -100,60 +106,96 @@ function renderPomodoroUI() {
     ? `<span class="tag" style="margin:0">🔔 Notificações ativas</span>`
     : perm === "denied"
       ? `<span class="sub">Notificações bloqueadas no navegador.</span>`
-      : `<button class="btn o" style="font-size:12px;padding:6px 12px" onclick="window.studai.requestNotif()">🔔 Ativar notificações</button>`;
+      : `<button class="btn o" style="font-size:12px; padding:4px 10px;" onclick="window.studai.requestNotif()">🔔 Ativar Notificações</button>`;
 
   const dots = timer.pomodoro.completedCycles > 0
-    ? "🍅".repeat(Math.min(timer.pomodoro.completedCycles, 12))
+    ? "🍅 ".repeat(Math.min(timer.pomodoro.completedCycles, 10))
     : "—";
 
   return `
-    <div class="sub" style="text-align:center; font-weight:bold; color:${phaseColor}; font-size:16px;">
+    <div class="sub" style="text-align:center; font-weight:800; color:${phaseColor}; font-size:15px; letter-spacing:0.5px;">
       ${phaseTitle}
     </div>
     <div class="timer" id="ptmr_main">${mm}:${ss}</div>
-    <div class="row">
-      <button class="btn" style="background:${phaseColor}; color:#000;" onclick="window.studai.togglePomodoro()">
-        ${timer.pomodoro.isRunning ? "⏸ Pausar" : "▶ Iniciar"}
+    <div class="row" style="justify-content:center; gap:12px;">
+      <button class="btn" style="background:${phaseColor}; color:#000; min-width:130px;" onclick="window.studai.togglePomodoro()">
+        ${timer.pomodoro.isRunning ? "⏸ Pausar" : "▶ Iniciar Foco"}
       </button>
-      <button class="btn o" onclick="window.studai.skipPomodoro()">⏭ Pular fase</button>
-      <button class="btn o" onclick="window.studai.savePomodoro()">✔ Finalizar e salvar</button>
+      <button class="btn o" onclick="window.studai.skipPomodoro()">⏭ Pular Fase</button>
+      <button class="btn o" onclick="window.studai.savePomodoro()">✔ Salvar Sessão</button>
     </div>
 
-    <div class="row" style="margin-top:14px;">
-      <div style="flex:1">
-        <label class="sub">Minutos Foco</label>
+    <div class="row" style="margin-top:16px;">
+      <div style="flex:1; min-width:100px;">
+        <label class="sub" style="display:block; margin-bottom:4px; font-weight:600;">Minutos Foco</label>
         <input type="number" min="1" value="${timer.pomodoro.focusMinutes}" onchange="window.studai.configPomodoro({ focus: this.value })">
       </div>
-      <div style="flex:1">
-        <label class="sub">Minutos Pausa</label>
+      <div style="flex:1; min-width:100px;">
+        <label class="sub" style="display:block; margin-bottom:4px; font-weight:600;">Pausa Curta</label>
         <input type="number" min="1" value="${timer.pomodoro.breakMinutes}" onchange="window.studai.configPomodoro({ shortBreak: this.value })">
       </div>
-      <div style="flex:1">
-        <label class="sub">Pausa Longa</label>
+      <div style="flex:1; min-width:100px;">
+        <label class="sub" style="display:block; margin-bottom:4px; font-weight:600;">Pausa Longa</label>
         <input type="number" min="1" value="${timer.pomodoro.longBreakMinutes}" onchange="window.studai.configPomodoro({ longBreak: this.value })">
       </div>
     </div>
 
-    <div class="row" style="align-items:center; justify-content:space-between; margin-top:10px;">
-      <label class="sub" style="display:flex; align-items:center; gap:8px;">
-        <input type="checkbox" ${timer.pomodoro.autoNextPhase ? "checked" : ""} onchange="window.studai.configPomodoro({ autoNext: this.checked })">
+    <div class="row" style="align-items:center; justify-content:space-between; margin-top:8px;">
+      <label class="sub" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+        <input type="checkbox" ${timer.pomodoro.autoNextPhase ? "checked" : ""} onchange="window.studai.configPomodoro({ autoNext: this.checked })" style="width:16px; height:16px; accent-color:var(--g); cursor:pointer;">
         Iniciar próxima fase automaticamente
       </label>
       <div>${notifButtonHtml}</div>
     </div>
 
-    <div class="row" style="align-items:center; margin-top:12px; background:rgba(0,0,0,0.2); padding:10px; border-radius:10px; border:1px solid var(--line);">
-      <div>
-        <div class="sub">Ciclos concluídos</div>
-        <div style="font-size:20px">${dots}</div>
+    <div class="row" style="align-items:center; justify-content:space-around; margin-top:12px; background:rgba(0,0,0,0.25); padding:12px; border-radius:10px; border:1px solid var(--line);">
+      <div style="text-align:center;">
+        <div class="sub">Ciclos Concluídos</div>
+        <div style="font-size:16px; margin-top:2px;">${dots}</div>
       </div>
-      <div>
-        <div class="sub">Foco acumulado</div>
-        <b>${formatDuration(timer.pomodoro.accumulatedFocusMinutes)}</b>
+      <div style="text-align:center;">
+        <div class="sub">Foco Acumulado</div>
+        <b style="color:var(--g); font-size:15px;">${formatDuration(timer.pomodoro.accumulatedFocusMinutes)}</b>
       </div>
-      <div>
-        <div class="sub">Próxima pausa longa</div>
+      <div style="text-align:center;">
+        <div class="sub">Próxima Pausa Longa</div>
         <b>em ${4 - (timer.pomodoro.completedCycles % 4)} ciclo(s)</b>
+      </div>
+    </div>
+  `;
+}
+
+function renderSoundscapesWidget() {
+  const state = sounds.getAmbientState();
+  const currentType = state.type;
+  const isPlaying = state.isPlaying;
+  const volPct = Math.round((state.volume || 0.3) * 100);
+
+  return `
+    <div class="soundscape-box">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:18px;">🎧</span>
+        <div>
+          <b style="font-size:13px; color:var(--tx-bright);">Sons de Foco Sintetizados (Sem Anúncios / Offline)</b>
+          <div class="sub" style="font-size:11.5px;">Áudio gerado em tempo real com Web Audio API para bloquear distrações.</div>
+        </div>
+      </div>
+
+      <div class="sound-options">
+        <button class="sound-pill ${isPlaying && currentType === 'rain' ? 'active' : ''}" onclick="window.studai.toggleSoundscapes('rain')">
+          🌧️ Chuva Relaxante
+        </button>
+        <button class="sound-pill ${isPlaying && currentType === 'white' ? 'active' : ''}" onclick="window.studai.toggleSoundscapes('white')">
+          🌊 Ruído Branco
+        </button>
+        <button class="sound-pill ${isPlaying && currentType === 'binaural' ? 'active' : ''}" onclick="window.studai.toggleSoundscapes('binaural')">
+          🧠 Frequência 40Hz
+        </button>
+      </div>
+
+      <div class="volume-control">
+        <span style="font-size:11px; color:var(--mu);">Vol: ${volPct}%</span>
+        <input type="range" class="volume-slider" min="0" max="1" step="0.05" value="${state.volume || 0.3}" oninput="window.studai.setSoundVolume(this.value)">
       </div>
     </div>
   `;
@@ -189,26 +231,26 @@ function renderHistorySection() {
     let lastRenderedDate = "";
     const itemsHtml = list.map(entry => {
       const isNewDateHeader = entry.date !== lastRenderedDate
-        ? (lastRenderedDate = entry.date, `<div class="hdate" style="margin-top:16px; margin-bottom:8px; font-size:11px; font-weight:700; color:var(--mu); letter-spacing:1px;">${entry.date === getTodayIso() ? "HOJE" : formatDateBr(entry.date)}</div>`)
+        ? (lastRenderedDate = entry.date, `<div class="hdate" style="margin-top:14px; margin-bottom:6px; font-size:11px; font-weight:700; color:var(--mu); letter-spacing:1px;">${entry.date === getTodayIso() ? "HOJE" : formatDateBr(entry.date)}</div>`)
         : "";
 
       if (entry.key === editingHistoryKey) {
         return `
           ${isNewDateHeader}
-          <div class="item" style="padding:12px; border:1px solid rgba(255,255,255,0.05); border-radius:8px; background:rgba(0,0,0,0.2); margin-bottom:8px;">
+          <div class="item" style="padding:14px; border:1px solid var(--line); border-radius:10px; background:rgba(0,0,0,0.3); margin-bottom:8px;">
             <div class="t">
               <div class="row">
-${renderSubjectDropdown('eh-c', 'Matéria', entry.cat, store.getSubjects())}
-                ${entry.sess ? `<input id="eh-m" type="number" step="any" value="${entry.sess.min}" placeholder="Minutos">` : ""}
-                <input id="eh-d" type="date" value="${entry.date}">
+                ${renderSubjectDropdown('eh-c', 'Matéria', entry.cat, store.getSubjects())}
+                ${entry.sess ? `<input id="eh-m" type="number" step="any" value="${entry.sess.min}" placeholder="Minutos" style="max-width:120px;">` : ""}
+                <input id="eh-d" type="date" value="${entry.date}" style="max-width:160px;">
               </div>
               ${entry.log ? `
                 <div class="row">
-                  <input id="eh-t" value="${escapeHtml(entry.log.topic)}" placeholder="Tópico *">
+                  <input id="eh-t" value="${escapeHtml(entry.log.topic)}" placeholder="Tópico aprendido *">
                 </div>
-                <textarea id="eh-w" rows="3" placeholder="O que você estudou? *" style="margin-bottom:8px">${escapeHtml(entry.log.what)}</textarea>
+                <textarea id="eh-w" rows="3" placeholder="O que você estudou? *" style="margin-bottom:8px;">${escapeHtml(entry.log.what)}</textarea>
               ` : ""}
-              <div style="display:flex;gap:8px">
+              <div style="display:flex; gap:8px;">
                 <button class="btn" onclick="window.studai.saveHistoryEntry('${entry.key}')">Salvar</button>
                 <button class="btn o" onclick="window.studai.cancelHistoryEdit()">Cancelar</button>
               </div>
@@ -219,25 +261,24 @@ ${renderSubjectDropdown('eh-c', 'Matéria', entry.cat, store.getSubjects())}
 
       const blurClass = activeBlurMode ? "blur-box" : "";
       const blurAction = activeBlurMode ? `onclick="this.classList.toggle('revealed')"` : "";
-      const tooltip = activeBlurMode ? `title="Toque para revelar o conteúdo"` : "";
+      const tooltip = activeBlurMode ? `title="Clique para revelar o conteúdo"` : "";
 
-      // Item ultra-minimalista com anotações recolhíveis
       return `
         ${isNewDateHeader}
-        <div class="item" style="border: 1px solid rgba(255,255,255,0.03); background: rgba(255,255,255,0.01); border-radius: 8px; margin-bottom: 8px; padding: 12px 16px;">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+        <div class="item" style="border:1px solid var(--line-light); background:rgba(255,255,255,0.015); border-radius:8px; margin-bottom:8px; padding:12px 16px;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; width:100%;">
             <div style="flex:1; min-width:0;">
-              <div style="display:flex; align-items:center; gap:8px; margin-bottom: ${entry.log ? '6px' : '0'}; flex-wrap:wrap;">
-                ${entry.sess ? `<span class="tag" style="border-color:${color}; color:${color}; background:transparent; padding:2px 6px; font-size:11px; margin:0;">${formatDuration(entry.sess.min)}</span>` : ""}
-                ${entry.log ? `<b style="font-size:14.5px; color:#e4e4e7;">${escapeHtml(entry.log.topic)}</b>` : `<span class="sub" style="font-size:13px;">Ajuste manual de tempo</span>`}
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:${entry.log ? '6px' : '0'}; flex-wrap:wrap;">
+                ${entry.sess ? `<span class="tag" style="border-color:${color}; color:${color}; margin:0; font-size:11px;">${formatDuration(entry.sess.min)}</span>` : ""}
+                ${entry.log ? `<b style="font-size:14px; color:#fff;">${escapeHtml(entry.log.topic)}</b>` : `<span class="sub" style="font-size:13px;">Ajuste manual de tempo</span>`}
               </div>
               
               ${entry.log && entry.log.what ? `
-                <details style="margin-top:8px;">
-                  <summary style="cursor:pointer; outline:none; font-size:12px; color:var(--mu); font-weight:600; list-style:none; display:inline-flex; align-items:center; gap:4px; transition:color 0.2s;" onmouseover="this.style.color='#a1a1aa'" onmouseout="this.style.color='var(--mu)'">
-                    Ler anotações detalhadas ▾
+                <details style="margin-top:6px;">
+                  <summary style="cursor:pointer; outline:none; font-size:12px; color:var(--mu); font-weight:600; display:inline-flex; align-items:center; gap:4px;">
+                    Ver anotações detalhadas ▾
                   </summary>
-                  <div class="hwhat ${blurClass}" ${blurAction}${tooltip} style="margin-top:10px; font-size:13.5px; line-height:1.6; color:#a1a1aa; padding-left:12px; border-left:2px solid rgba(255,255,255,0.05);">
+                  <div class="hwhat ${blurClass}" ${blurAction}${tooltip} style="margin-top:8px; font-size:13px; line-height:1.55; color:var(--tx); padding-left:12px; border-left:2px solid ${color};">
                     ${applyPartialBlur(entry.log.what).replace(/\n/g, '<br>')}
                   </div>
                 </details>
@@ -245,34 +286,28 @@ ${renderSubjectDropdown('eh-c', 'Matéria', entry.cat, store.getSubjects())}
             </div>
             
             <div class="hact" style="display:flex; gap:4px;">
-              <button class="gbtn" title="Editar" onclick="window.studai.startEditHistoryEntry('${entry.key}')" style="background:transparent; border:none; color:#71717a; cursor:pointer; font-size:14px;">✎</button>
-              <button class="gbtn x" title="Apagar" onclick="window.studai.deleteHistoryEntry('${entry.key}')" style="background:transparent; border:none; color:#71717a; cursor:pointer; font-size:14px;">✕</button>
+              <button class="gbtn" title="Editar" onclick="window.studai.startEditHistoryEntry('${entry.key}')">✎</button>
+              <button class="gbtn x" title="Apagar" onclick="window.studai.deleteHistoryEntry('${entry.key}')">✕</button>
             </div>
           </div>
         </div>
       `;
     }).join("");
 
-    // O "open" foi removido daqui para as matérias ficarem fechadas por padrão
     return `
-      <details class="hgrp" style="border-left:4px solid ${color}; background:rgba(255,255,255,0.02); border-radius:0 8px 8px 0; margin-bottom:8px; padding:14px; transition:background 0.2s;">
-        <summary style="cursor:pointer; outline:none; display:flex; justify-content:space-between; align-items:center; list-style:none; width:100%;">
-          
-          <!-- Lado Esquerdo: Nome da Matéria e Tempo -->
+      <details class="hgrp" style="border-left:4px solid ${color}; background:rgba(255,255,255,0.02); border-radius:0 10px 10px 0; margin-bottom:10px; padding:12px 16px;">
+        <summary style="cursor:pointer; outline:none; display:flex; justify-content:space-between; align-items:center; list-style:none;">
           <div style="display:flex; align-items:center; gap:10px;">
-            <i class="color-dot" style="background:${color}; margin:0;"></i>
-            <b style="color:${color}; font-size:15px;">${escapeHtml(cat)}</b>
-            <span class="tag" style="border-color:${color}; color:${color}; margin:0; padding:2px 8px; background:transparent;">${formatDuration(totalMinutes)}</span>
+            <i class="color-dot" style="background:${color};"></i>
+            <b style="color:${color}; font-size:14.5px;">${escapeHtml(cat)}</b>
+            <span class="tag" style="border-color:${color}; color:${color}; margin:0; padding:2px 8px;">${formatDuration(totalMinutes)}</span>
           </div>
-          
-          <!-- Lado Direito: Quantidade de Registros -->
-          <div class="sub" style="font-size:12px; white-space:nowrap;">
+          <div class="sub" style="font-size:12px;">
             ${list.length} ${list.length === 1 ? "registro" : "registros"} ▾
           </div>
-          
         </summary>
         
-        <div style="margin-top:16px;">
+        <div style="margin-top:14px;">
           ${itemsHtml}
         </div>
       </details>
@@ -285,9 +320,9 @@ ${renderSubjectDropdown('eh-c', 'Matéria', entry.cat, store.getSubjects())}
     <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
         <div>
-          <h3 style="margin:0">Estudado em <span style="text-transform:capitalize">${escapeHtml(currentMonthName)}</span></h3>
+          <h3 style="margin:0;">Histórico de Estudo em <span style="text-transform:capitalize">${escapeHtml(currentMonthName)}</span></h3>
           <div class="sub" style="display:flex; gap:14px; margin-top:4px;">
-            <span><b style="color:var(--tx)">${formatDuration(totalStudiedMinutesMonth)}</b> de estudo</span>
+            <span><b style="color:var(--tx-bright);">${formatDuration(totalStudiedMinutesMonth)}</b> acumulados</span>
             <span>${entriesThisMonth.length} registros</span>
             <span>${subjectNames.length} matérias</span>
           </div>
@@ -327,24 +362,45 @@ function renderFlashcardsSection() {
   if (flashcardState.index < 0) flashcardState.index = Math.max(0, deck.length - 1);
   const currentCard = deck[flashcardState.index];
 
-  let cardContentHtml = `<div class="empty">Ainda não há tópicos com anotações para gerar flashcards. Estude pelo timer e preencha as anotações para criar seus cartões automaticamente!</div>`;
+  const createFlashcardFormHtml = isCreatingFlashcard ? `
+    <div style="background:rgba(0,0,0,0.35); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:18px;">
+      <h4 style="margin-bottom:10px; color:var(--g); font-size:13.5px;">+ Criar Novo Flashcard</h4>
+      <div class="row">
+        ${renderSubjectDropdown('qfc-cat', 'Matéria', flashcardState.category, store.getSubjects())}
+        <input id="qfc-topic" placeholder="Frente do Cartão (Pergunta / Conceito / Fórmula) *" style="flex:2;">
+      </div>
+      <textarea id="qfc-what" rows="2" placeholder="Verso do Cartão (Resposta detalhada / Explicação) *" style="margin-bottom:10px;"></textarea>
+      <div style="display:flex; gap:8px;">
+        <button class="btn" onclick="window.studai.addQuickFlashcard()">Salvar Cartão (+20 XP)</button>
+        <button class="btn o" onclick="window.studai.toggleCreateFlashcard(false)">Cancelar</button>
+      </div>
+    </div>
+  ` : "";
+
+  let cardContentHtml = `<div class="empty">Ainda não há flashcards nesta matéria. Crie um cartão abaixo ou registre sessões no timer!</div>`;
 
   if (currentCard) {
     const color = store.getSubjectColor(currentCard.cat || "Geral");
     cardContentHtml = `
-      <div class="sub" style="text-align:center">
+      <div class="sub" style="text-align:center; margin-bottom:8px;">
         Cartão ${flashcardState.index + 1} de ${deck.length} · Registrado em ${formatDateBr(currentCard.date)}
       </div>
-      <div class="fcard ${flashcardState.isFlipped ? 'flipped' : ''}" onclick="window.studai.flipFlashcard()" style="cursor:pointer; transition:transform 0.25s, box-shadow 0.25s;">
-        <span class="tag" style="border-color:${color};color:${color};margin:0">${escapeHtml(currentCard.cat || "Geral")}</span>
-        ${flashcardState.isFlipped
-        ? `<div style="font-size:15px; line-height:1.6; color:#d7f5df;">${escapeHtml(currentCard.what)}</div>`
-        : `<div style="font-size:20px; font-weight:700; color:#fff;">${escapeHtml(currentCard.topic)}</div><div class="sub" style="margin-top:6px;">Toque para revelar o que você aprendeu 💡</div>`
+      <div class="fcard-wrap">
+        <div class="fcard ${flashcardState.isFlipped ? 'flipped' : ''}" onclick="window.studai.flipFlashcard()">
+          <span class="tag" style="border-color:${color}; color:${color}; position:absolute; top:14px; left:14px; margin:0;">
+            ${escapeHtml(currentCard.cat || "Geral")}
+          </span>
+          ${flashcardState.isFlipped
+        ? `<div style="font-size:15px; line-height:1.6; color:#d7f5df; max-width:540px;">${escapeHtml(currentCard.what)}</div>
+               <div class="sub" style="margin-top:12px; color:var(--g);">✓ Toque para virar para a pergunta</div>`
+        : `<div style="font-size:20px; font-weight:700; color:#fff; max-width:540px;">${escapeHtml(currentCard.topic)}</div>
+               <div class="sub" style="margin-top:8px;">Toque para revelar a resposta 💡</div>`
       }
+        </div>
       </div>
-      <div class="row" style="margin-top:12px;">
+      <div class="row" style="justify-content:center; gap:10px; margin-top:12px;">
         <button class="btn o" onclick="window.studai.moveFlashcard(-1)">← Anterior</button>
-        <button class="btn" onclick="window.studai.flipFlashcard()">${flashcardState.isFlipped ? "Ver Pergunta" : "Virar Resposta"}</button>
+        <button class="btn" onclick="window.studai.flipFlashcard()">${flashcardState.isFlipped ? "Ver Pergunta" : "Virar Resposta (F)"}</button>
         <button class="btn o" onclick="window.studai.moveFlashcard(1)">Próximo →</button>
       </div>
     `;
@@ -354,9 +410,14 @@ function renderFlashcardsSection() {
     <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
         <h3 style="margin:0;">🃏 Flashcards de Revisão Ativa (${deck.length})</h3>
-        <span class="sub">${subjectsWithNotes.length} ${subjectsWithNotes.length === 1 ? 'matéria com cartões' : 'matérias com cartões'}</span>
+        <button class="btn o" style="font-size:12px; padding:6px 12px;" onclick="window.studai.toggleCreateFlashcard()">
+          ${isCreatingFlashcard ? "Fechar" : "+ Novo Flashcard"}
+        </button>
       </div>
-      <div class="row">
+
+      ${createFlashcardFormHtml}
+
+      <div class="row" style="margin-bottom:14px;">
         <select onchange="window.studai.setFlashcardCategory(this.value)" style="flex:2;">
           <option value="">Todas as matérias (${(store.state.logs || []).filter(l => l && l.topic && l.what).length} cartões)</option>
           ${subjectsWithNotes.map(c => `<option value="${escapeHtml(c)}" ${c === flashcardState.category ? "selected" : ""}>${escapeHtml(c)}</option>`).join("")}
@@ -365,9 +426,11 @@ function renderFlashcardsSection() {
           🔀 Embaralhar
         </button>
       </div>
+
       ${cardContentHtml}
+
       ${currentCard ? `
-        <div class="shortcuts-bar" style="margin-top:14px;">
+        <div class="shortcuts-bar">
           <span><kbd class="kbd">←</kbd> / <kbd class="kbd">J</kbd> Anterior</span>
           <span><kbd class="kbd">→</kbd> / <kbd class="kbd">K</kbd> Próximo</span>
           <span><kbd class="kbd">F</kbd> Virar Cartão</span>
@@ -379,14 +442,13 @@ function renderFlashcardsSection() {
 
 export function renderTimer() {
   const subjects = store.getSubjects();
-  const datalistHtml = `<datalist id="cats">${subjects.map(s => `<option value="${escapeHtml(s.name)}">`).join("")}</datalist>`;
 
   const modeSwitcherHtml = `
     <div style="display:flex; background:rgba(0,0,0,0.4); border:1px solid var(--line); border-radius:14px; padding:4px; margin: 0 auto 20px; max-width: 400px;">
-      <button style="flex:1; padding:9px; border-radius:10px; border:none; cursor:pointer; font-weight:600; font-family:var(--font); font-size:13.5px; transition:all 0.25s; ${timer.mode === "prog" ? "background:rgba(255,255,255,0.12); color:#fff; box-shadow:0 4px 12px rgba(0,0,0,0.3);" : "background:transparent; color:var(--mu);"}" onclick="window.studai.setTimerMode('prog')">
+      <button style="flex:1; padding:9px; border-radius:10px; border:none; cursor:pointer; font-weight:700; font-family:var(--font); font-size:13.5px; transition:all 0.25s; ${timer.mode === "prog" ? "background:linear-gradient(135deg, #4fff97, #10b981); color:#03140a; box-shadow:0 4px 12px rgba(45,255,122,0.3);" : "background:transparent; color:var(--mu);"}" onclick="window.studai.setTimerMode('prog')">
         ⏱️ Cronômetro
       </button>
-      <button style="flex:1; padding:9px; border-radius:10px; border:none; cursor:pointer; font-weight:600; font-family:var(--font); font-size:13.5px; transition:all 0.25s; ${timer.mode === "pomo" ? "background:rgba(255,255,255,0.12); color:#fff; box-shadow:0 4px 12px rgba(0,0,0,0.3);" : "background:transparent; color:var(--mu);"}" onclick="window.studai.setTimerMode('pomo')">
+      <button style="flex:1; padding:9px; border-radius:10px; border:none; cursor:pointer; font-weight:700; font-family:var(--font); font-size:13.5px; transition:all 0.25s; ${timer.mode === "pomo" ? "background:linear-gradient(135deg, #f43f5e, #e11d48); color:#fff; box-shadow:0 4px 12px rgba(244,63,94,0.3);" : "background:transparent; color:var(--mu);"}" onclick="window.studai.setTimerMode('pomo')">
         🍅 Pomodoro
       </button>
     </div>
@@ -399,14 +461,14 @@ export function renderTimer() {
       <div style="display:flex; align-items:center; gap:10px;">
         <span style="font-size:20px;">⚡</span>
         <div>
-          <b style="font-size:13px; color:var(--tx);">Pop-up Flutuante Inteligente (PiP HUD)</b>
-          <div class="sub" style="font-size:11.5px;">Abre uma mini-janela no topo de outros aplicativos e abas enquanto você estuda.</div>
+          <b style="font-size:13px; color:var(--tx-bright);">Pop-up Flutuante Inteligente (PiP HUD)</b>
+          <div class="sub" style="font-size:11.5px;">Mini-janela Always-On-Top flutuando no topo de outros aplicativos enquanto você estuda.</div>
         </div>
       </div>
       <div style="display:flex; align-items:center; gap:8px;">
         <label style="display:flex; align-items:center; gap:6px; cursor:pointer;" title="Abrir pop-up automaticamente ao alternar abas ou aplicativos">
           <input type="checkbox" ${timer.autoPipEnabled ? "checked" : ""} onchange="window.studai.toggleAutoPip(this.checked)" style="width:16px; height:16px; accent-color:var(--g); cursor:pointer;">
-          <span class="sub" style="font-size:12px; font-weight:600; color:var(--tx);">Auto ao sair</span>
+          <span class="sub" style="font-size:12px; font-weight:600; color:var(--tx-bright);">Auto ao sair</span>
         </label>
         <button class="btn o" style="font-size:12px; padding:6px 14px;" onclick="window.studai.togglePip()">
           ${timer.pipWindow ? "✖ Fechar HUD" : "🗗 Abrir Pop-up"}
@@ -415,34 +477,52 @@ export function renderTimer() {
     </div>
   `;
 
+  const savedScratchpad = localStorage.getItem("studai_hud_scratchpad") || "";
+
   const activeTimerCardHtml = `
     <div class="card">
       ${modeSwitcherHtml}
+      ${renderSoundscapesWidget()}
       ${smartPipBarHtml}
-      ${datalistHtml}
       ${activeTimerUi}
-      <hr style="border:0; border-top:1px solid var(--line); margin: 20px 0;">
-      <div class="row">
-${renderSubjectDropdown('sc', 'Matéria *', timer.form.category, subjects, "window.studai.setTimerFormField('category', this.value)")}        <input id="st" placeholder="Tópico aprendido *" value="${escapeHtml(timer.form.topic)}" oninput="window.studai.setTimerFormField('topic', this.value)">
+
+      <!-- Bloco de Notas Rápidas de Foco -->
+      <div class="scratchpad-container">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:12px; font-weight:700; color:var(--g); text-transform:uppercase; letter-spacing:0.5px;">
+            📝 Bloco de Rascunho Rápido (Auto-Save)
+          </span>
+          <span class="sub" style="font-size:10.5px;">Salvo automaticamente neste navegador</span>
+        </div>
+        <textarea class="scratchpad-textarea" placeholder="Anote fórmulas, pensamentos, tópicos ou dúvidas temporárias durante a sessão..." oninput="window.studai.saveScratchpad(this.value)">${escapeHtml(savedScratchpad)}</textarea>
       </div>
-      <textarea id="sw" rows="3" placeholder="O que você estudou nesse tópico? *" oninput="window.studai.setTimerFormField('notes', this.value)" style="margin-bottom:8px">${escapeHtml(timer.form.notes)}</textarea>
-      <div class="sub">* Campos obrigatórios para salvar a sessão no histórico e pontuar XP.</div>
+
+      <hr style="border:0; border-top:1px solid var(--line); margin: 20px 0;">
+      
+      <h4 style="font-size:14px; margin-bottom:10px;">Finalizar e Registrar Sessão:</h4>
+      <div class="row">
+        ${renderSubjectDropdown('sc', 'Matéria *', timer.form.category, subjects, "window.studai.setTimerFormField('category', this.value)")}
+        <input id="st" placeholder="Tópico aprendido *" value="${escapeHtml(timer.form.topic)}" oninput="window.studai.setTimerFormField('topic', this.value)">
+      </div>
+      <textarea id="sw" rows="3" placeholder="O que você aprendeu ou praticou nesse tópico? *" oninput="window.studai.setTimerFormField('notes', this.value)" style="margin-bottom:8px;">${escapeHtml(timer.form.notes)}</textarea>
+      <div class="sub">* Preencha para salvar no histórico, criar flashcards automáticos e pontuar XP.</div>
     </div>
   `;
 
   const manualEntryCardHtml = `
     <div class="card">
-      <h3>Adicionar sessão manualmente</h3>
+      <h3>Adicionar Sessão Manualmente</h3>
       <div class="row">
-${renderSubjectDropdown('mc', 'Matéria *', timer.manualForm.category, subjects, "window.studai.setManualFormField('category', this.value)")}        <input id="mm" type="number" min="1" placeholder="Minutos *" value="${escapeHtml(timer.manualForm.minutes)}" oninput="window.studai.setManualFormField('minutes', this.value)">
+        ${renderSubjectDropdown('mc', 'Matéria *', timer.manualForm.category, subjects, "window.studai.setManualFormField('category', this.value)")}
+        <input id="mm" type="number" min="1" placeholder="Minutos *" value="${escapeHtml(timer.manualForm.minutes)}" oninput="window.studai.setManualFormField('minutes', this.value)">
         <input id="md" type="date" value="${timer.manualForm.date || getTodayIso()}" oninput="window.studai.setManualFormField('date', this.value)">
       </div>
       <div class="row">
         <input id="mt" placeholder="Tópico aprendido *" value="${escapeHtml(timer.manualForm.topic)}" oninput="window.studai.setManualFormField('topic', this.value)">
       </div>
-      <textarea id="mw" rows="2" placeholder="O que você estudou desse tópico? *" oninput="window.studai.setManualFormField('notes', this.value)" style="margin-bottom:12px">${escapeHtml(timer.manualForm.notes)}</textarea>
+      <textarea id="mw" rows="2" placeholder="O que você estudou nesse tópico? *" oninput="window.studai.setManualFormField('notes', this.value)" style="margin-bottom:12px;">${escapeHtml(timer.manualForm.notes)}</textarea>
       <div class="row">
-        <button class="btn" onclick="window.studai.addManualSession()">Registrar sessão</button>
+        <button class="btn" onclick="window.studai.addManualSession()">Registrar Sessão (+XP)</button>
       </div>
     </div>
   `;

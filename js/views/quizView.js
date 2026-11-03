@@ -246,7 +246,7 @@ export function renderQuiz() {
     const apiKey = getApiKey();
     const currentModel = getModelName();
     const subjects = store.getSubjects();
-    const datalistHtml = `<datalist id="cats">${subjects.map(s => `<option value="${escapeHtml(s.name)}">`).join("")}</datalist>`;
+
 
     const availableLogsCount = (store.state.logs || [])
       .filter(l => !aiConfig.category || (l.cat || "Geral") === aiConfig.category).length;
@@ -302,7 +302,7 @@ export function renderQuiz() {
     <div class="card">
       <h3>✨ Gerador de Quiz com Inteligência Artificial</h3>
       ${aiKeyBoxHtml}
-      ${datalistHtml}
+
       <div class="row">
         <select onchange="window.studai.setAiSourceType(this.value)">
           <option value="logs" ${aiConfig.sourceType === "logs" ? "selected" : ""}>A partir dos meus tópicos de estudo</option>
@@ -314,9 +314,14 @@ ${renderSubjectDropdown('ai-cat', 'Matéria (filtro)', aiConfig.category, subjec
         ? `<textarea rows="4" placeholder="Cole aqui seu resumo, artigo ou anotação..." oninput="window.studai.setAiCustomText(this.value)" style="margin-bottom:8px">${escapeHtml(aiConfig.customText)}</textarea>`
         : `<div class="sub" style="margin-bottom:10px">${availableLogsCount} ${availableLogsCount === 1 ? "registro disponível" : "registros disponíveis"}${aiConfig.category ? " em " + escapeHtml(aiConfig.category) : ""}. Usa os mais recentes.</div>`
       }
-      <button class="btn" onclick="window.studai.triggerAiGeneration()" ${aiConfig.isLoading ? "disabled" : ""}>
-        ${aiConfig.isLoading ? "⏳ Gerando com IA..." : "✨ Gerar Perguntas com IA"}
-      </button>
+      <div style="display:flex; flex-wrap:wrap; gap:8px;">
+        <button class="btn" onclick="window.studai.triggerAiGeneration()" ${aiConfig.isLoading ? "disabled" : ""}>
+          ${aiConfig.isLoading ? "⏳ Gerando com IA..." : "✨ Gerar com Gemini IA"}
+        </button>
+        <button class="btn o" onclick="window.studai.triggerOfflineGeneration()" title="Gera perguntas imediatas a partir dos seus estudos sem precisar de chave de API">
+          ⚡ Gerar Perguntas Offline (Instantâneo)
+        </button>
+      </div>
       ${aiConfig.errorMessage ? `<div class="sub" style="color:var(--red);margin-top:8px">${escapeHtml(aiConfig.errorMessage)}</div>` : ""}
       ${aiPreviewHtml}
     </div>

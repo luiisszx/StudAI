@@ -1,7 +1,7 @@
 /**
  * StudAI — Data Store & Persistence Layer (Firebase Integration)
  */
-import { generateId, sortAlpha, getTodayIso } from "./utils.js";
+import { generateId, sortAlpha, getTodayIso, showToast } from "./utils.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { 
   getAuth, 
@@ -285,26 +285,26 @@ class AppStore {
 
           // Validações
           if (!name) {
-            alert("Por favor, preencha o seu nome ou apelido.");
+            showToast("Por favor, preencha o seu nome ou apelido.", "error");
             nameInput?.focus();
             return;
           }
 
           if (!email) {
-            alert("O e-mail é obrigatório para criar a sua conta e salvar seu perfil.");
+            showToast("O e-mail é obrigatório para criar a conta.", "error");
             emailInput?.focus();
             return;
           }
 
           const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
           if (!emailRegex.test(email)) {
-            alert("Por favor, informe um endereço de e-mail válido (ex: seu@email.com).");
+            showToast("Por favor, informe um e-mail válido.", "error");
             emailInput?.focus();
             return;
           }
 
           if (!password || password.length < 6) {
-            alert("A senha é obrigatória e deve ter pelo menos 6 caracteres.");
+            showToast("A senha deve ter pelo menos 6 caracteres.", "error");
             passInput?.focus();
             return;
           }
@@ -358,14 +358,14 @@ class AppStore {
             this.save();
             localStorage.setItem("studai_guest_mode", "false");
             this.updateAuthUI(userCredential.user);
-            alert(`🎉 Bem-vindo(a) ao StudAI, ${name}! Sua conta foi criada com sucesso!`);
+            showToast(`🎉 Bem-vindo(a) ao StudAI, ${name}! Conta criada!`);
           } catch (err) {
             console.warn("Firebase Auth ou modo local:", err);
             // Salva os dados localmente no perfil caso esteja offline ou sem auth server
             this.save();
             localStorage.setItem("studai_guest_mode", "true");
             this.updateAuthUI(null);
-            alert(`✅ Perfil de ${name} configurado com sucesso! Seus dados e meta diária de ${dailyHours}h já estão ativos.`);
+            showToast(`✅ Perfil de ${name} configurado com sucesso!`);
           } finally {
             btnRegisterSubmit.disabled = false;
             btnRegisterSubmit.textContent = "🚀 Criar Conta & Começar";
@@ -386,12 +386,12 @@ class AppStore {
           const password = passInput ? passInput.value : "";
 
           if (!email) {
-            alert("Por favor, digite seu e-mail.");
+            showToast("Por favor, digite seu e-mail.", "error");
             emailInput?.focus();
             return;
           }
           if (!password) {
-            alert("Por favor, digite sua senha.");
+            showToast("Por favor, digite sua senha.", "error");
             passInput?.focus();
             return;
           }
@@ -406,7 +406,7 @@ class AppStore {
             this.updateAuthUI(userCredential.user);
             const loginOverlay = document.getElementById("login-overlay");
             if (loginOverlay) loginOverlay.style.display = "none";
-            alert("👋 Login realizado com sucesso! Bem-vindo de volta.");
+            showToast("👋 Login realizado com sucesso! Bem-vindo de volta.");
           } catch (err) {
             console.error("Erro no login:", err);
             let msg = "Erro ao fazer login. Verifique seu e-mail e senha.";
@@ -417,7 +417,7 @@ class AppStore {
             } else if (err.code === "auth/invalid-email") {
               msg = "Formato de e-mail inválido.";
             }
-            alert(msg);
+            showToast(msg, "error");
           } finally {
             btnLoginSubmit.disabled = false;
             btnLoginSubmit.textContent = "Entrar no StudAI";
@@ -432,7 +432,7 @@ class AppStore {
         btnLoginOverlay.onclick = () => {
           signInWithPopup(auth, provider).catch(err => {
             console.warn("Falha no popup Google, tentando continuar:", err);
-            alert("Aviso: Login Google indisponível neste ambiente (" + err.message + "). Você pode cadastrar sua conta com e-mail e senha ou continuar como Convidado.");
+            showToast("Login Google indisponível neste ambiente. Use e-mail ou modo offline.", "info");
           });
         };
       }
@@ -501,20 +501,15 @@ class AppStore {
       if (loginOverlay) loginOverlay.style.display = "none";
       if (userInfo) userInfo.style.display = "flex";
       if (userName) userName.textContent = `👤 ${displayName}`;
-      if (btnLogout) btnLogout.style.display = "inline-block";
+      if (btnLogout) btnLogout.style.display = "inline-flex";
       if (btnLoginHeader) btnLoginHeader.style.display = "none";
-    } else if (isGuest || profile.name) {
+    } else {
+      // Modo Convidado / Offline sem bloquear o usuário
       if (loginOverlay) loginOverlay.style.display = "none";
       if (userInfo) userInfo.style.display = "flex";
       if (userName) userName.textContent = `👤 ${displayName}${!user ? " (Local)" : ""}`;
       if (btnLogout) btnLogout.style.display = "none";
-      if (btnLoginHeader) btnLoginHeader.style.display = "inline-block";
-    } else {
-      if (loginOverlay) loginOverlay.style.display = "flex";
-      if (userInfo) userInfo.style.display = "flex";
-      if (userName) userName.textContent = "👤 Convidado";
-      if (btnLogout) btnLogout.style.display = "none";
-      if (btnLoginHeader) btnLoginHeader.style.display = "inline-block";
+      if (btnLoginHeader) btnLoginHeader.style.display = "inline-flex";
     }
   }
   // --- Banco de Dados Nuvem vs Local ---
